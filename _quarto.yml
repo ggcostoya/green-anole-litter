@@ -1,6 +1,7 @@
 project:
   title: "green-anole-litter"
   type: website
+  output-dir: docs
 
 website:
   navbar:
@@ -14,3 +15,7 @@ format:
   html:
     theme: cosmo
 
+knitr:
+  opts_chunk:
+    dev: png
+    dpi: 350
