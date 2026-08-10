@@ -1,0 +1,16 @@
+project:
+  title: "green-anole-litter"
+  type: website
+
+website:
+  navbar:
+    left:
+    - href: home.qmd
+      text: Start Here
+    - href: space-by-time.qmd
+      text: Space-by-Time
+
+format:
+  html:
+    theme: cosmo
+
