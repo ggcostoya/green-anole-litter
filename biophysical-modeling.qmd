@@ -1,0 +1,951 @@
+---
+title: "Biophysical Modeling"
+format:
+  html:
+    code-fold: true
+    fig-dpi: 300
+---
+
+```{r r-setup, warning = FALSE, message = FALSE}
+# packages
+library(tidyverse)
+library(terra)
+library(sf)
+library(geosphere)
+library(rnaturalearth)
+library(mapview)
+library(mapedit)
+library(kableExtra)
+
+# options
+options(
+  dplyr.summarise.inform = FALSE,
+  knitr.table.html.attr = "quarto-disable-processing=true"
+)
+
+```
+
+## Overview
+
+## Green anole range
+
+```{r define-caro-range, eval = FALSE}
+## Note: This code chunk is not evaluated as it requires manual interaction
+## to define the green anole's range using the `mapedit` package. The resulting 
+## range points are saved as an RDS file for later use.
+
+caro_occ_data <- read.csv("raw_data/anolis_carolinensis_inat_obs.csv")
+
+# round coordinates and remove observations with low positional accuracy
+caro_occ_data <- caro_occ_data |>
+  mutate(
+    lat = round(latitude, 1), lon = round(longitude, 1),
+  ) |>
+  filter(
+    !is.na(positional_accuracy) & positional_accuracy <= 1000
+  ) |>
+  group_by(lon, lat) |>
+  summarise(n = n(), .groups = "drop") |>
+  filter(n > 2) |>
+  select(lon, lat)
+
+# filter data to native range of green anole
+caro_occ_data <- caro_occ_data |>
+  filter(
+    lon > -110 & lon < -70, lat > 22.5 & lat < 37.5
+  )
+
+# remove outliers based on distance to other observations
+caro_occ_data$is_outlier <- apply(
+  caro_occ_data[, c("lon", "lat")], 1, function(x) {
+    distances <- geosphere::distm(
+      x,
+      caro_occ_data[, c("lon", "lat")],
+      fun = distHaversine
+    )
+    # if there are fewer than 3 observations within 50 km, mark as outlier
+    if (length(distances) > 0 && sum(distances < 50000) < 3) {
+      1
+    } else {
+      0
+    }
+  }
+)
+
+# save processed occurrence data
+saveRDS(caro_occ_data, "data/caro_occ_data.rds")
+
+# transform into a spatial object
+caro_occ_sf <- st_as_sf(
+  caro_occ_data[caro_occ_data$is_outlier == 0, ],
+  coords = c("lon", "lat"),
+  crs = 4326
+)
+
+# manually draw map around range
+mapviewOptions(fgb = FALSE)
+caro_range_sf <- editMap(mapview(caro_occ_sf))
+
+# transform into a polygon object
+caro_range_sf <- st_as_sf(caro_range_sf$finished)
+
+# filter data to only include points within the continental US
+caro_range_sf <- st_intersection(
+  caro_range_sf,
+  ne_countries(scale = "medium", returnclass = "sf") |>
+    filter(admin == "United States of America") |>
+    st_crop(xmin = -125, xmax = -65, ymin = 20, ymax = 50)
+)
+
+# generate a grid of points within the range polygon
+grid <- st_make_grid(caro_range_sf, cellsize = 0.1, square = TRUE)
+caro_range_points <- grid[st_intersects(grid, caro_range_sf, sparse = FALSE)]
+caro_range_points <- as.data.frame(st_coordinates(caro_range_points))
+caro_range_points <- caro_range_points |>
+  rename(lon = X, lat = Y) |>
+  mutate(
+    lon = round(lon, 1), lat = round(lat, 1)
+  ) |>
+  distinct() |>
+  select(lon, lat)
+
+# save caro range points
+saveRDS(caro_range_points, "data/caro_range_points.rds")
+
+```
+
+```{r plot-range}
+#| fig-align: "center"
+#| fig-width: 6
+
+caro_range_points <- readRDS("data/caro_range_points.rds")
+caro_occ_data <- readRDS("data/caro_occ_data.rds")
+
+ggplot() +
+  geom_polygon(
+    data = map_data("world"),
+    aes(x = long, y = lat, group = group),
+    fill = "lightgray", color = "darkgray"
+  ) +
+  geom_polygon(
+    data = map_data("state"),
+    aes(x = long, y = lat, group = group),
+    fill = NA, color = "gray"
+  ) +
+  geom_tile(
+    data = caro_range_points,
+    aes(x = lon, y = lat),
+    fill = "forestgreen", alpha = 0.25
+  ) +
+  geom_point(
+    data = caro_occ_data,
+    aes(x = lon, y = lat, color = as.factor(is_outlier)),
+    size = 1, alpha = 0.75
+  ) +
+  scale_color_manual(
+    values = c("darkgreen", "darkred"),
+    labels = c("In Range", "Outlier")
+  ) +
+  coord_quickmap(xlim = c(-101, -75), ylim = c(24, 37.5)) +
+  theme_minimal() +
+  scale_x_continuous(
+    breaks = seq(-100, -75, by = 5),
+    labels = function(x) paste0(abs(x), "°W"),
+    expand = c(0, 0)
+  ) +
+  scale_y_continuous(
+    breaks = seq(25, 37.5, by = 2.5),
+    labels = function(x) paste0(x, "°N"),
+    expand = c(0, 0)
+  ) +
+  theme(
+    legend.position = "top",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 10),
+    axis.title = element_blank(),
+    axis.text = element_text(size = 10),
+    panel.border = element_rect(fill = NA),
+    axis.ticks = element_line(),
+    panel.grid = element_blank()
+  )
+```
+
+## Ecological data
+
+```{r get-ecological-data, eval = FALSE}
+## Note: This code chunk is not evaluated as it requires downloading large
+## datasets. The resulting ecological data is saved as an RDS file
+## for later use.
+
+# get polygon for the continental US
+continental_us_polygon <- ne_countries(scale = "medium", returnclass = "sf") |>
+  filter(admin == "United States of America") |>
+  st_crop(
+    xmin = min(caro_range_points$lon) - 2,
+    xmax = max(caro_range_points$lon) + 2,
+    ymin = min(caro_range_points$lat) - 2,
+    ymax = max(caro_range_points$lat) + 2
+  ) |>
+  st_transform(crs = 4326)
+
+# download 30s rasters for tree cover, wetland and mangrove
+tree_cover_rast <- geodata::landcover(
+  var = "trees", path = "raw_data/landuse"
+)
+wetland_rast <- geodata::landcover(
+  var = "wetland", path = "raw_data/landuse"
+)
+mangrove_rast <- geodata::landcover(
+  var = "mangroves", path = "raw_data/landuse"
+)
+vegetation_rast <- tree_cover_rast + wetland_rast + mangrove_rast
+
+# crop and summarize vegetation rasters
+vegetation_rast_us <- terra::crop(vegetation_rast, continental_us_polygon)
+vegetation_rast_us <- terra::aggregate(vegetation_rast_us, fact = 12, fun = "mean") # nolint
+
+# rdownload and process minimum temperature data
+tmin_rast <- geodata::worldclim_global(
+  var = "tmin", res = 0.5, path = "raw_data/wc2.1_30s_tmin"
+)
+tmin_files <- list.files("raw_data/wc2.1_30s_tmin", full.names = TRUE)
+tmin_rast_list <- list()
+for (i in seq_along(tmin_files)) {
+  rast <- terra::rast(tmin_files[i])
+  rast_us <- terra::crop(rast, continental_us_polygon)
+  rast_us <- terra::aggregate(rast_us, fact = 12, fun = mean)
+  tmin_rast_list <- append(tmin_rast_list, rast_us)
+}
+
+# read and process maximum temperature data
+tmax_rast <- geodata::worldclim_global(
+  var = "tmax", res = 0.5, path = "raw_data/wc2.1_30s_tmax"
+)
+tmax_files <- list.files("raw_data/wc2.1_30s_tmax", full.names = TRUE)
+tmax_rast_list <- list()
+for (i in seq_along(tmax_files)) {
+  rast <- terra::rast(tmax_files[i])
+  rast_us <- terra::crop(rast, continental_us_polygon)
+  rast_us <- terra::aggregate(rast_us, fact = 12, fun = mean)
+  tmax_rast_list <- append(tmax_rast_list, rast_us)
+}
+
+# combine all rasters into a single data frame
+eco_rast_list <- c(vegetation_rast_us, tmin_rast_list, tmax_rast_list)
+eco_df <- as.data.frame(eco_rast_list, xy = TRUE, na.rm = TRUE)
+colnames(eco_df) <- c("lon", "lat", "veg", paste0("tmin_", 1:12), paste0("tmax_", 1:12)) # nolint
+eco_df$lon <- round(eco_df$lon, 1)
+eco_df$lat <- round(eco_df$lat, 1)
+
+# get elevation raster
+elevation <- geodata::elevation_30s(
+  lon = eco_df$lon,
+  lat = eco_df$lat,
+  path = "raw_data/elevation",
+  country = "USA"
+)
+elevation <- terra::crop(elevation, continental_us_polygon)
+elevation_df <- as.data.frame(elevation, xy = TRUE, na.rm = TRUE) |>
+  setNames(c("lon", "lat", "elevation")) |>
+  mutate(lat = round(lat, 1), lon = round(lon, 1)) |>
+  group_by(lon, lat) |>
+  summarise(elevation = mean(elevation, na.rm = TRUE), .groups = "drop")
+
+# merge data
+elevation_df <- merge(
+  elevation_df,
+  caro_range_points |> mutate(present = 1),
+  by = c("lon", "lat"),
+  all.x = TRUE
+)
+elevation_df$present[is.na(elevation_df$present)] <- 0
+
+# combine all rasters into a single data frame
+eco_df <- merge(eco_df, elevation_df, by = c("lon", "lat"), all.x = TRUE)
+eco_df <- eco_df |> filter(!is.na(elevation))
+
+# pivot longer for temperature data
+eco_df <- eco_df |>
+  pivot_longer(
+    cols = c(starts_with("tmin_"), starts_with("tmax_")),
+    names_to = c("temp_type", "month"),
+    names_pattern = "(tmin|tmax)_(\\d+)",
+    values_to = "temp"
+  ) |>
+  mutate(month = as.integer(month)) |>
+  pivot_wider(
+    names_from = temp_type,
+    values_from = temp
+  ) |>
+  unnest(cols = c(tmin, tmax))
+
+# merge with caro range points to indicate presence/absence
+eco_df <- merge(
+  eco_df,
+  caro_range_points |> mutate(present = 1),
+  by = c("lon", "lat"),
+  all.x = TRUE
+)
+eco_df$present[is.na(eco_df$present)] <- 0
+
+# save final ecological data
+saveRDS(eco_df, "data/eco_data.rds")
+```
+
+:::{.panel-tabset}
+
+## Physiological & Behavioral Thresholds
+
+In the plot below, we visualize how the green anole's range is distributed across different temperature thresholds imposed by the physiology and behavior of the species. The thresholds are defined as follows:
+
+- **Hard Threshold**: Minimum annual temperature below 0°C, which is lethal for the species.
+- **Soft Threshold**: Minimum annual temperature between 0°C and 5.35°C, which is the lowest ever empirically estimated CT<sub>min</sub>.
+- **Behavioral Threshold**: Minimum annual temperature between 5.35°C and 6.6°C, which is the temperature at which there is < 10% of observing green anoles perching at night based on our surveys.
+
+```{r plot-temp-thresholds, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+#| fig-width: 6
+
+eco_data <- readRDS("data/eco_data.rds")
+
+# define temp thresholds
+thresh1 <- 0
+thresh2 <- 5.35
+thresh3 <- 6.6
+
+eco_data |>
+  group_by(lon, lat, present) |>
+  summarise(
+    min_temp = min(tmin, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  mutate(
+    buckets = case_when(
+      min_temp < thresh1 ~ "hard_thresh",
+      min_temp >= thresh1 & min_temp < thresh2 ~ "soft_thresh",
+      min_temp >= thresh2 & min_temp < thresh3 ~ "behavioral_thresh",
+      TRUE ~ "rest_of_range"
+    )
+  ) |>
+  mutate(
+    buckets = factor(
+      buckets,
+      levels = c(
+        "hard_thresh",
+        "soft_thresh",
+        "behavioral_thresh",
+        "rest_of_range"
+      )
+    )
+  ) |>
+  ggplot(aes(x = lon, y = lat, fill = buckets)) +
+  geom_tile() +
+  geom_contour(
+    aes(z = present),
+    color = "white", linewidth = 1
+  ) +
+  scale_fill_manual(
+    values = c(
+      "hard_thresh" = "darkblue",
+      "soft_thresh" = "steelblue",
+      "behavioral_thresh" = "skyblue",
+      "rest_of_range" = "gray"
+    ),
+    name = "Temperature\nThresholds",
+    labels = c(
+      "Hard Threshold (< 0°C)",
+      "Soft Threshold (0-5.35°C)",
+      "Behavioral Threshold (5.35-6.6°C)",
+      "Rest of Range (> 6.6°C)"
+    ),
+    guide = guide_legend(
+      ncol = 2
+    )
+  ) +
+  coord_quickmap(xlim = c(-101, -75), ylim = c(25, 37.5)) +
+  scale_x_continuous(
+    breaks = seq(-100, -75, by = 5),
+    labels = function(x) paste0(abs(x), "°W"),
+    expand = c(0, 0)
+  ) +
+  scale_y_continuous(
+    breaks = seq(25, 37.5, by = 2.5),
+    labels = function(x) paste0(x, "°N"),
+    expand = c(0, 0)
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "top",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 12),
+    axis.title = element_blank(),
+    axis.text = element_text(size = 10),
+    panel.border = element_rect(fill = NA),
+    axis.ticks = element_line(),
+    panel.grid = element_blank(),
+  )
+```
+
+## Vegetation Cover
+
+In the plot below, we consider any area to be vegetated if it has tree cover, wetland, or mangrove cover. The vegetation cover is expressed as a percentage of the total area.
+
+```{r plot-vegetation-cover}
+#| fig-align: "center"
+#| fig-width: 6
+
+eco_data |>
+  select(lon, lat, veg) |>
+  distinct() |>
+  ggplot(aes(x = lon, y = lat, fill = veg)) +
+  geom_tile() +
+  scale_fill_gradient(
+    low = "yellow",
+    high = "darkgreen",
+    name = "Vegetation\nCover"
+  ) +
+  coord_quickmap(xlim = c(-101, -75), ylim = c(25, 37.5)) +
+  scale_x_continuous(
+    breaks = seq(-100, -75, by = 5),
+    labels = function(x) paste0(abs(x), "°W"),
+    expand = c(0, 0)
+  ) +
+  scale_y_continuous(
+    breaks = seq(25, 37.5, by = 2.5),
+    labels = function(x) paste0(x, "°N"),
+    expand = c(0, 0)
+  ) +
+  theme_minimal() +
+  theme(
+    axis.title = element_blank(),
+    axis.text = element_text(size = 10),
+    panel.border = element_rect(fill = NA),
+    axis.ticks = element_line(),
+    panel.grid = element_blank(),
+    legend.title = element_blank()
+  ) +
+  labs(
+    title = "Vegetation Cover (%)",
+  )
+
+```
+
+## Minimum Annual Temperature
+
+```{r plot-min-temp, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+#| fig-width: 6
+
+eco_data |>
+  group_by(lon, lat) |>
+  summarise(min_temp = min(tmin, na.rm = TRUE), .groups = "drop") |>
+  ggplot(aes(x = lon, y = lat, fill = min_temp)) +
+  geom_tile() +
+  geom_contour(
+    aes(z = min_temp),
+    color = "gray80",
+    linewidth = 0.2,
+    alpha = 0.25
+  ) +
+  scale_fill_gradient(
+    low = "darkblue",
+    high = "lightblue",
+    name = "Minimum\nAnnual Temp (°C)"
+  ) +
+  coord_quickmap(xlim = c(-101, -75), ylim = c(25, 37.5)) +
+  scale_x_continuous(
+    breaks = seq(-100, -75, by = 5),
+    labels = function(x) paste0(abs(x), "°W"),
+    expand = c(0, 0)
+  ) +
+  scale_y_continuous( 
+    breaks = seq(25, 37.5, by = 2.5),
+    labels = function(x) paste0(x, "°N"),
+    expand = c(0, 0)
+  ) +
+  theme_minimal() +
+  theme(
+    axis.title = element_blank(),
+    axis.text = element_text(size = 10),
+    panel.border = element_rect(fill = NA),
+    axis.ticks = element_line(),
+    panel.grid = element_blank(),
+    legend.title = element_blank()
+  ) +
+  labs(
+    title = "Minimum Annual Temperature (°C)",
+  )
+```
+
+:::
+
+## The green anole's cold-range overfill
+
+A key question is the extent to which the green anole's range is overfilled on the cold side, meaning what % of its range experiences a minimum annual temperature below it's CT<sub>min</sub>. The plot below shows the minimum annual temperature across all latitudes encompassing the green anole's range, along with empirically estimated CT<sub>min</sub> values from two studies.
+
+```{r range-overfill, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+#| fig-width: 5
+#| fig-height: 5
+#| out-width: "70%"
+
+# generate CTmin data from studies
+ctmin_data_cs <- tibble(
+  lat = c(25.9, 28.8, 30.266, 32.75, 33.47),
+  ctmin = c(10, 9.65, 8.45, 8.32, 7.8),
+  study = "Campbell-Staton et al., 2017"
+)
+ctmin_data_husak <- tibble(
+  lat = c(26.51, 29.9, 32.77, 35.44),
+  ctmin = 2^c(2.7, 2.85, 2.56, 2.42),
+  study = "Husak et al., 2026"
+)
+ctmin_data <- rbind(ctmin_data_cs, ctmin_data_husak)
+
+eco_data |>
+  filter(present == 1) |>
+  group_by(lon, lat) |>
+  summarise(
+    tmin = min(tmin, na.rm = TRUE),
+  ) |>
+  group_by(lat) |>
+  summarise(
+    mean_tmin = mean(tmin, na.rm = TRUE),
+    min_tmin = min(tmin, na.rm = TRUE),
+    max_tmin = max(tmin, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  ggplot(aes(x = lat)) +
+  geom_ribbon(
+    aes(ymin = min_tmin, ymax = max_tmin),
+    fill = "lightblue", alpha = 0.5
+  ) +
+  geom_line(
+    aes(y = mean_tmin),
+    color = "darkblue",
+    size = 1
+  ) +
+  geom_point(
+    data = ctmin_data,
+    aes(x = lat, y = ctmin, color = study),
+    size = 3
+  ) +
+  geom_smooth(
+    data = ctmin_data,
+    aes(x = lat, y = ctmin, color = study),
+    method = "lm",
+    se = FALSE,
+    fullrange = TRUE,
+  ) +
+  geom_hline(
+    yintercept = 0,
+    linetype = "dashed",
+    color = "red"
+  ) +
+  scale_color_manual(
+    values = c("darkorange", "purple"),
+    name = expression(paste("Empirical CT"[min]," from:"))
+  ) +
+  scale_x_continuous(
+    expand = c(0, 0)
+  ) +
+  labs(
+    x = "Latitude (°N)",
+    y = expression(paste("Minimum Annual Temperature (°C)"))
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = c(0.75, 0.9),
+    legend.text = element_text(size = 10),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    axis.line = element_line(),
+    axis.ticks = element_line(),
+    panel.grid = element_blank()
+  ) +
+  coord_cartesian(xlim = c(25, 37.5))
+```
+
+Based on this pattern, we can assess that, even in the most generous scenario, the green anole's range is overfilelled on the cold side by > 87% of its range based on the lowest empirically estimated CT<sub>min</sub> value. Further, > 25% of its range falls below 0°C. The table below summarizes the proportion of the green anole's range that falls below the lowest, average, and maximum empirically estimated CT<sub>min</sub> values.
+
+```{r table-proportions-below-ctmin}
+# table proportions of range falling below lowest, average and maximum CTmin
+eco_data |>
+  filter(present == 1) |>
+  group_by(lon, lat) |>
+  summarise(
+    tmin = min(tmin, na.rm = TRUE),
+  ) |>
+  mutate(
+    below_lowest_ctmin = tmin < min(ctmin_data$ctmin, na.rm = TRUE),
+    below_avg_ctmin = tmin < mean(ctmin_data$ctmin, na.rm = TRUE),
+    below_max_ctmin = tmin < max(ctmin_data$ctmin, na.rm = TRUE),
+    below_0 = tmin < 0
+  ) |>
+  ungroup() |>
+  summarise(
+    prop_below_lowest_ctmin = mean(below_lowest_ctmin, na.rm = TRUE),
+    prop_below_avg_ctmin = mean(below_avg_ctmin, na.rm = TRUE),
+    prop_below_max_ctmin = mean(below_max_ctmin, na.rm = TRUE),
+    prop_below_0 = mean(below_0, na.rm = TRUE),
+  ) |>
+  pivot_longer(
+    cols = everything(),
+    names_to = "ctmin_category",
+    values_to = "proportion"
+  ) |>
+  mutate(
+    ctmin_value = case_when(
+      ctmin_category == "prop_below_lowest_ctmin" ~ round(min(ctmin_data$ctmin, na.rm = TRUE), 2),
+      ctmin_category == "prop_below_avg_ctmin" ~ round(mean(ctmin_data$ctmin, na.rm = TRUE), 2),
+      ctmin_category == "prop_below_max_ctmin" ~ round(max(ctmin_data$ctmin, na.rm = TRUE), 2),
+      ctmin_category == "prop_below_0" ~ 0
+    ),
+    ctmin_category = case_when(
+      ctmin_category == "prop_below_lowest_ctmin" ~ paste("Lowest CTmin - ", ctmin_value, "°C"),
+      ctmin_category == "prop_below_avg_ctmin" ~ paste("Average CTmin - ", ctmin_value, "°C"),
+      ctmin_category == "prop_below_max_ctmin" ~ paste("Maximum CTmin - ", ctmin_value, "°C"),
+      ctmin_category == "prop_below_0" ~ paste("0°C (Freezing Threshold)")
+    )
+  ) |>
+  select(-ctmin_value) |>
+  rename(
+    "Threshold" = ctmin_category,
+    "Proportion of Range Below" = proportion
+  ) |>
+  kable() |>
+  kable_styling(
+    full_width = FALSE,
+    position = "center"
+  )
+```
+
+Below it is also expressed in degrees latitude overfilled.
+
+```{r table-overfilling-degrees-lat}
+eco_data |>
+  filter(present == 1) |>
+  group_by(lon, lat) |>
+  summarise(
+    tmin = min(tmin, na.rm = TRUE),
+  ) |>
+  mutate(
+    below_lowest_ctmin = tmin < min(ctmin_data$ctmin, na.rm = TRUE),
+    below_avg_ctmin = tmin < mean(ctmin_data$ctmin, na.rm = TRUE),
+    below_highest_ctmin = tmin < max(ctmin_data$ctmin, na.rm = TRUE),
+    below_0 = tmin < 0
+  ) |>
+  ungroup() |>
+  pivot_longer(
+    cols = c(below_lowest_ctmin, below_avg_ctmin, below_highest_ctmin, below_0),
+    names_to = "category",
+    values_to = "below_threshold"
+  ) |>
+  filter(below_threshold) |>
+  group_by(category) |>
+  filter(lat == min(lat, na.rm = TRUE)) |>
+  slice(1) |>
+  ungroup() |>
+  mutate(
+    degrees_overfill = max(caro_range_points$lat, na.rm = TRUE) - lat
+  ) |>
+  mutate(
+    category = case_when(
+      category == "below_lowest_ctmin" ~ paste("Lowest CTmin - ", round(min(ctmin_data$ctmin, na.rm = TRUE), 2), "°C"),
+      category == "below_avg_ctmin" ~ paste("Average CTmin - ", round(mean(ctmin_data$ctmin, na.rm = TRUE), 2), "°C"),
+      category == "below_highest_ctmin" ~ paste("Maximum CTmin - ", round(max(ctmin_data$ctmin, na.rm = TRUE), 2), "°C"),
+      category == "below_0" ~ paste("0°C (Freezing Threshold)")
+    )
+  ) |>
+  select(category, degrees_overfill) |>
+  rename(
+    "Threshold" = category,
+    "Degrees Overfill" = degrees_overfill
+  ) |>
+  kable() |>
+  kable_styling(
+    full_width = FALSE,
+    position = "center"
+  )
+
+```
+
+This degree of range overfilling falls 
+
+## Biophysical Modeling
+
+```{r define-params}
+
+# define physical constants
+k <- 0.05 # thermal conductivity of leaf litter (W m^-1 K^-1)
+rho <- 150 # bulk density of leaf litter (kg m^-3)
+cp <- 2500 # specific heat capacity of leaf litter (J kg^-1 K^-1)
+cc <- 0.007 # canopy cooling coefficient (W m^-2)
+srh <- 0.02 # surface radiative heat flux coefficient (C / W m^-2 K^-1)
+ecc <- 0.0167 # earth orbit eccentricity
+spo <- 1.36 # extraterrestial solar radiation (kW m^-2)
+atc <- 0.83 # atmospheric transmissivity coefficient (unitless)
+
+# calculate derived physical constants
+diff_sec <- k / (rho * cp) # thermal diffusivity of leaf litter (m^2 s^-1)
+diff_hour <- diff_sec * 3600 # thermal diffusivity of leaf litter (m^2 h^-1)
+omega <- 2 * pi / 24 # angular frequency of diurnal temperature cycle (rad h^-1)
+damping_depth <- sqrt((2 * diff_hour) / omega) # damping depth (m)
+
+# define list of heights and depths of interest
+zs <- c(seq(-0.2, -0.01, by = 0.01), 0, 1.8, 2.2, 3)
+
+```
+
+```{r estimate-microclimate, eval = FALSE}
+## Note: This code chunk is not evaluated as it requires significant computation time. 
+## The resulting microclimate data is saved as an RDS file for later use.
+
+eco_df <- eco_data
+
+# define function to calculate solar radiation profile
+get_solar_rad_profile <- function(lat, elev, doy, solar_noon) {
+  hours <- 0:23
+  elon <- (2 * pi / 365) * (doy - 80) + 2 * ecc * (sin(2 * pi / 365 * doy) - sin(2 * pi / 365 * 80)) # nolint
+  dec_ang <- asin(0.3879672 * sin(elon))
+  p_a <- 101.3 * exp(-elev / 8200)
+  geo_lat <- lat * (pi / 180)
+  sin_alt_ang <- sin(geo_lat) * sin(dec_ang) + cos(geo_lat) * cos(dec_ang) * outer(solar_noon, hours, function(s, h) cos(0.2618 * (h - s))) # nolint
+  m_a <- p_a / (101.3 * (1 / sin_alt_ang))
+  solar_rad <- spo * atc ^ m_a * sin_alt_ang
+  solar_rad[solar_rad < 0] <- 0
+  drop(solar_rad * 1000)
+}
+
+# define function to calculate air temperature profile
+get_air_temp_profile <- function(tmax, tmin) {
+  w <- pi / 12
+  gamma <- 0.44 - 0.46 * sin(0.9 + w * (0:23)) + 0.11 * sin(0.9 + 2 * w * (0:23)) # nolint
+  drop(outer(tmax, gamma) + outer(tmin, 1 - gamma))
+}
+
+# define function to correct air temperature profile from canopy cooling
+correct_air_temp_profile <- function(
+    air_temp_profile, cc = 0.007, solar_rad_profile, veg_cover) {
+  is_vec <- is.vector(air_temp_profile)
+  if (is_vec) {
+    air_temp_profile  <- matrix(air_temp_profile,  nrow = 1)
+    solar_rad_profile <- matrix(solar_rad_profile, nrow = 1)
+  }
+  result <- air_temp_profile - sweep(cc * solar_rad_profile, 1, veg_cover, "*")
+  if (is_vec) drop(result) else result
+}
+
+# define function to calculate surface temperature profile
+get_surf_temp_profile <- function(
+    air_temp_profile, solar_rad_profile, srh = 0.02, veg_cover) {
+  is_vec <- is.vector(air_temp_profile)
+  if (is_vec) {
+    air_temp_profile  <- matrix(air_temp_profile,  nrow = 1)
+    solar_rad_profile <- matrix(solar_rad_profile, nrow = 1)
+  }
+  result <- air_temp_profile + sweep(srh * solar_rad_profile, 1, 1 - veg_cover, "*") # nolint
+  if (is_vec) drop(result) else result
+}
+
+get_z_temp_profile <- function(
+  z_list, surf_temp_profile, air_temp_profile, damping_depth, ref_height = 1.8
+) {
+
+  # check if the input profiles are vectors or matrices
+  is_vec <- is.vector(surf_temp_profile)
+  if (is_vec) {
+    surf_temp_profile <- matrix(surf_temp_profile, nrow = 1)
+    air_temp_profile  <- matrix(air_temp_profile,  nrow = 1)
+  }
+
+  # define hours and extended hours for interpolation
+  hours <- 0:23
+  surf_temp_mean <- rowMeans(surf_temp_profile)
+  extended_hours <- c(hours - 24, hours, hours + 24)
+
+  # calculate temperature profiles at different heights and depths
+  z_temp_profiles <- lapply(z_list, function(z) {
+    if (z == 0) {
+      surf_temp_profile
+    } else if (z == ref_height) {
+      air_temp_profile
+    } else if (z > 0) {
+      a <- log((z + 0.01) / 0.01) / log((ref_height + 0.01) / 0.01)
+      surf_temp_profile - (surf_temp_profile - air_temp_profile) * a
+    } else {
+      damp_ratio <- exp(-abs(z) / damping_depth)
+      phase_lag <- (abs(z) / damping_depth) * (24 / (2 * pi))
+      xout <- hours - phase_lag
+      idx <- findInterval(xout, extended_hours)
+      w <- (xout - extended_hours[idx]) / (extended_hours[idx + 1] - extended_hours[idx]) # nolint
+      ext_surf <- cbind(surf_temp_profile, surf_temp_profile, surf_temp_profile)
+      shifted_temp <- sweep(ext_surf[, idx],     2, 1 - w, "*") + sweep(ext_surf[, idx + 1], 2, w, "*") # nolint
+      surf_temp_mean + (shifted_temp - surf_temp_mean) * damp_ratio
+    }
+  })
+
+  # combine the temperature profiles into a matrix
+  names(z_temp_profiles) <- z_list
+  if (is_vec) z_temp_profiles <- lapply(z_temp_profiles, drop)
+  z_temp_profiles
+
+}
+
+# get solar noon time for each point in eco_df
+eco_df$solar_noon <- mapply(
+  TrenchR::solar_noon,
+  lon = eco_df$lon,
+  doy = eco_df$month * 30 - 15
+)
+
+# calculate air temperature profile for every point in eco_df
+air_temp_prof <- get_air_temp_profile(
+  tmax = eco_df$tmax,
+  tmin = eco_df$tmin
+)
+
+# calculate solar radiation profile for every point in eco_df
+solar_rad_prof <- get_solar_rad_profile(
+  lat = eco_df$lat,
+  elev = eco_df$elevation,
+  doy = eco_df$month * 30 - 15,
+  solar_noon = eco_df$solar_noon
+)
+
+# calculate corrected air temperature profile for every point in eco_df
+air_temp_prof_corrected <- correct_air_temp_profile(
+  air_temp_profile = air_temp_prof,
+  solar_rad_profile = solar_rad_prof,
+  veg_cover = eco_df$veg
+)
+
+# calculate surface temperature profile for every point in eco_df
+surf_temp_prof <- get_surf_temp_profile(
+  air_temp_profile = air_temp_prof_corrected,
+  solar_rad_profile = solar_rad_prof,
+  veg_cover = eco_df$veg
+)
+
+# calculate temperature profiles at different heights and depths for every point in eco_df # nolint
+zs_temp_profiles <- get_z_temp_profile(
+  z_list = zs,
+  surf_temp_profile = surf_temp_prof,
+  air_temp_profile = air_temp_prof_corrected,
+  damping_depth = damping_depth
+)
+
+# summarize zs temperature profiles into a data frame
+microclimate_temps <- Map(
+  function(z_temp, z_val) {
+    data.frame(
+      lon = eco_df$lon,
+      lat = eco_df$lat,
+      elev = eco_df$elevation,
+      veg = eco_df$veg,
+      presence = eco_df$present,
+      z                = z_val,
+      min_temp         # calculate temperature profiles at different heights and depths for every point in eco_df # nolint
+zs_temp_profiles <- get_z_temp_profile(
+  z_list = zs,
+  surf_temp_profile = surf_temp_prof,
+  air_temp_profile = air_temp_prof_corrected,
+  damping_depth = damping_depth
+)= do.call(pmin, as.data.frame(z_temp)),
+      hours_below_0C   = rowSums(z_temp < 0),
+      hours_below_6.8C = rowSums(z_temp < 6.8)
+    )
+  },
+  zs_temp_profiles, zs
+) |>
+  bind_rows() |>
+  group_by(lon, lat, elev, veg, presence, z) |>
+  summarise(
+    min_annual_temp   = min(min_temp),
+    hours_below_0C    = sum(hours_below_0C),
+    hours_below_ctmin = sum(hours_below_6.8C),
+    .groups = "drop"
+  )
+
+# save zs_temp_profiles
+saveRDS(microclimate_temps, "data/microclimate_temps.rds")
+
+```
+
+```{r plot-microclimate-by-lat}
+
+microclimate_temps <- readRDS("data/microclimate_temps.rds")
+
+summarized_microclimates <- microclimate_temps |>
+  filter(presence == 1) |>
+  group_by(lat, z) |>
+  summarise(
+    mean_min_temp = mean(min_annual_temp, na.rm = TRUE),
+    max_min_temp = max(min_annual_temp, na.rm = TRUE),
+    min_min_temp = min(min_annual_temp, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  filter(as.character(z) %in% c("-0.05", "2.2")) |>
+  mutate(
+    z = factor(z, levels = c("-0.05", "2.2"), labels = c("Leaf Litter", "Canopy"))
+  )
+
+ggplot() +
+  geom_ribbon(
+    data = summarized_microclimates,
+    aes(
+      x = lat,
+      ymin = min_min_temp,
+      ymax = max_min_temp,
+    ),
+    fill = "lightblue", alpha = 0.5
+  ) +
+  geom_line(
+    data = summarized_microclimates,
+    aes(
+      x = lat,
+      y = mean_min_temp
+    ),
+    linewidth = 1, color = "darkblue"
+  ) +
+  geom_point(
+    data = ctmin_data,
+    aes(x = lat, y = ctmin, color = study),
+    size = 3
+  ) +
+  geom_smooth(
+    data = ctmin_data,
+    aes(x = lat, y = ctmin, color = study),
+    method = "lm",
+    se = FALSE,
+    fullrange = TRUE,
+  ) +
+  geom_hline(
+    yintercept = 0,
+    linetype = "dashed",
+    color = "red"
+  ) +
+  scale_color_manual(
+    values = c("darkorange", "purple"),
+    name = expression(paste("Empirical CT"[min]," from:"))
+  ) +
+  scale_x_continuous(
+    expand = c(0, 0)
+  ) +
+  labs(
+    x = "Latitude (°N)",
+    y = expression(paste("Minimum Annual Temperature (°C)"))
+  ) +
+  theme_minimal() +
+  theme(
+    legend.text = element_text(size = 10),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    panel.border = element_rect(fill = NA),
+    axis.ticks = element_line(),
+    panel.grid = element_blank(),
+    strip.text = element_text(size = 12, face = "bold")
+  ) +
+  facet_wrap(~z)
+
+```

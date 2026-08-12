@@ -1,0 +1,371 @@
+---
+title: "Time for Space Analysis of Retreating Temperatures"
+format:
+  html:
+    code-fold: true
+    fig-dpi: 300
+---
+
+```{r r-setup, warning = FALSE, message = FALSE}
+# packages
+library(tidyverse)
+library(NicheMapR)
+library(kableExtra)
+
+# options
+options(
+  dplyr.summarise.inform = FALSE,
+  knitr.table.html.attr = "quarto-disable-processing=true"
+)
+
+```
+
+### Overview
+
+The goal of this analysis is to estimate the threshold temperature at which Green Anoles (*Anolis carolinensis*) retreat to the leaf litter and are no longer observed in the tree canopy. To determine this threshold, we will combine field survey and iButton-based temperature data and later statistically analyze the relationship between temperature and both presence and abundance of Green Anoles.
+
+### Data Processing
+
+Below we first read in the survey and iButton data. Both of these data have been previously processed to be compatible with subsequent analysis and each other.
+
+```{r read-data}
+
+survey <- readRDS("data/sleepy-lizard-survey-data.rds")
+ibutton <- readRDS("data/ibutton-data.rds")
+
+as_tibble(survey)
+as_tibble(ibutton)
+
+```
+
+The dataset structure is as follows:
+
+- In `survey`, each row corresponds to a unique lizard observation. Some rows are left completely as `NA` indicating that no lizards were observed during that survey. It contains the following columns:
+  - `year`: `numeric` year of the survey.
+  - `doy`: `numeric` day of year of the survey.
+  - `mod`: `numeric` minute of the day in which each observation occured.
+  - `air_temp`: `numeric` air temperature in degrees Celsius at the time of the observation.
+  - `body_temp`: `numeric` body temperature of the lizard in degrees Celsius at the time of the observation.
+  - `start_mod` & `end_mod`: `numeric` start and end time of the survey in minutes since midnight
+  - `n_participants`: `numeric` number of participants in the survey.
+
+- In `ibutton`, each row corresponds to a unique temperature observation from an iButton data logger. It contains the following columns:
+  - `location`: `character` location where the iButton was deployed. Each value corresponds to a unique city including `{r} unique(ibutton$location)`.
+  - `id`: `numeric` unique identifier for each iButton within each `location`.
+  - `year`, `doy`, `mod`: same as in `survey`.
+  - `microhabitat`: `character` microhabitat in which the iButton was deployed including `{r} unique(ibutton$microhabitat)`.
+
+Next we filter the iButton data to match the survey data and combine the two datasets. The resulting dataset contains the mean temperature for each microhabitat during each survey. In this case, we only use data from `ATL` to match the survey data, but we will use the complete dataset for other analyses.
+
+```{r process-data}
+#| code-fold: false
+#| filename: "Code for Processing Survey and iButton Data"
+
+# filter iButton data to match survey data
+ibutton_survey <- ibutton |>
+  filter(location == "ATL") |>
+  mutate(year = year + 2000) |> # resolve year formatting issue
+  filter(year >= min(survey$year) & year <= max(survey$year)) |>
+  filter(paste(year, doy) %in% paste(survey$year, survey$doy)) |>
+  left_join(
+    survey |>
+      select(year, doy, start_mod, end_mod) |>
+      unique(),
+    by = c("year", "doy")
+  ) |>
+  # one survey went past midnight, so we cap end_mod at 1440 (24 hours)
+  mutate(end_mod = ifelse(end_mod > 1440, 1440, end_mod)) |>
+  filter(mod >= start_mod & mod <= end_mod) |>
+  group_by(year, doy, microhabitat) |>
+  filter(temp > -10) |> # remove erroneous iButton readings
+  summarise(
+    mean_temp = mean(temp, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  pivot_wider(
+    names_from = microhabitat,
+    values_from = mean_temp
+  ) |>
+  rename(
+    branch_temp = branch,
+    litter_temp = leaflitter
+  )
+
+# combine survey and iButton data
+survey_ibutton <- survey |> left_join(ibutton_survey, by = c("year", "doy"))
+```
+
+Below we visualize provide a few visualizations of the combined dataset
+
+:::{.panel-tabset}
+
+## Temperature Data
+
+From the plot below, we can see that minimum temperatures in the leaf litter are consistently warmer than those in branches. 
+
+```{r plot-temperature-data}
+#| fig-align: "center"
+#| fig-width: 6
+#| fig-height: 4
+
+theme_set(
+  theme_minimal() +
+    theme(
+      axis.line = element_line(),
+      axis.ticks = element_line(),
+      panel.grid.minor = element_blank(),
+      panel.grid.major = element_line(color = "gray90", linewidth = 0.05)
+    )
+)
+
+ibutton |>
+  filter(temp > -10) |>
+  filter(year > 24) |>
+  filter(!(year == 25 & doy < 200)) |>
+  mutate(
+    continuous_doy = ifelse(year == 26, doy + 365, doy)
+  ) |>
+  filter(location == "ATL") |>
+  group_by(year, continuous_doy, microhabitat) |>
+  summarise(
+    min_temp = min(temp, na.rm = TRUE),
+    max_temp = max(temp, na.rm = TRUE),
+    mean_temp = mean(temp, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  ggplot(aes(x = continuous_doy, y = min_temp, color = microhabitat)) +
+  geom_hline(yintercept = 0, color = "gray90", linewidth = 0.5) +
+  geom_vline(xintercept = 365, color = "gray90", linewidth = 0.5) +
+  geom_point(aes(group = microhabitat), size = 1.25, alpha = 0.5) +
+  geom_smooth(
+    aes(group = microhabitat), method = "loess", linewidth = 1, se = FALSE
+  ) +
+  scale_color_manual(
+    values = c("forestgreen", "darkorange"),
+    labels = c("Branch", "Leaf Litter")
+  ) +
+  scale_x_continuous(
+    breaks = seq(200, 600, 50),
+    labels = function(x) ifelse(x > 365, x - 365, x)
+  ) +
+  labs(
+    x = "Day of Year (Continuous)",
+    y = "Minimum Temperature (°C)",
+    color = "Microhabitat",
+    subtitle = "Late 2025 to early 2026, ATL iButton Data"
+  ) +
+  theme(
+    panel.spacing.x = unit(0, "lines")
+  )
+
+```
+
+## Presence and Abundance
+
+```{r plot-presence-abundance}
+#| fig-align: "center"
+#| fig-width: 6
+#| fig-height: 4
+
+survey_ibutton |>
+  group_by(year, doy, branch_temp, litter_temp) |>
+  summarise(
+    count = n(),
+    presence = ifelse(count > 1, 1, 0),
+    .groups = "drop"
+  ) |>
+  mutate(continuous_doy = ifelse(year == 2026, doy + 365, doy)) |>
+  pivot_longer(
+    cols = c(presence, count),
+    names_to = "metric",
+    values_to = "value"
+  ) |>
+  mutate(
+    metric = factor(
+      metric,
+      levels = c("presence", "count"),
+      labels = c("Presence (0/1)", "Abundance (Count)")
+    )
+  ) |>
+  ggplot(aes(x = continuous_doy, y = value)) +
+  geom_vline(xintercept = 365, color = "gray90", linewidth = 0.5) +
+  geom_point(
+    color = "forestgreen", alpha = 0.5, size = 3
+  ) +
+  scale_x_continuous(
+    breaks = seq(200, 600, 50),
+    labels = function(x) ifelse(x > 365, x - 365, x)
+  ) +
+  labs(
+    x = "Day of Year (Continuous)",
+    y = "Value",
+    subtitle = "Late 2025 to early 2026, ATL Survey Data"
+  ) +
+  facet_wrap(~metric, scales = "free_y")
+
+
+```
+
+## Ambient-Body Temperature Relationship
+
+Ambient and body temperatures are very strongly correlated and they pretty much follow a 1:1 relationship especially as ambient temperatures get colder.
+
+```{r plot-ambient-body-temp}
+survey_ibutton |>
+  filter(!is.na(body_temp)) |>
+  ggplot(aes(x = air_temp, y = body_temp)) +
+  geom_abline(slope = 1, intercept = 0, color = "gray90", linewidth = 0.5) +
+  geom_point(color = "forestgreen", alpha = 0.5, size = 3) +
+  geom_smooth(
+    method = "lm", color = "darkgreen", fill = "forestgreen", alpha = 0.2
+  ) +
+  labs(
+    x = "Ambient Air Temperature (°C)",
+    y = "Lizard Body Temperature (°C)",
+    subtitle = "ATL Survey Data"
+  )
+```
+
+:::
+
+### Estimating Retreating Temperature Threshold
+
+In the following analyses, we model the relationship between branch temperature and lizard observation/abundance to identify temperature thresholds at which lizards retreat due to cold temperatures. We focus on branch temperature as a representative of the overall air temperature the lizard experiences in its "typical" habitat. We use two different models to estimate these thresholds: a binomial logistic regression and a Poisson regression. From each model fit, we then extract the most relevant temperature thresholds for lizard retreating behavior.
+
+#### Observation Probability
+
+First we visualize the relationship between branch temperature and the probability of observing at least one lizard during a survey.
+
+```{r plot-observation-probability, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+#| fig-width: 4
+#| fig-height: 4
+#| out.width: 66%
+survey_ibutton |>
+  group_by(year, doy, branch_temp, litter_temp) |>
+  summarise(
+    count = n(),
+    presence = ifelse(count > 1, 1, 0),
+    .groups = "drop"
+  ) |>
+  ggplot(aes(x = branch_temp, y = presence)) +
+  geom_jitter(
+    width = 0, height = 0.01,
+    color = "forestgreen", alpha = 0.5, size = 3
+  ) +
+  geom_smooth(
+    method = "glm", method.args = list(family = "binomial"),
+    color = "darkgreen",
+    fill = "forestgreen",
+    alpha = 0.2
+  ) +
+  labs(
+    x = "Mean Branch Temp. (°C)",
+    y = "Probability of Seeing at least ONE Lizard"
+  )
+```
+
+```{r model-observation-probability}
+survey_ibutton_model_data <- survey_ibutton |>
+  group_by(year, doy, branch_temp, litter_temp) |>
+  summarise(
+    count = n(),
+    presence = ifelse(count > 1, 1, 0),
+    .groups = "drop"
+  )
+
+presence_model <- glm(
+  presence ~ branch_temp,
+  data = survey_ibutton_model_data,
+  family = "binomial"
+)
+summary(presence_model)
+
+# predict temperature thresholds
+tibble(probability = c(0.5, 0.1, 0.05, 0.01)) |>
+  mutate(
+    logit = log(probability / (1 - probability)),
+    temp_mean_est = round((logit - coef(presence_model)[1]) / coef(presence_model)[2], 2), # nolint
+    temp_lower_est = round((logit - coef(presence_model)[1] - 1.96 * summary(presence_model)$coefficients[2, 2]) / coef(presence_model)[2], 2), # nolint
+    temp_upper_est = round((logit - coef(presence_model)[1] + 1.96 * summary(presence_model)$coefficients[2, 2]) / coef(presence_model)[2], 2) # nolint
+  ) |>
+  select(probability, temp_mean_est, temp_lower_est, temp_upper_est) |>
+  mutate(temp = paste(temp_mean_est, " (", temp_lower_est, " - ", temp_upper_est, ")", sep = "")) |>
+  select(probability, temp) |>
+  rename(
+    `Probability of Observation` = probability,
+    `Temp. (°C)` = temp
+  ) |>
+  kable() |>
+  kable_styling(
+    full_width = FALSE,
+    position = "center"
+  )
+```
+
+The model, as expected, shows a significant positive effect of branch temperature on observation probability. The table above shows the estimated branch temperature thresholds at which we expect to observe lizards with different probabilities. For example, we expect to see at least one lizard during a survey 50% of the time when the branch temperature is around `{r} round((log(0.5 / (1 - 0.5)) - coef(presence_model)[1]) / coef(presence_model)[2], 2)` °C, and we expect to see at least one lizard during a survey 10% of the time when the branch temperature is around `{r} round((log(0.1 / (1 - 0.1)) - coef(presence_model)[1]) / coef(presence_model)[2], 2)` °C.
+
+#### Abundance Probability
+
+As before, we first visualize the relationship between branch temperature and the number of lizards observed during a survey.
+
+```{r plot-abundance-probability, warning = FALSE, message = FALSE}
+#| fig-align: "center"
+#| fig-width: 4
+#| fig-height: 4
+#| out.width: 66%
+survey_ibutton |>
+  group_by(year, doy, branch_temp, litter_temp) |>
+  summarise(
+    count = n(),
+    presence = ifelse(count > 1, 1, 0),
+    .groups = "drop"
+  ) |>
+  ggplot(aes(x = branch_temp, y = count - 1)) +
+  geom_jitter(
+    width = 0, height = 0.01,
+    color = "forestgreen", alpha = 0.5, size = 3
+  ) +
+  geom_smooth(
+    method = "glm", method.args = list(family = "poisson"),
+    color = "darkgreen",
+    fill = "forestgreen",
+    alpha = 0.2
+  ) +
+  labs(
+    x = "Mean Branch Temp. (°C)",
+    y = "Number of Lizards Observed"
+  )
+```
+
+```{r model-abundance-probability}
+abundance_model <- glm(
+  count ~ branch_temp,
+  data = survey_ibutton_model_data,
+  family = "poisson"
+)
+summary(abundance_model)
+
+# predict temperature thresholds
+tibble(counts = c(0.5, 1, 2, 5, 10)) |>
+  mutate(
+    log = log(counts),
+    mean_temp_est = round((log - coef(abundance_model)[1]) / coef(abundance_model)[2], 2),
+    max_temp_est = round((log - coef(abundance_model)[1] + 1.96 * summary(abundance_model)$coefficients[2, 2]) / coef(abundance_model)[2], 2),
+    min_temp_est = round((log - coef(abundance_model)[1] - 1.96 * summary(abundance_model)$coefficients[2, 2]) / coef(abundance_model)[2], 2),
+    temp = paste(mean_temp_est, " (", min_temp_est, " - ", max_temp_est, ")", sep = "")
+  ) |>
+  select(counts, temp) |>
+  rename(
+    `Expected Count` = counts,
+    `Air Temperature` = temp
+  ) |>
+  kable() |>
+  kable_styling(
+    full_width = FALSE,
+    position = "center"
+  )
+```
+
+The abundance model shows an even stronger effect of branch temperature on the number of lizards observed during a survey. The table above shows the estimated branch temperature thresholds at which we expect to observe different numbers of lizards during a survey. For example, we expect to see an average of 1 lizard during a survey when the branch temperature is around `{r} round((log(1) - coef(abundance_model)[1]) / coef(abundance_model)[2], 2)` °C, and we expect to see an average of 5 lizards during a survey when the branch temperature is around `{r} round((log(5) - coef(abundance_model)[1]) / coef(abundance_model)[2], 2)` °C.
+

@@ -8,12 +8,16 @@ website:
     left:
     - href: home.qmd
       text: Start Here
-    - href: space-by-time.qmd
-      text: Space-by-Time
+    - href: time-for-space.qmd
+      text: Time-for-Space
+    - href: biophysical-modeling.qmd
+      text: Biophysical Modeling
 
 format:
   html:
     theme: cosmo
+    toc: true
+    lightbox: true
 
 knitr:
   opts_chunk:
