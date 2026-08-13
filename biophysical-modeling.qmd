@@ -492,7 +492,7 @@ A key question is the extent to which the green anole's range is overfilled on t
 # generate CTmin data from studies
 ctmin_data_cs <- tibble(
   lat = c(25.9, 28.8, 30.266, 32.75, 33.47),
-  ctmin = c(10, 9.65, 8.45, 8.32, 7.8),
+  ctmin = c(8.5, 7.1, 6.5, 6.4, 6.1),
   study = "Campbell-Staton et al., 2017"
 )
 ctmin_data_husak <- tibble(
@@ -844,14 +844,8 @@ microclimate_temps <- Map(
       elev = eco_df$elevation,
       veg = eco_df$veg,
       presence = eco_df$present,
-      z                = z_val,
-      min_temp         # calculate temperature profiles at different heights and depths for every point in eco_df # nolint
-zs_temp_profiles <- get_z_temp_profile(
-  z_list = zs,
-  surf_temp_profile = surf_temp_prof,
-  air_temp_profile = air_temp_prof_corrected,
-  damping_depth = damping_depth
-)= do.call(pmin, as.data.frame(z_temp)),
+      z  = z_val,
+      min_temp = do.call(pmin, as.data.frame(z_temp)),
       hours_below_0C   = rowSums(z_temp < 0),
       hours_below_6.8C = rowSums(z_temp < 6.8)
     )

@@ -369,3 +369,120 @@ tibble(counts = c(0.5, 1, 2, 5, 10)) |>
 
 The abundance model shows an even stronger effect of branch temperature on the number of lizards observed during a survey. The table above shows the estimated branch temperature thresholds at which we expect to observe different numbers of lizards during a survey. For example, we expect to see an average of 1 lizard during a survey when the branch temperature is around `{r} round((log(1) - coef(abundance_model)[1]) / coef(abundance_model)[2], 2)` °C, and we expect to see an average of 5 lizards during a survey when the branch temperature is around `{r} round((log(5) - coef(abundance_model)[1]) / coef(abundance_model)[2], 2)` °C.
 
+## Leaf litter buffering across latitudes
+
+```{r plot-buffering}
+#| fig-align: "center"
+#| fig-width: 5
+#| fig-height: 5
+
+# process iButton data
+ibutton_processed <- ibutton |>
+  filter(temp > - 12) |>
+  filter(doy > 250 | doy < 100) |>
+  group_by(location, year, doy, id, microhabitat) |>
+  summarise(
+    min_temp = min(temp, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  group_by(location, year, id, microhabitat) |>
+  summarise(
+    mean_min_temp = mean(min_temp, na.rm = TRUE),
+    min_min_temp = min(min_temp, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  mutate(
+    lat = case_when(
+      location == "MIA" ~ 25.7617,
+      location == "ORL" ~ 28.5383,
+      location == "GNV" ~ 29.6516,
+      location == "PSL" ~ 27.2932,
+      location == "ATL" ~ 33.7490
+    )
+  )
+
+# plot mean minimum temperature across latitudes
+ggplot(
+  ibutton_processed,
+  aes(x = lat, y = mean_min_temp, color = microhabitat)
+) +
+  geom_hline(yintercept = 0, color = "red", linetype = 2, linewidth = 0.5) +
+  geom_jitter(width = 0.1, height = 0, alpha = 0.5) +
+  stat_summary() +
+  stat_summary(geom = "line", linewidth = 1) +
+  scale_x_continuous(
+    breaks = sort(unique(ibutton_processed$lat)),
+    labels = paste(
+      c("MIA", "ORL", "GNV", "PSL", "ATL"),
+      " (",
+      round(sort(unique(ibutton_processed$lat)), 1),
+      "°N)",
+      sep = ""
+    )
+  ) +
+  scale_color_manual(
+    values = c("forestgreen", "darkorange"),
+    labels = c("Branch", "Leaf Litter")
+  ) +
+  theme_minimal() +
+  theme(
+    axis.line = element_line(),
+    axis.ticks = element_line(),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_line(color = "gray90", linewidth = 0.05),
+    axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 12),
+    legend.position = c(0.85, 0.85),
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 12)
+  ) +
+  labs(
+    y = "Mean Minimum Temperature (°C)",
+    color = "Microhabitat"
+  )
+
+# plot minimum min temperature across latitudes
+ggplot(
+  ibutton_processed,
+  aes(x = lat, y = min_min_temp, color = microhabitat)
+) +
+  geom_hline(yintercept = 0, color = "red", linetype = 2, linewidth = 0.5) +
+  geom_jitter(width = 0.1, height = 0, alpha = 0.5) +
+  stat_summary() +
+  stat_summary(geom = "line", linewidth = 1) +
+  scale_x_continuous(
+    breaks = sort(unique(ibutton_processed$lat)),
+    labels = paste(
+      c("MIA", "ORL", "GNV", "PSL", "ATL"),
+      " (",
+      round(sort(unique(ibutton_processed$lat)), 1),
+      "°N)",
+      sep = ""
+    )
+  ) +
+  scale_color_manual(
+    values = c("forestgreen", "darkorange"),
+    labels = c("Branch", "Leaf Litter")
+  ) +
+  theme_minimal() +
+  theme(
+    axis.line = element_line(),
+    axis.ticks = element_line(),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_line(color = "gray90", linewidth = 0.05),
+    axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 12),
+    legend.position = c(0.85, 0.85),
+    legend.text = element_text(size = 12),
+    legend.title = element_text(size = 12)
+  ) +
+  labs(
+    y = "Minimum Minimum Temperature (°C)",
+    color = "Microhabitat"
+  )
+
+
+
+```

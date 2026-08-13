@@ -701,7 +701,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># generate CTmin data from studies</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>ctmin_data_cs <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">lat =</span> <span class="fu">c</span>(<span class="fl">25.9</span>, <span class="fl">28.8</span>, <span class="fl">30.266</span>, <span class="fl">32.75</span>, <span class="fl">33.47</span>),</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">ctmin =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="fl">9.65</span>, <span class="fl">8.45</span>, <span class="fl">8.32</span>, <span class="fl">7.8</span>),</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">ctmin =</span> <span class="fu">c</span>(<span class="fl">8.5</span>, <span class="fl">7.1</span>, <span class="fl">6.5</span>, <span class="fl">6.4</span>, <span class="fl">6.1</span>),</span>
 <span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">study =</span> <span class="st">"Campbell-Staton et al., 2017"</span></span>
 <span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>ctmin_data_husak <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
@@ -850,12 +850,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    <td style="text-align:right;"> 0.8737806 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> Average CTmin -  7.69 °C </td>
-   <td style="text-align:right;"> 0.9377862 </td>
+   <td style="text-align:left;"> Average CTmin -  6.62 °C </td>
+   <td style="text-align:right;"> 0.9190723 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> Maximum CTmin -  10 °C </td>
-   <td style="text-align:right;"> 0.9710332 </td>
+   <td style="text-align:left;"> Maximum CTmin -  8.5 °C </td>
+   <td style="text-align:right;"> 0.9446546 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> 0°C (Freezing Threshold) </td>
@@ -928,12 +928,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    <td style="text-align:right;"> 4.8 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> Average CTmin -  7.69 °C </td>
-   <td style="text-align:right;"> 9.5 </td>
+   <td style="text-align:left;"> Average CTmin -  6.62 °C </td>
+   <td style="text-align:right;"> 9.0 </td>
   </tr>
   <tr>
-   <td style="text-align:left;"> Maximum CTmin -  10 °C </td>
-   <td style="text-align:right;"> 9.9 </td>
+   <td style="text-align:left;"> Maximum CTmin -  8.5 °C </td>
+   <td style="text-align:right;"> 9.5 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Lowest CTmin -  5.35 °C </td>
@@ -1119,31 +1119,25 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb12-144"><a href="#cb12-144" aria-hidden="true" tabindex="-1"></a>      <span class="at">elev =</span> eco_df<span class="sc">$</span>elevation,</span>
 <span id="cb12-145"><a href="#cb12-145" aria-hidden="true" tabindex="-1"></a>      <span class="at">veg =</span> eco_df<span class="sc">$</span>veg,</span>
 <span id="cb12-146"><a href="#cb12-146" aria-hidden="true" tabindex="-1"></a>      <span class="at">presence =</span> eco_df<span class="sc">$</span>present,</span>
-<span id="cb12-147"><a href="#cb12-147" aria-hidden="true" tabindex="-1"></a>      <span class="at">z                =</span> z_val,</span>
-<span id="cb12-148"><a href="#cb12-148" aria-hidden="true" tabindex="-1"></a>      min_temp         <span class="co"># calculate temperature profiles at different heights and depths for every point in eco_df # nolint</span></span>
-<span id="cb12-149"><a href="#cb12-149" aria-hidden="true" tabindex="-1"></a>zs_temp_profiles <span class="ot">&lt;-</span> <span class="fu">get_z_temp_profile</span>(</span>
-<span id="cb12-150"><a href="#cb12-150" aria-hidden="true" tabindex="-1"></a>  <span class="at">z_list =</span> zs,</span>
-<span id="cb12-151"><a href="#cb12-151" aria-hidden="true" tabindex="-1"></a>  <span class="at">surf_temp_profile =</span> surf_temp_prof,</span>
-<span id="cb12-152"><a href="#cb12-152" aria-hidden="true" tabindex="-1"></a>  <span class="at">air_temp_profile =</span> air_temp_prof_corrected,</span>
-<span id="cb12-153"><a href="#cb12-153" aria-hidden="true" tabindex="-1"></a>  <span class="at">damping_depth =</span> damping_depth</span>
-<span id="cb12-154"><a href="#cb12-154" aria-hidden="true" tabindex="-1"></a>)<span class="ot">=</span> <span class="fu">do.call</span>(pmin, <span class="fu">as.data.frame</span>(z_temp)),</span>
-<span id="cb12-155"><a href="#cb12-155" aria-hidden="true" tabindex="-1"></a>      <span class="at">hours_below_0C   =</span> <span class="fu">rowSums</span>(z_temp <span class="sc">&lt;</span> <span class="dv">0</span>),</span>
-<span id="cb12-156"><a href="#cb12-156" aria-hidden="true" tabindex="-1"></a>      <span class="at">hours_below_6.8C =</span> <span class="fu">rowSums</span>(z_temp <span class="sc">&lt;</span> <span class="fl">6.8</span>)</span>
-<span id="cb12-157"><a href="#cb12-157" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb12-158"><a href="#cb12-158" aria-hidden="true" tabindex="-1"></a>  },</span>
-<span id="cb12-159"><a href="#cb12-159" aria-hidden="true" tabindex="-1"></a>  zs_temp_profiles, zs</span>
-<span id="cb12-160"><a href="#cb12-160" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
-<span id="cb12-161"><a href="#cb12-161" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>() <span class="sc">|&gt;</span></span>
-<span id="cb12-162"><a href="#cb12-162" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(lon, lat, elev, veg, presence, z) <span class="sc">|&gt;</span></span>
-<span id="cb12-163"><a href="#cb12-163" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb12-164"><a href="#cb12-164" aria-hidden="true" tabindex="-1"></a>    <span class="at">min_annual_temp   =</span> <span class="fu">min</span>(min_temp),</span>
-<span id="cb12-165"><a href="#cb12-165" aria-hidden="true" tabindex="-1"></a>    <span class="at">hours_below_0C    =</span> <span class="fu">sum</span>(hours_below_0C),</span>
-<span id="cb12-166"><a href="#cb12-166" aria-hidden="true" tabindex="-1"></a>    <span class="at">hours_below_ctmin =</span> <span class="fu">sum</span>(hours_below_6<span class="fl">.8</span>C),</span>
-<span id="cb12-167"><a href="#cb12-167" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
-<span id="cb12-168"><a href="#cb12-168" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb12-169"><a href="#cb12-169" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-170"><a href="#cb12-170" aria-hidden="true" tabindex="-1"></a><span class="co"># save zs_temp_profiles</span></span>
-<span id="cb12-171"><a href="#cb12-171" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(microclimate_temps, <span class="st">"data/microclimate_temps.rds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb12-147"><a href="#cb12-147" aria-hidden="true" tabindex="-1"></a>      <span class="at">z  =</span> z_val,</span>
+<span id="cb12-148"><a href="#cb12-148" aria-hidden="true" tabindex="-1"></a>      <span class="at">min_temp =</span> <span class="fu">do.call</span>(pmin, <span class="fu">as.data.frame</span>(z_temp)),</span>
+<span id="cb12-149"><a href="#cb12-149" aria-hidden="true" tabindex="-1"></a>      <span class="at">hours_below_0C   =</span> <span class="fu">rowSums</span>(z_temp <span class="sc">&lt;</span> <span class="dv">0</span>),</span>
+<span id="cb12-150"><a href="#cb12-150" aria-hidden="true" tabindex="-1"></a>      <span class="at">hours_below_6.8C =</span> <span class="fu">rowSums</span>(z_temp <span class="sc">&lt;</span> <span class="fl">6.8</span>)</span>
+<span id="cb12-151"><a href="#cb12-151" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb12-152"><a href="#cb12-152" aria-hidden="true" tabindex="-1"></a>  },</span>
+<span id="cb12-153"><a href="#cb12-153" aria-hidden="true" tabindex="-1"></a>  zs_temp_profiles, zs</span>
+<span id="cb12-154"><a href="#cb12-154" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb12-155"><a href="#cb12-155" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>() <span class="sc">|&gt;</span></span>
+<span id="cb12-156"><a href="#cb12-156" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(lon, lat, elev, veg, presence, z) <span class="sc">|&gt;</span></span>
+<span id="cb12-157"><a href="#cb12-157" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb12-158"><a href="#cb12-158" aria-hidden="true" tabindex="-1"></a>    <span class="at">min_annual_temp   =</span> <span class="fu">min</span>(min_temp),</span>
+<span id="cb12-159"><a href="#cb12-159" aria-hidden="true" tabindex="-1"></a>    <span class="at">hours_below_0C    =</span> <span class="fu">sum</span>(hours_below_0C),</span>
+<span id="cb12-160"><a href="#cb12-160" aria-hidden="true" tabindex="-1"></a>    <span class="at">hours_below_ctmin =</span> <span class="fu">sum</span>(hours_below_6<span class="fl">.8</span>C),</span>
+<span id="cb12-161"><a href="#cb12-161" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb12-162"><a href="#cb12-162" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb12-163"><a href="#cb12-163" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-164"><a href="#cb12-164" aria-hidden="true" tabindex="-1"></a><span class="co"># save zs_temp_profiles</span></span>
+<span id="cb12-165"><a href="#cb12-165" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(microclimate_temps, <span class="st">"data/microclimate_temps.rds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <div class="cell">
