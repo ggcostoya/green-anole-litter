@@ -1,0 +1,205 @@
+---
+title: "Mechanistic Envelope Models"
+format:
+  html:
+    code-fold: true
+    fig-dpi: 300
+---
+
+```{r r-setup, warning = FALSE, message = FALSE}
+# packages
+library(tidyverse)
+library(NicheMapR)
+library(kableExtra)
+library(viridis)
+
+# options
+options(
+  dplyr.summarise.inform = FALSE,
+  knitr.table.html.attr = "quarto-disable-processing=true"
+)
+
+```
+
+```{r load-data, eval = FALSE}
+
+microclimate_temps <- readRDS("data/microclimate_temps.rds")
+
+# define temperature thresholds
+lethal <- 0
+ctmin <- 5.4
+retreat <- 6.6
+
+# define thresholds
+thresholds <- microclimate_temps |>
+  filter(z == 1.8) |>
+  mutate(
+    thresh = case_when(
+      min_annual_tb < lethal ~ "lethal",
+      min_annual_tb >= lethal & min_annual_tb < ctmin ~ "ctmin",
+      min_annual_tb >= ctmin & min_annual_tb < retreat ~ "retreat",
+      TRUE ~ "rest"
+    )
+  ) |>
+  select(lon, lat, thresh)
+
+# merge microclimate temps with thresholds
+microclimate_temps <- merge(
+  microclimate_temps,
+  thresholds,
+  by = c("lon", "lat"),
+  all.x = TRUE
+)
+
+# define conditions to test
+threshold_names <- unique(microclimate_temps$thresh)
+veg <- seq(0, 1, by = 0.01)
+heights <- unique(microclimate_temps$z)
+
+# create grid to store values
+tss_grid <- expand.grid(
+  thresh = threshold_names,
+  veg = veg,
+  z = heights
+)
+tss_grid$tss <- NA_real_
+
+# loop through thresholds, tree covers, and heights to calculate TSS
+for (i in seq_len(nrow(tss_grid))) {
+
+  # add progress tracker
+  cat("Processing row", i, "of", nrow(tss_grid), "\n")
+
+  if (tss_grid$thresh[i] == "lethal") {
+    data_subset <- microclimate_temps |>
+      filter(
+        thresh == "lethal",
+        z == tss_grid$z[i]
+      )
+  } else if (tss_grid$thresh[i] == "ctmin") {
+    data_subset <- microclimate_temps |>
+      filter(
+        thresh %in% c("lethal", "ctmin"),
+        z == tss_grid$z[i]
+      )
+  } else if (tss_grid$thresh[i] == "retreat") {
+    data_subset <- microclimate_temps |>
+      filter(
+        thresh != "rest",
+        z == tss_grid$z[i]
+      )
+  } else {
+    data_subset <- microclimate_temps |>
+      filter(
+        z == tss_grid$z[i]
+      )
+  }
+
+  tss_value <- data_subset |>
+    mutate(
+      pred = min_annual_tb > lethal & veg > tss_grid$veg[i]
+    ) |>
+    summarise(
+      tp = sum(pred & presence),
+      fp = sum(pred & !presence),
+      fn = sum(!pred & presence),
+      tn = sum(!pred & !presence)
+    ) |>
+    mutate(tss = (tp / (tp + fn)) + (tn / (tn + fp)) - 1) |>
+    pull(tss)
+  tss_grid$tss[i] <- tss_value
+
+}
+
+# save tss grid
+saveRDS(tss_grid, "data/tss_grid.rds")
+```
+
+```{r plot-tss-results}
+#| fig.align: "center"
+#| fig.width: 10
+
+tss_grid <- readRDS("data/tss_grid.rds")
+
+# refactor threshold names for plotting
+tss_grid$thresh <- factor(
+  tss_grid$thresh,
+  levels = c("lethal", "ctmin", "retreat", "rest")
+)
+
+ggplot() +
+  geom_tile(
+    data = tss_grid,
+    aes(x = veg, y = as.factor(z), fill = tss)
+  ) +
+  geom_point(
+    data = tss_grid |>
+      group_by(thresh) |>
+      filter(tss == max(tss, na.rm = TRUE)) |>
+      ungroup(),
+    aes(x = veg, y = as.factor(z)),
+    color = "red",
+    size = 3,
+    shape = 1
+  ) +
+  geom_hline(
+    yintercept = 20.5, color = "white", linetype = "solid"
+  ) +
+  geom_hline(
+    yintercept = 22, color = "white", linetype = "dashed"
+  ) +
+  scale_fill_viridis_b(
+    name = "TSS",
+    limits = c(
+      min(tss_grid$tss, na.rm = TRUE), max(tss_grid$tss, na.rm = TRUE)
+    ),
+    breaks = seq(
+      min(tss_grid$tss, na.rm = TRUE), max(tss_grid$tss, na.rm = TRUE),
+      by = 0.05
+    ),
+    # only show labels for every other break
+    labels = function(x) ifelse(seq_along(x) %% 2 == 1, x, ""),
+    guide = guide_colorsteps(
+      barheight = unit(8, "cm"),
+      barwidth = unit(0.5, "cm")
+    )
+  ) +
+  scale_x_continuous(
+    breaks = seq(0, 1, by = 0.2),
+    labels = scales::percent_format(accuracy = 1),
+    expand = c(0, 0)
+  ) +
+  scale_y_discrete(
+    breaks = unique(tss_grid$z),
+    expand = c(0, 0)
+  ) +
+  facet_wrap(
+    vars(thresh),
+    ncol = 4,
+    axes = "all",
+    labeller = labeller(
+      thresh = as_labeller(
+        c(
+          lethal = "atop('Hard Physiological', 'Threshold (' * 0 * degree * 'C)')", # nolint
+          ctmin = "atop('Soft Physiological', 'Threshold (' * CT[min] * ')')",
+          retreat = "atop('Behavioral', 'Threshold (' * T[retreat] * ')')",
+          rest = "atop('Rest of', 'Range')"
+        ),
+        label_parsed
+      )
+    )
+  ) +
+  labs(
+    x = "Vegetation Cover",
+    y = "Distance from surface\nabove or below leaf litter (m)"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    strip.text = element_text(size = 14),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+    axis.ticks = element_line(color = "black", linewidth = 0.25),
+    axis.title = element_text(size = 12, lineheight = 1.25),
+  )
+
+```

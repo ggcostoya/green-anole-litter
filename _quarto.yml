@@ -10,8 +10,12 @@ website:
       text: Start Here
     - href: time-for-space.qmd
       text: Time-for-Space
+    - href: lizard-overfilling.qmd
+      text: Lizard Overfilling
     - href: biophysical-modeling.qmd
       text: Biophysical Modeling
+    - href: memos.qmd
+      text: Mechanistic Envelope Models
 
 format:
   html:

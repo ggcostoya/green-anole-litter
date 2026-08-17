@@ -11,6 +11,7 @@ format:
 library(tidyverse)
 library(NicheMapR)
 library(kableExtra)
+library(TrenchR)
 
 # options
 options(
@@ -93,6 +94,7 @@ ibutton_survey <- ibutton |>
 
 # combine survey and iButton data
 survey_ibutton <- survey |> left_join(ibutton_survey, by = c("year", "doy"))
+
 ```
 
 Below we visualize provide a few visualizations of the combined dataset
@@ -211,6 +213,7 @@ survey_ibutton |>
 Ambient and body temperatures are very strongly correlated and they pretty much follow a 1:1 relationship especially as ambient temperatures get colder.
 
 ```{r plot-ambient-body-temp}
+
 survey_ibutton |>
   filter(!is.na(body_temp)) |>
   ggplot(aes(x = air_temp, y = body_temp)) +
@@ -219,6 +222,7 @@ survey_ibutton |>
   geom_smooth(
     method = "lm", color = "darkgreen", fill = "forestgreen", alpha = 0.2
   ) +
+  geom_abline(slope = 1, intercept = 0) +
   labs(
     x = "Ambient Air Temperature (°C)",
     y = "Lizard Body Temperature (°C)",

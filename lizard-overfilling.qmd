@@ -1,0 +1,539 @@
+---
+title: "Mismatch between realized and fundamental cold thermal niches in lizards"
+format:
+  html:
+    code-fold: true
+    fig-dpi: 300
+---
+
+```{r r-setup, warning = FALSE, message = FALSE}
+# packages
+library(tidyverse)
+library(NicheMapR)
+library(kableExtra)
+library(terra)
+library(sf)
+library(geodata)
+library(elevatr)
+library(ggpubr)
+
+# options
+options(
+  dplyr.summarise.inform = FALSE,
+  knitr.table.html.attr = "quarto-disable-processing=true"
+)
+```
+
+## Overview
+
+
+
+## Acquire Data
+
+The first step is to acquire the data needed for the analysis. This includes:
+
+- Geographic ranges of lizards which we obtain from the GARD database.
+
+- Global minimum annual temperature data which we obtain from WorldClim.
+
+- Global elevation data which we obtain from the elevatr package.
+
+```{r obtain-data, eval = FALSE}
+
+# read in lizard range data
+range_shapefile <- st_read(
+  "raw_data/lizard_ranges/doi_10_5061_dryad_9cnp5hqmb__v20220427"
+)
+ranges_vector <- terra::vect(range_shapefile)
+
+# get WorldClim minimum annual temperature data
+global_min_temp <- geodata::worldclim_global(
+  var = "tmin",
+  res = 2.5,
+  path = "raw_data"
+)
+
+# find minimum value across all layers of the raster for each cell
+global_min_temp <- global_min_temp |> terra::app(fun = min, na.rm = TRUE)
+
+# try WorldClim elevation first; fall back to elevatr if server is unavailable
+global_elev <- elevatr::get_elev_raster(
+  locations = global_min_temp,
+  z = 3,
+  prj = terra::crs(global_min_temp),
+  clip = "locations"
+)
+global_elev <- terra::rast(global_elev)
+global_elev <- terra::crop(global_elev, global_min_temp)
+global_elev <- terra::project(global_elev, global_min_temp)
+global_elev <- terra::mask(global_elev, global_min_temp)
+
+# add elevation layer to global_min_temp raster
+global_min_temp <- c(global_min_temp, global_elev)
+
+# save datasets
+saveRDS(global_min_temp, "data/global_min_temp.rds")
+saveRDS(ranges_vector, "data/ranges_vector.rds")
+
+```
+
+In addition to the above, we have also obtained data on the CT<sub>min</sub> from:
+
+- The GlobTherm database.
+
+- Bodensteiner et al. 2021 (https://doi.org/10.1111/1365-2435.13853)
+
+- Salazar et al. 2022 (https://doi.org/10.1111/ele.14092)
+
+With the latter two sources being specific to *Anolis* lizards. Further, we also obtain data on the minimum and maximum elevation at which each species occurs from the same two papers and from SquamBase (Meiri 2020). The structure of the resulting dataset is shown below:
+
+```{r show-ctmin-data}
+ctmin_data <- readRDS("data/ctmin_data.rds")
+as_tibble(ctmin_data)
+```
+
+We obtained data for a total of `{r} unique(ctmin_data$species) |> length()` lizard species. Out of these, `{r} sum(!is.na(ctmin_data$min_elev) & !is.na(ctmin_data$max_elev))` species have clearly defined elevational ranges.
+
+## Analysis
+
+Next, for each species we will extract the minimum annual temperature data across its geographic range and determine:
+
+- The proportion and area of the species range that is below its CT<sub>min</sub>.
+
+- The maximum absolute latitude within the species range at which the minimum annual temperature is greater than or equal to its CT<sub>min</sub>.
+
+```{r get-ctmin-results, eval = FALSE}
+
+# read in CTmin data
+global_min_temp <- readRDS("data/global_min_temp.rds")
+ranges_vector <- readRDS("data/ranges_vector.rds")
+
+# filter CTmin data to only species within the range shapefile
+ctmin_data <- ctmin_data |>
+  filter(species %in% ranges_vector$binomial) |>
+  filter(!is.na(min_elev) & !is.na(max_elev))
+
+# define function to convert latitude/longitude degrees to cell area in km^2
+deg_to_area <- function(lat_deg, delta_lat = 0.0416, delta_long = 0.0416) {
+
+  # Convert latitude from degrees to radians
+  lat_rad <- lat_deg * pi / 180
+
+  # WGS84 ellipsoid constants
+  a <- 6378.1370      # Semi-major axis (equatorial radius in km)
+  b <- 6356.7523142   # Semi-minor axis (polar radius in km)
+
+  # Calculate the radius of curvature in the meridian (North-South)
+  e_sq <- (a^2 - b^2) / a^2
+  denominator <- (1 - e_sq * sin(lat_rad)^2)^(1.5)
+  m <- (a * (1 - e_sq)) / denominator
+
+  # Length of 1 degree of latitude in km at this specific latitude
+  km_per_degree_lat <- m * (pi / 180)
+  lat_dist <- km_per_degree_lat * delta_lat
+
+  # WGS84 Earth semi-major axis in km
+  a_km <- 6378.137
+
+  # Flattening factor
+  f <- 1 / 298.257223563
+
+  # Calculate distance of 1 degree longitude along the parallel
+  dist_km <- (pi / 180) * a_km * cos(lat_rad) / sqrt(1 - (2 * f - f^2) * sin(lat_rad)^2) # nolint
+  lon_dist <- delta_long * dist_km
+
+  # Return cell area in km^2
+  lat_dist * lon_dist
+}
+
+# loop to extract data
+results_list <- vector("list", nrow(ctmin_data))
+
+# holder list for latitudinal change in min temperature across species range
+lat_temp_change_list <- list()
+
+for (i in seq_along(ctmin_data$species)) {
+
+  tryCatch({
+
+    # filter data for species of interest
+    species_name <- ctmin_data$species[i]
+    species_range <- ranges_vector[ranges_vector$binomial == species_name, ]
+    species_ctmin <- ctmin_data$ctmin[ctmin_data$species == species_name][1]
+
+    # get minimum and maximum latitude within range
+    min_lat <- min(abs(terra::ext(species_range)[3:4]))
+    max_lat <- max(abs(terra::ext(species_range)[3:4]))
+
+    # get proportion of range below CTmin
+    species_min_temp <- terra::extract(
+      global_min_temp, species_range, xy = TRUE
+    )
+    colnames(species_min_temp) <- c("id", "tmin", "elev", "x", "y")
+
+    # filter elevations outside of range
+    species_min_temp <- species_min_temp |>
+      filter(elev >= ctmin_data$min_elev[i] & elev <= ctmin_data$max_elev[i])
+
+    # calculate area of each cell based on latitude and that all cells re
+    species_min_temp$area_km2 <- deg_to_area(species_min_temp$y)
+
+    # get proportion of cells below CTmin
+    props <- species_min_temp |>
+      summarise(
+        total_area = sum(area_km2, na.rm = TRUE),
+        area_below_ctmin = sum(area_km2[tmin < species_ctmin], na.rm = TRUE),
+      ) |>
+      mutate(
+        prop_below_ctmin = area_below_ctmin / total_area
+      )
+    prop_below_ctmin <- props |> pull(prop_below_ctmin)
+    area_below_ctmin <- props |> pull(area_below_ctmin)
+    total_area <- props |> pull(total_area)
+
+    # get maximum absolute latitude within range at which Tmin is >= CTmin
+    above_ctmin <- species_min_temp |> filter(tmin >= species_ctmin)
+    max_lat_above_ctmin <- if (nrow(above_ctmin) == 0) {
+      NA_real_
+    } else {
+      max(abs(above_ctmin$y), na.rm = TRUE)
+    }
+
+    # store results in pre-allocated list
+    results_list[[i]] <- tibble(
+      species = species_name,
+      ctmin = species_ctmin,
+      min_lat = min_lat,
+      max_lat = max_lat,
+      prop_below_ctmin = prop_below_ctmin,
+      area_below_ctmin = area_below_ctmin,
+      total_area = total_area,
+      max_lat_above_ctmin = max_lat_above_ctmin
+    )
+
+    # get latitudinal change in min temperature across species range
+    lat_temp_change_list[[i]] <- species_min_temp |>
+      mutate(abs_lat = abs(round(y, 1))) |>
+      group_by(abs_lat) |>
+      summarise(
+        mean_min_temp = mean(tmin, na.rm = TRUE),
+        max_min_temp = max(tmin, na.rm = TRUE),
+        min_min_temp = min(tmin, na.rm = TRUE)
+      ) |>
+      ungroup() |>
+      mutate(species = species_name)
+
+  }, error = function(e) {
+    message(
+      "Error on species ", i, " (", ctmin_data$species[i], "): ", e$message
+    )
+  })
+
+  # clear up memory
+  rm(species_range, species_min_temp, above_ctmin)
+  terra::tmpFiles(remove = TRUE)
+  gc()
+
+  print(paste0("Processed species ", i, " of ", nrow(ctmin_data)))
+
+}
+
+# bind rows in results list
+results <- bind_rows(results_list)
+
+# bind all species latitudinal temperature change data into a single data frame
+lat_temp_change_df <- bind_rows(lat_temp_change_list)
+
+# save datasets
+saveRDS(results, "data/ctmin_results.rds")
+saveRDS(lat_temp_change_df, "data/lat_temp_change_df.rds")
+
+```
+
+## Results
+
+Below we present the results of the analysis through 3 plots:
+
+Global minimum annual temperature as a function of absolute latitude, with the CT<sub>min</sub> of each species overlaid. The dashed line represents 0°C, the solid blue line represents the mean minimum annual temperature across all species ranges, and the shaded area represents the range of minimum annual temperatures across all species ranges.
+
+```{r plot-min-temp-by-range-ctmin}
+#| fig-align: "center"
+#| fig-width: 5
+#| fig-height: 5
+#| out-width: 70%
+
+lat_temp_change_df <- readRDS("data/lat_temp_change_df.rds")
+results <- readRDS("data/ctmin_results.rds")
+results <- results |> distinct(species, .keep_all = TRUE)
+
+lat_temp_change_df_sum <- lat_temp_change_df |>
+  mutate(abs_lat = round(abs_lat)) |>
+  group_by(abs_lat) |>
+  summarise(
+    mean_min_temp = mean(mean_min_temp, na.rm = TRUE),
+    max_min_temp = mean(max_min_temp, na.rm = TRUE),
+    min_min_temp = mean(min_min_temp, na.rm = TRUE)
+  ) |>
+  ungroup()
+
+ggplot() +
+  geom_hline(
+    yintercept = 0,
+    linetype = "dashed",
+    color = "gray"
+  ) +
+  geom_line(
+    data = lat_temp_change_df_sum,
+    aes(x = abs_lat, y = mean_min_temp),
+    color = "darkblue"
+  ) +
+  geom_ribbon(
+    data = lat_temp_change_df_sum,
+    aes(x = abs_lat, ymin = min_min_temp, ymax = max_min_temp),
+    alpha = 0.2,
+    fill = "steelblue"
+  ) +
+  geom_segment(
+    data = results |> filter(!grepl("Anolis", species)),
+    aes(
+      x = min_lat,
+      xend = max_lat,
+      y = ctmin,
+      yend = ctmin,
+      color = "Other species"
+    ),
+    alpha = 0.5,
+    linewidth = 1
+  ) +
+  geom_segment(
+    data = results |>
+      filter(grepl("Anolis", species) & species != "Anolis carolinensis"),
+    aes(
+      x = min_lat,
+      xend = max_lat,
+      y = ctmin,
+      yend = ctmin,
+      color = "Anolis genus"
+    ),
+    alpha = 0.75,
+    linewidth = 1.5
+  ) +
+  geom_segment(
+    data = results |> filter(species == "Anolis carolinensis"),
+    aes(
+      x = min_lat,
+      xend = max_lat,
+      y = ctmin,
+      yend = ctmin,
+      color = "Anolis carolinensis"
+    ),
+    linewidth = 2
+  ) +
+  scale_color_manual(
+    name = "Species",
+    values = c(
+      "Other species" = "darkgray",
+      "Anolis genus" = "darkorange",
+      "Anolis carolinensis" = "darkred"
+    ),
+    labels = c(
+      "Other species" = "Other species",
+      "Anolis genus" = expression(italic("Anolis") ~ "genus"),
+      "Anolis carolinensis" = expression(italic("Anolis carolinensis"))
+    )
+  ) +
+  scale_x_continuous(
+    breaks = seq(0, 60, by = 10),
+    labels = paste(seq(0, 60, by = 10), "°"),
+    expand = c(0, 0)
+  ) +
+  coord_cartesian(
+    ylim = c(-5, 22),
+    xlim = c(0, 60)
+  ) +
+  theme_classic() +
+  theme(
+    plot.margin = margin(r = 10, t = 10, b = 10, l = 10),
+    legend.title = element_blank(),
+    legend.position = c(0.8, 0.9),
+    legend.background = element_rect(fill = "white", color = "black")
+  ) +
+  labs(
+    x = "Absolute Latitude",
+    y = "Minimum Annual Temperature (°C)"
+  )
+```
+
+Relationship between the maximum absolute latitude of the species range and the maximum absolute latitude at which the minimum annual temperature is greater than or equal to the CT<sub>min</sub> for each species. The dashed line represents a 1:1 relationship.
+
+```{r max-lat-vs-max-lat-above-ctmin}
+#| fig-align: "center"
+#| fig-height: 5
+#| fig-width: 5
+#| out-width: 70%
+results |>
+  mutate(
+    group = case_when(
+      grepl("Anolis", species) & species != "Anolis carolinensis" ~ "Anolis genus", # nolint
+      species == "Anolis carolinensis" ~ "Anolis carolinensis",
+      TRUE ~ "Other species"
+    )
+  ) |>
+  select(species, max_lat, max_lat_above_ctmin, group) |>
+  distinct() |>
+  ggplot(aes(x = max_lat, y = max_lat_above_ctmin)) +
+  geom_point(
+    aes(color = group, alpha = group),
+    size = 4,
+  ) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  scale_color_manual(
+    values = c("darkred", "darkorange", "gray"),
+    labels = c(
+      "Other species" = "Other species",
+      "Anolis genus" = expression(italic("Anolis") ~ "genus"),
+      "Anolis carolinensis" = expression(italic("Anolis carolinensis"))
+    )
+  ) +
+  scale_alpha_manual(
+    values = c(1, 0.75, 0.5),
+    labels = c(
+      "Other species" = "Other species",
+      "Anolis genus" = expression(italic("Anolis") ~ "genus"),
+      "Anolis carolinensis" = expression(italic("Anolis carolinensis"))
+    )
+  ) +
+  theme_classic() +
+  theme(
+    legend.title = element_blank(),
+    legend.position = c(0.25, 0.85)
+  ) +
+  scale_x_continuous(
+    breaks = seq(0, 90, 10),
+    labels = paste(seq(0, 90, 10), "°", sep = "")
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, 90, 10),
+    labels = paste(seq(0, 90, 10), "°", sep = "")
+  ) +
+  labs(
+    x = "Maximum latitude of range",
+    y = expression("Maximum latitude where Min. Temp.">=~CT[min]),
+  ) +
+  guides(
+    size = guide_legend(override.aes = list(size = 4))
+  ) +
+  coord_cartesian(xlim = c(8, 60), ylim = c(8, 60))
+```
+
+Below we plot the proportion of the range and the log of the area in km<sup>2</sup> of each species' range that falls below CT<sub>min<sub>.
+
+```{r prop-below-ctmin-vs-species}
+#| fig-align: "center"
+#| fig-height: 20
+#| fig-width: 12
+#| out-width: 70%
+
+# proportion of range plot
+proportion_plot <- results |>
+  mutate(
+    group = case_when(
+      grepl("Anolis", species) & species != "Anolis carolinensis" ~ "Anolis genus", # nolint
+      species == "Anolis carolinensis" ~ "Anolis carolinensis",
+      TRUE ~ "Other species"
+    ),
+  ) |>
+  select(species, prop_below_ctmin, area_below_ctmin, group) |>
+  filter(!is.na(prop_below_ctmin) & !is.na(area_below_ctmin)) |>
+  distinct() |>
+  ggplot(aes(y = reorder(species, prop_below_ctmin), x = prop_below_ctmin)) +
+  geom_bar(
+    aes(fill = group),
+    stat = "identity",
+    show.legend = FALSE
+  ) +
+  scale_x_continuous(
+    expand = c(0, 0)
+  ) +
+  labs(
+    x = expression("Proportion of range below" ~ CT[min]),
+    y = "Species"
+  ) +
+  theme_classic() +
+  theme(
+    plot.margin = margin(r = 10, t = 10, b = 10, l = 10),
+    axis.text.y = element_text(size = 8, face = "italic"),
+    axis.title.y = element_blank(),
+    axis.text.x = element_text(size = 14),
+    axis.title.x = element_text(size = 16)
+  ) +
+  scale_fill_manual(
+    values = c(
+      "Anolis carolinensis" = "forestgreen",
+      "Anolis genus" = "darkorange",
+      "Other species" = "gray"
+    ),
+    name = "Group"
+  )
+
+# area plot
+area_plot <- results |>
+  mutate(
+    group = case_when(
+      grepl("Anolis", species) & species != "Anolis carolinensis" ~ "Anolis genus", # nolint
+      species == "Anolis carolinensis" ~ "Anolis carolinensis",
+      TRUE ~ "Other species"
+    ),
+  ) |>
+  select(species, prop_below_ctmin, area_below_ctmin, group) |>
+  filter(!is.na(prop_below_ctmin) & !is.na(area_below_ctmin)) |>
+  distinct() |>
+  ggplot(
+    aes(
+      y = reorder(species, area_below_ctmin),
+      x = log(area_below_ctmin + 1)
+    )
+  ) +
+  geom_bar(
+    aes(fill = group),
+    stat = "identity",
+    show.legend = FALSE
+  ) +
+  scale_x_continuous(
+    labels = scales::comma_format(accuracy = 1),
+    expand = c(0, 0)
+  ) +
+  labs(
+    x = expression("Area of range below" ~ CT[min] ~ "(" ~ log ~ km^2* ~ " + 1)"), # nolint
+    y = "Species"
+  ) +
+  theme_classic() +
+  theme(
+    plot.margin = margin(r = 10, t = 10, b = 10, l = 10),
+    axis.text.y = element_text(size = 8, face = "italic"),
+    axis.title.y = element_blank(),
+    axis.text.x = element_text(size = 14),
+    axis.title.x = element_text(size = 16)
+  ) +
+  scale_fill_manual(
+    values = c(
+      "Anolis carolinensis" = "forestgreen",
+      "Anolis genus" = "darkorange",
+      "Other species" = "gray"
+    ),
+    name = "Group"
+  )
+
+# combine plots
+ggarrange(
+  proportion_plot,
+  area_plot,
+  ncol = 2,
+  nrow = 1,
+  align = "v",
+  labels = c("A", "B"),
+  font.label = list(size = 14, face = "bold")
+)
+
+```
+

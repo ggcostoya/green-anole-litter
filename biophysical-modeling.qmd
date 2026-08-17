@@ -861,6 +861,82 @@ microclimate_temps <- Map(
     .groups = "drop"
   )
 
+# Function to transform minimum annual temperatures into body temperatures
+get_body_temp <- function(ambient_t, mass, in_litter) {
+
+  # Define physical constants
+  sigma <- 5.670374e-8       # Stefan-Boltzmann constant (W m^-2 K^-4)
+  lizard_emissivity <- 0.95  # Longwave emissivity of reptile skin
+  sky_emissivity <- 0.75     # Longwave emissivity of the night sky
+  wind_speed <- 0.1          # Wind speed in m/s
+  f_sky <- 0.5               # Sky view factor above ground (50%)
+  f_ground <- 0.5            # Ground view factor above ground (50%)
+  convection_ground <- 2.5   # Conductive/convective transfer from ground
+
+  # Convert ambient temp to Kelvin
+  ambient_t_k <- ground_t_k <- ambient_t + 273.15
+
+  # Characteristic length of lizard (meters), mass converted from grams to kg
+  l <- 0.02 * (mass / 1000)^(1 / 3)
+
+  # Heat transfer conductances
+
+  # Forced convection coefficient
+  forced_convection <- 10.3 * (wind_speed^0.6) / (l^0.4)
+
+  # Free convection baseline
+  free_convection <- 3.5 * (1 / l)^0.25
+
+  # Total convective heat transfer coefficient
+  total_convection <- pmax(forced_convection, free_convection)
+
+  # Radiative heat transfer coefficient
+  rad_heat_transfer <- 4 * lizard_emissivity * sigma * (ambient_t_k^3)
+
+  # Night sky radiative temperature (Kelvin)
+  sky_t_k <- (sky_emissivity)^0.25 * ambient_t_k
+
+  # Equivalent radiant temperature (°C)
+  radiant_t_k <- (f_sky * (sky_t_k^4) + f_ground * (ground_t_k^4))^0.25
+  radiant_t <- radiant_t_k - 273.15
+
+  # Operative temperature equilibrium above ground (°C)
+  a <- (
+    total_convection * ambient_t +
+    convection_ground * ambient_t +
+    rad_heat_transfer * radiant_t
+  )
+  b <- total_convection + convection_ground + rad_heat_transfer
+  
+  # Weighted average (division, not addition)
+  op_t <- a / b
+
+  ifelse(in_litter, ambient_t, op_t)
+
+}
+
+# add minimum annual body temp
+microclimate_temps$min_annual_tb <- get_body_temp(
+  in_litter = ifelse(microclimate_temps$z < 0, TRUE, FALSE),
+  ambient_t = microclimate_temps$min_annual_temp,
+  mass = 3.4
+)
+
+microclimate_temps |>
+  mutate(
+    in_litter = ifelse(z < 0, TRUE, FALSE)
+  ) |>
+  ggplot(aes(x = min_annual_temp, y = min_annual_tb, color = in_litter)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black") +
+  geom_smooth(method = "lm") +
+  labs(
+    x = "Minimum Annual Temperature (°C)",
+    y = "Minimum Annual Body Temperature (°C)",
+    color = "In Leaf Litter"
+  )
+
+ggsave("min_annual_temp_vs_tb.png", width = 6, height = 4, dpi = 300)
+
 # save zs_temp_profiles
 saveRDS(microclimate_temps, "data/microclimate_temps.rds")
 
@@ -874,9 +950,9 @@ summarized_microclimates <- microclimate_temps |>
   filter(presence == 1) |>
   group_by(lat, z) |>
   summarise(
-    mean_min_temp = mean(min_annual_temp, na.rm = TRUE),
-    max_min_temp = max(min_annual_temp, na.rm = TRUE),
-    min_min_temp = min(min_annual_temp, na.rm = TRUE),
+    mean_min_temp = mean(min_annual_tb, na.rm = TRUE),
+    max_min_temp = max(min_annual_tb, na.rm = TRUE),
+    min_min_temp = min(min_annual_tb, na.rm = TRUE),
     .groups = "drop"
   ) |>
   filter(as.character(z) %in% c("-0.05", "2.2")) |>
