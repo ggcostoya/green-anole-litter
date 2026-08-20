@@ -93,32 +93,28 @@ caro_range_sf <- st_as_sf(caro_range_sf$finished)
 caro_range_sf <- st_intersection(
   caro_range_sf,
   ne_countries(scale = "medium", returnclass = "sf") |>
-    filter(admin == "United States of America") |>
+    filter(admin %in% c("United States of America", "Mexico")) |>
     st_crop(xmin = -125, xmax = -65, ymin = 20, ymax = 50)
 )
 
-# generate a grid of points within the range polygon
-grid <- st_make_grid(caro_range_sf, cellsize = 0.1, square = TRUE)
-caro_range_points <- grid[st_intersects(grid, caro_range_sf, sparse = FALSE)]
-caro_range_points <- as.data.frame(st_coordinates(caro_range_points))
-caro_range_points <- caro_range_points |>
-  rename(lon = X, lat = Y) |>
-  mutate(
-    lon = round(lon, 1), lat = round(lat, 1)
-  ) |>
-  distinct() |>
-  select(lon, lat)
+# change the spatial resolution of the polygon to 0.04166667 degrees (~5 km)
+caro_range_sf <- st_transform(caro_range_sf, crs = 4326)
 
-# save caro range points
-saveRDS(caro_range_points, "data/caro_range_points.rds")
+# combine into a single (multi)polygon suitable for masking other layers
+caro_range_poly <- st_as_sf(caro_range_sf) |>
+  st_union() |>
+  st_make_valid() |>
+  st_as_sf()
 
+# save caro range
+saveRDS(caro_range_poly, "data/caro_range.rds")
 ```
 
 ```{r plot-range}
 #| fig-align: "center"
 #| fig-width: 6
 
-caro_range_points <- readRDS("data/caro_range_points.rds")
+caro_range <- readRDS("data/caro_range.rds")
 caro_occ_data <- readRDS("data/caro_occ_data.rds")
 
 ggplot() +
@@ -132,10 +128,9 @@ ggplot() +
     aes(x = long, y = lat, group = group),
     fill = NA, color = "gray"
   ) +
-  geom_tile(
-    data = caro_range_points,
-    aes(x = lon, y = lat),
-    fill = "forestgreen", alpha = 0.25
+  geom_sf(
+    data = caro_range,
+    fill = "forestgreen", color = NA, alpha = 0.25
   ) +
   geom_point(
     data = caro_occ_data,
@@ -146,7 +141,7 @@ ggplot() +
     values = c("darkgreen", "darkred"),
     labels = c("In Range", "Outlier")
   ) +
-  coord_quickmap(xlim = c(-101, -75), ylim = c(24, 37.5)) +
+  coord_sf(xlim = c(-101, -75), ylim = c(24, 37.5)) +
   theme_minimal() +
   scale_x_continuous(
     breaks = seq(-100, -75, by = 5),
@@ -179,11 +174,11 @@ ggplot() +
 
 # get polygon for the continental US
 continental_us_polygon <- ne_countries(scale = "medium", returnclass = "sf") |>
-  filter(admin == "United States of America") |>
+  filter(admin %in% c("United States of America", "Mexico")) |>
   st_crop(
     xmin = min(caro_range_points$lon) - 2,
     xmax = max(caro_range_points$lon) + 2,
-    ymin = min(caro_range_points$lat) - 2,
+    ymin = min(caro_range_points$lat) - 0.5,
     ymax = max(caro_range_points$lat) + 2
   ) |>
   st_transform(crs = 4326)
@@ -201,68 +196,65 @@ mangrove_rast <- geodata::landcover(
 vegetation_rast <- tree_cover_rast + wetland_rast + mangrove_rast
 
 # crop and summarize vegetation rasters
-vegetation_rast_us <- terra::crop(vegetation_rast, continental_us_polygon)
-vegetation_rast_us <- terra::aggregate(vegetation_rast_us, fact = 12, fun = "mean") # nolint
+vegetation_rast_us <- terra::mask(vegetation_rast, continental_us_polygon)
+vegetation_rast_us <- terra::crop(vegetation_rast_us, continental_us_polygon)
+vegetation_rast_us <- terra::aggregate(vegetation_rast_us, fact = 5, fun = "mean") # nolint
+
+# download and process elevation data
+elev_rast <- geodata::elevation_global(
+  res = 2.5, path = "raw_data/elevation"
+)
+elev_rast <- terra::mask(elev_rast, continental_us_polygon)
+elev_rast <- terra::crop(elev_rast, continental_us_polygon)
 
 # rdownload and process minimum temperature data
 tmin_rast <- geodata::worldclim_global(
-  var = "tmin", res = 0.5, path = "raw_data/wc2.1_30s_tmin"
+  var = "tmin", res = 2.5, path = "raw_data"
 )
-tmin_files <- list.files("raw_data/wc2.1_30s_tmin", full.names = TRUE)
-tmin_rast_list <- list()
-for (i in seq_along(tmin_files)) {
-  rast <- terra::rast(tmin_files[i])
-  rast_us <- terra::crop(rast, continental_us_polygon)
-  rast_us <- terra::aggregate(rast_us, fact = 12, fun = mean)
-  tmin_rast_list <- append(tmin_rast_list, rast_us)
-}
+tmin_rast <- terra::mask(tmin_rast, continental_us_polygon)
+tmin_rast <- terra::crop(tmin_rast, continental_us_polygon)
 
 # read and process maximum temperature data
 tmax_rast <- geodata::worldclim_global(
-  var = "tmax", res = 0.5, path = "raw_data/wc2.1_30s_tmax"
+  var = "tmax", res = 2.5, path = "raw_data"
 )
-tmax_files <- list.files("raw_data/wc2.1_30s_tmax", full.names = TRUE)
-tmax_rast_list <- list()
-for (i in seq_along(tmax_files)) {
-  rast <- terra::rast(tmax_files[i])
-  rast_us <- terra::crop(rast, continental_us_polygon)
-  rast_us <- terra::aggregate(rast_us, fact = 12, fun = mean)
-  tmax_rast_list <- append(tmax_rast_list, rast_us)
-}
+tmax_rast <- terra::mask(tmax_rast, continental_us_polygon)
+tmax_rast <- terra::crop(tmax_rast, continental_us_polygon)
 
-# combine all rasters into a single data frame
-eco_rast_list <- c(vegetation_rast_us, tmin_rast_list, tmax_rast_list)
-eco_df <- as.data.frame(eco_rast_list, xy = TRUE, na.rm = TRUE)
-colnames(eco_df) <- c("lon", "lat", "veg", paste0("tmin_", 1:12), paste0("tmax_", 1:12)) # nolint
-eco_df$lon <- round(eco_df$lon, 1)
-eco_df$lat <- round(eco_df$lat, 1)
+# match resolution of all rasters
+elev_rast <- terra::resample(elev_rast, vegetation_rast_us, method = "bilinear")
+tmin_rast <- terra::resample(tmin_rast, vegetation_rast_us, method = "bilinear")
+tmax_rast <- terra::resample(tmax_rast, vegetation_rast_us, method = "bilinear")
 
-# get elevation raster
-elevation <- geodata::elevation_30s(
-  lon = eco_df$lon,
-  lat = eco_df$lat,
-  path = "raw_data/elevation",
-  country = "USA"
+# create a 1/0 presence/absence raster for the caro range
+range_rast <- terra::rasterize(
+  terra::vect(caro_range_poly),
+  vegetation_rast_us,
+  field = 1,
+  background = 0
 )
-elevation <- terra::crop(elevation, continental_us_polygon)
-elevation_df <- as.data.frame(elevation, xy = TRUE, na.rm = TRUE) |>
-  setNames(c("lon", "lat", "elevation")) |>
-  mutate(lat = round(lat, 1), lon = round(lon, 1)) |>
-  group_by(lon, lat) |>
-  summarise(elevation = mean(elevation, na.rm = TRUE), .groups = "drop")
+range_rast <- terra::mask(range_rast, continental_us_polygon)
 
-# merge data
-elevation_df <- merge(
-  elevation_df,
-  caro_range_points |> mutate(present = 1),
-  by = c("lon", "lat"),
-  all.x = TRUE
-)
-elevation_df$present[is.na(elevation_df$present)] <- 0
+# transform in to data frames
+vegetation_df <- as.data.frame(vegetation_rast_us, xy = TRUE, na.rm = TRUE)
+colnames(vegetation_df) <- c("lon", "lat", "veg")
+elevation_df <- as.data.frame(elev_rast, xy = TRUE, na.rm = TRUE)
+colnames(elevation_df) <- c("lon", "lat", "elevation")
+tmin_df <- as.data.frame(tmin_rast, xy = TRUE, na.rm = TRUE)
+colnames(tmin_df) <- c("lon", "lat", paste0("tmin_", 1:12))
+tmax_df <- as.data.frame(tmax_rast, xy = TRUE, na.rm = TRUE)
+colnames(tmax_df) <- c("lon", "lat", paste0("tmax_", 1:12))
+range_df <- as.data.frame(range_rast, xy = TRUE, na.rm = TRUE)
+colnames(range_df) <- c("lon", "lat", "present")
 
-# combine all rasters into a single data frame
-eco_df <- merge(eco_df, elevation_df, by = c("lon", "lat"), all.x = TRUE)
-eco_df <- eco_df |> filter(!is.na(elevation))
+# combine all df into a single one merging by lon and lat
+eco_df <- merge(vegetation_df, elevation_df, by = c("lon", "lat"), all.x = TRUE)
+eco_df <- merge(eco_df, tmin_df, by = c("lon", "lat"), all.x = TRUE)
+eco_df <- merge(eco_df, tmax_df, by = c("lon", "lat"), all.x = TRUE)
+eco_df <- merge(eco_df, range_df, by = c("lon", "lat"), all.x = TRUE)
+
+# filter any row that has NA values for any of the columns
+eco_df <- eco_df |> filter(!is.na(veg) & !is.na(elevation) & !is.na(present))
 
 # pivot longer for temperature data
 eco_df <- eco_df |>
@@ -278,15 +270,6 @@ eco_df <- eco_df |>
     values_from = temp
   ) |>
   unnest(cols = c(tmin, tmax))
-
-# merge with caro range points to indicate presence/absence
-eco_df <- merge(
-  eco_df,
-  caro_range_points |> mutate(present = 1),
-  by = c("lon", "lat"),
-  all.x = TRUE
-)
-eco_df$present[is.na(eco_df$present)] <- 0
 
 # save final ecological data
 saveRDS(eco_df, "data/eco_data.rds")
@@ -647,7 +630,7 @@ eco_data |>
   slice(1) |>
   ungroup() |>
   mutate(
-    degrees_overfill = max(caro_range_points$lat, na.rm = TRUE) - lat
+    degrees_overfill = max(eco_data$lat[eco_data$present == 1], na.rm = TRUE) - lat
   ) |>
   mutate(
     category = case_when(
@@ -921,21 +904,6 @@ microclimate_temps$min_annual_tb <- get_body_temp(
   ambient_t = microclimate_temps$min_annual_temp,
   mass = 3.4
 )
-
-microclimate_temps |>
-  mutate(
-    in_litter = ifelse(z < 0, TRUE, FALSE)
-  ) |>
-  ggplot(aes(x = min_annual_temp, y = min_annual_tb, color = in_litter)) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black") +
-  geom_smooth(method = "lm") +
-  labs(
-    x = "Minimum Annual Temperature (°C)",
-    y = "Minimum Annual Body Temperature (°C)",
-    color = "In Leaf Litter"
-  )
-
-ggsave("min_annual_temp_vs_tb.png", width = 6, height = 4, dpi = 300)
 
 # save zs_temp_profiles
 saveRDS(microclimate_temps, "data/microclimate_temps.rds")

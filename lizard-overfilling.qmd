@@ -73,7 +73,7 @@ global_min_temp <- c(global_min_temp, global_elev)
 
 # save datasets
 saveRDS(global_min_temp, "data/global_min_temp.rds")
-saveRDS(ranges_vector, "data/ranges_vector.rds")
+saveRDS(ranges_vector, "raw_data/ranges_vector.rds")
 
 ```
 
@@ -106,7 +106,7 @@ Next, for each species we will extract the minimum annual temperature data acros
 
 # read in CTmin data
 global_min_temp <- readRDS("data/global_min_temp.rds")
-ranges_vector <- readRDS("data/ranges_vector.rds")
+ranges_vector <- readRDS("raw_data/ranges_vector.rds")
 
 # filter CTmin data to only species within the range shapefile
 ctmin_data <- ctmin_data |>
@@ -183,12 +183,16 @@ for (i in seq_along(ctmin_data$species)) {
       summarise(
         total_area = sum(area_km2, na.rm = TRUE),
         area_below_ctmin = sum(area_km2[tmin < species_ctmin], na.rm = TRUE),
+        area_below_0 = sum(area_km2[tmin < 0], na.rm = TRUE)
       ) |>
       mutate(
-        prop_below_ctmin = area_below_ctmin / total_area
+        prop_below_ctmin = area_below_ctmin / total_area,
+        prop_below_0 = area_below_0 / total_area
       )
     prop_below_ctmin <- props |> pull(prop_below_ctmin)
+    prop_below_0 <- props |> pull(prop_below_0)
     area_below_ctmin <- props |> pull(area_below_ctmin)
+    area_below_0 <- props |> pull(area_below_0)
     total_area <- props |> pull(total_area)
 
     # get maximum absolute latitude within range at which Tmin is >= CTmin
@@ -199,6 +203,14 @@ for (i in seq_along(ctmin_data$species)) {
       max(abs(above_ctmin$y), na.rm = TRUE)
     }
 
+    # get maximum absolute latitude within range at which Tmin is >= 0
+    above_0 <- species_min_temp |> filter(tmin >= 0)
+    max_lat_above_0 <- if (nrow(above_0) == 0) {
+      NA_real_
+    } else {
+      max(abs(above_0$y), na.rm = TRUE)
+    }
+
     # store results in pre-allocated list
     results_list[[i]] <- tibble(
       species = species_name,
@@ -206,9 +218,12 @@ for (i in seq_along(ctmin_data$species)) {
       min_lat = min_lat,
       max_lat = max_lat,
       prop_below_ctmin = prop_below_ctmin,
+      prop_below_0 = prop_below_0,
       area_below_ctmin = area_below_ctmin,
+      area_below_0 = area_below_0,
       total_area = total_area,
-      max_lat_above_ctmin = max_lat_above_ctmin
+      max_lat_above_ctmin = max_lat_above_ctmin,
+      max_lat_above_0 = max_lat_above_0
     )
 
     # get latitudinal change in min temperature across species range
@@ -250,7 +265,7 @@ saveRDS(lat_temp_change_df, "data/lat_temp_change_df.rds")
 
 ```
 
-## Results
+## Figures
 
 Below we present the results of the analysis through 3 plots:
 
@@ -537,3 +552,95 @@ ggarrange(
 
 ```
 
+## Tables
+
+:::{.callout-note collapse="true"}
+
+## Proportion and Area of Range Below Temperature Thresholds by Genus
+
+```{r table ctmin-results-by-genus}
+results |>
+  mutate(
+    genus = gsub(" .*", "", species),
+  ) |>
+  select(
+    genus, species,
+    prop_below_ctmin,
+    prop_below_0, area_below_ctmin, area_below_0, total_area
+  ) |>
+  group_by(genus) |>
+  summarise(
+    n_species = n(),
+    mean_prop_below_ctmin = round(mean(prop_below_ctmin, na.rm = TRUE), 2),
+    sd_prop_below_ctmin = round(sd(prop_below_ctmin, na.rm = TRUE), 2),
+    mean_prop_below_0 = round(mean(prop_below_0, na.rm = TRUE), 2),
+    sd_prop_below_0 = round(sd(prop_below_0, na.rm = TRUE), 2),
+    mean_area_below_ctmin = round(mean(area_below_ctmin, na.rm = TRUE) / 1e5, 2), # nolint
+    mean_area_below_0 = round(mean(area_below_0, na.rm = TRUE) / 1e5, 2),
+    mean_total_area = round(mean(total_area, na.rm = TRUE) / 1e5, 2)
+  ) |>
+  ungroup() |>
+  mutate(
+    prop_below_ctmin = paste0(mean_prop_below_ctmin, " ± ", sd_prop_below_ctmin),
+    prop_below_0 = paste0(mean_prop_below_0, " ± ", sd_prop_below_0)
+  ) |>
+  select(genus, n_species,prop_below_ctmin, prop_below_0) |>
+  kable(
+    col.names = c(
+      "Genus", "N",
+      "Proportion of range < CTmin", "Proportion of range < 0°C"
+    )
+  ) |>
+  kable_styling(
+    full_width = FALSE,
+    position = "center"
+  )
+```
+:::
+
+:::{.callout-note collapse="true"}
+
+## Proportion and Area of Range Below Temperature Thresholds by Species
+
+```{r table ctmin-results-by-species}
+results |>
+mutate(
+  genus = gsub(" .*", "", species),
+  species = gsub(".* ", "", species)
+) |>
+select(
+  genus, species,
+  ctmin, min_lat, max_lat,
+  prop_below_ctmin,
+  prop_below_0, area_below_ctmin, area_below_0, total_area
+) |>
+mutate(
+  lat_range = paste0(round(min_lat, 1), "° - ", round(max_lat, 1), "°"),
+  prop_below_ctmin = round(prop_below_ctmin, 2),
+  prop_below_0 = round(prop_below_0, 2),
+  area_below_ctmin = round(area_below_ctmin / 1e6, 4),
+  area_below_0 = round(area_below_0 / 1e6, 4),
+  total_area = round(total_area / 1e6, 4)
+) |>
+select(
+  genus, species, lat_range,
+  prop_below_ctmin, prop_below_0,
+  area_below_ctmin, area_below_0, total_area
+) |>
+arrange(genus, species) |>
+kable(
+  col.names = c(
+    "Genus", "Species", "Lat. Range",
+     "Proportion < CTmin",
+    "Proportion < 0°C", "Area < CTmin (10⁶ km²)",
+    "Area < 0°C (10⁶ km²)", "Total area (10⁶ km²)"
+  )
+) |>
+kable_styling(
+  full_width = FALSE,
+  position = "center"
+)
+
+```
+
+:::

@@ -27,7 +27,7 @@ microclimate_temps <- readRDS("data/microclimate_temps.rds")
 
 # define temperature thresholds
 lethal <- 0
-ctmin <- 5.4
+ctmin <- 5.35
 retreat <- 6.6
 
 # define thresholds
@@ -127,6 +127,10 @@ tss_grid$thresh <- factor(
   levels = c("lethal", "ctmin", "retreat", "rest")
 )
 
+tss_grid |>
+  group_by(thresh) |>
+  filter(tss == max(tss, na.rm = TRUE))
+
 ggplot() +
   geom_tile(
     data = tss_grid,
@@ -182,7 +186,7 @@ ggplot() +
         c(
           lethal = "atop('Hard Physiological', 'Threshold (' * 0 * degree * 'C)')", # nolint
           ctmin = "atop('Soft Physiological', 'Threshold (' * CT[min] * ')')",
-          retreat = "atop('Behavioral', 'Threshold (' * T[retreat] * ')')",
+          retreat = "atop('Behavioral', 'Threshold (' * T[ret] * ')')",
           rest = "atop('Rest of', 'Range')"
         ),
         label_parsed
@@ -201,5 +205,4 @@ ggplot() +
     axis.ticks = element_line(color = "black", linewidth = 0.25),
     axis.title = element_text(size = 12, lineheight = 1.25),
   )
-
 ```
