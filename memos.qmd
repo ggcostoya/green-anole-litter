@@ -21,7 +21,7 @@ options(
 
 ```
 
-```{r load-data, eval = FALSE}
+```{r load-data}
 
 microclimate_temps <- readRDS("data/microclimate_temps.rds")
 
@@ -50,7 +50,9 @@ microclimate_temps <- merge(
   by = c("lon", "lat"),
   all.x = TRUE
 )
+```
 
+```{r tss-calculation, eval = FALSE}
 # define conditions to test
 threshold_names <- unique(microclimate_temps$thresh)
 veg <- seq(0, 1, by = 0.01)
@@ -115,9 +117,93 @@ for (i in seq_len(nrow(tss_grid))) {
 saveRDS(tss_grid, "data/tss_grid.rds")
 ```
 
+## Paper Figures
+
+```{r plot-maps}
+#| fig.align: "center"
+#| fig.width: 8
+#| fig.height: 8
+
+microclimates_plot <- microclimate_temps |>
+ filter(z %in% c(-0.03, 1.8)) |>
+ ggplot() +
+  geom_tile(
+    aes(x = lon, y = lat, fill = min_annual_temp)
+  ) +
+  geom_tile(
+    data = microclimate_temps |> filter(z %in% c(-0.03, 1.8), presence == 1),
+    aes(x = lon, y = lat),
+    fill = scales::alpha("green", 0.1)
+  ) +
+  geom_contour(
+    aes(x = lon, y = lat, z = presence),
+    color = "forestgreen",
+    linewidth = 1
+  ) +
+  geom_contour(
+    aes(x = lon, y = lat, z = min_annual_temp),
+    color = "white",
+    breaks = c(0, 5.35),
+    linewidth = 0.5,
+  ) +
+  scale_y_continuous(
+    expand = c(0, 0),
+    breaks = seq(25, 37.5, by = 2.5),
+    labels = paste0(seq(25, 37.5, by = 2.5), "°N")
+  ) +
+  scale_x_continuous(
+    expand = c(0, 0),
+    breaks = seq(-100, -75, by = 5),
+    labels = paste0(seq(100, 75, by = -5), "°W"),
+  ) +
+  facet_wrap(
+    vars(z),
+    ncol = 1,
+    labeller = labeller(
+      z = as_labeller(
+        c(
+          "-0.03" = "Leaf Litter",
+          "1.8" = "Canopy"
+        )
+      )
+    )
+  ) +
+  scale_fill_viridis(
+    option = "magma",
+    name = "Minimum Annual Operative Temperature (°C)",
+    breaks = seq(-10, 40, by = 5),
+    guide = guide_colorbar(
+      direction = "horizontal",
+      title.position = "top",
+      title.hjust = 0.5,
+      barwidth = grid::unit(12, "cm"),
+      barheight = grid::unit(0.35, "cm")
+    )
+  ) +
+  coord_quickmap(
+    xlim = c(-101, -75), ylim = c(24.5, 37.5)
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+    axis.ticks = element_line(color = "black", linewidth = 0.25),
+    panel.grid = element_blank(),
+    axis.title = element_blank(),
+    axis.text = element_text(size = 10),
+    strip.text = element_text(size = 16, face = "bold", hjust = 0),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10)
+  )
+
+microclimates_plot
+```
+
+
 ```{r plot-tss-results}
 #| fig.align: "center"
-#| fig.width: 10
+#| fig.width: 6
+#| fig.height: 8
 
 tss_grid <- readRDS("data/tss_grid.rds")
 
@@ -175,11 +261,17 @@ ggplot() +
   ) +
   scale_y_discrete(
     breaks = unique(tss_grid$z),
-    expand = c(0, 0)
+    labels = function(x) {
+      negative <- which(x < 0)
+      x[negative[seq_along(negative) %% 2 == 1]] <- ""
+      x
+    },
+    expand = c(0, 0),
   ) +
   facet_wrap(
     vars(thresh),
-    ncol = 4,
+    ncol = 2,
+    nrow = 2,
     axes = "all",
     labeller = labeller(
       thresh = as_labeller(
@@ -195,7 +287,7 @@ ggplot() +
   ) +
   labs(
     x = "Vegetation Cover",
-    y = "Distance from surface\nabove or below leaf litter (m)"
+    y = "Distance from surface above or below leaf litter (m)"
   ) +
   theme_minimal() +
   theme(
@@ -203,6 +295,6 @@ ggplot() +
     strip.text = element_text(size = 14),
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
     axis.ticks = element_line(color = "black", linewidth = 0.25),
-    axis.title = element_text(size = 12, lineheight = 1.25),
+    axis.title = element_text(size = 16, lineheight = 1.25),
   )
 ```

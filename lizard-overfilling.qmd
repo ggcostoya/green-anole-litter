@@ -197,11 +197,7 @@ for (i in seq_along(ctmin_data$species)) {
 
     # get maximum absolute latitude within range at which Tmin is >= CTmin
     above_ctmin <- species_min_temp |> filter(tmin >= species_ctmin)
-    max_lat_above_ctmin <- if (nrow(above_ctmin) == 0) {
-      NA_real_
-    } else {
-      max(abs(above_ctmin$y), na.rm = TRUE)
-    }
+    max_lat_above_ctmin <- ifelse(nrow(above_ctmin) == 0, NA, max(abs(above_ctmin$y), na.rm = TRUE)) # nolint
 
     # get maximum absolute latitude within range at which Tmin is >= 0
     above_0 <- species_min_temp |> filter(tmin >= 0)
@@ -273,7 +269,7 @@ Global minimum annual temperature as a function of absolute latitude, with the C
 
 ```{r plot-min-temp-by-range-ctmin}
 #| fig-align: "center"
-#| fig-width: 5
+#| fig-width: 8
 #| fig-height: 5
 #| out-width: 70%
 
@@ -291,7 +287,7 @@ lat_temp_change_df_sum <- lat_temp_change_df |>
   ) |>
   ungroup()
 
-ggplot() +
+ranges <- ggplot() +
   geom_hline(
     yintercept = 0,
     linetype = "dashed",
@@ -347,9 +343,9 @@ ggplot() +
   scale_color_manual(
     name = "Species",
     values = c(
-      "Other species" = "darkgray",
-      "Anolis genus" = "darkorange",
-      "Anolis carolinensis" = "darkred"
+      "Other species" = "gray",
+      "Anolis genus" = "palegreen3",
+      "Anolis carolinensis" = "darkgreen"
     ),
     labels = c(
       "Other species" = "Other species",
@@ -359,7 +355,7 @@ ggplot() +
   ) +
   scale_x_continuous(
     breaks = seq(0, 60, by = 10),
-    labels = paste(seq(0, 60, by = 10), "°"),
+    labels = paste(seq(0, 60, by = 10), "°", sep = ""),
     expand = c(0, 0)
   ) +
   coord_cartesian(
@@ -370,13 +366,105 @@ ggplot() +
   theme(
     plot.margin = margin(r = 10, t = 10, b = 10, l = 10),
     legend.title = element_blank(),
-    legend.position = c(0.8, 0.9),
-    legend.background = element_rect(fill = "white", color = "black")
+    legend.position = c(0.75, 0.9),
+    legend.background = element_rect(fill = "white", color = "black"),
+    axis.text = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    legend.text = element_text(size = 12)
   ) +
   labs(
     x = "Absolute Latitude",
-    y = "Minimum Annual Temperature (°C)"
+    y = expression("Minimum Annual Temperature &" ~ CT[min] ~ "(°C)")
   )
+
+proportions_and_areas <- results |>
+  mutate(
+    group = case_when(
+      grepl("Anolis", species) & species != "Anolis carolinensis" ~ "Anolis genus", # nolint
+      species == "Anolis carolinensis" ~ "Anolis carolinensis",
+      TRUE ~ "Other species"
+    )
+  ) |>
+  mutate(
+    group = factor(
+      group,
+      levels = c("Other species", "Anolis genus", "Anolis carolinensis")
+    ),
+    log_area_below_ctmin = log(area_below_ctmin + 1),
+    log_area_below_0 = log(area_below_0 + 1)
+  ) |>
+  select(
+    group,
+    prop_below_ctmin, prop_below_0,
+    log_area_below_ctmin, log_area_below_0
+  ) |>
+  pivot_longer(
+    cols = c(
+      prop_below_ctmin, log_area_below_ctmin, log_area_below_0, prop_below_0
+    ),
+    names_to = "metric",
+    values_to = "value"
+  ) |>
+  arrange(group) |>
+  ggplot(aes(x = metric, y = value, color = group, alpha = group, size = group)) +
+  geom_jitter(
+    width = 0.2
+  ) +
+  facet_wrap(
+    ~metric,
+    scales = "free",
+    strip.position = "left",
+    labeller = as_labeller(
+      c(
+        prop_below_ctmin = "Proportion~`<`~CT[min]",
+        log_area_below_ctmin = "Area~`<`~CT[min]~(log~km^2~`+`~1)",
+        log_area_below_0 = "Area~`<`~0*degree*C~(log~km^2~`+`~1)",
+        prop_below_0 = "Proportion~`<`~0*degree*C"
+      ),
+      default = label_parsed
+    )
+  ) +
+  scale_color_manual(
+    values = c(
+      "Anolis carolinensis" = "darkgreen",
+      "Anolis genus" = "palegreen3",
+      "Other species" = "gray"
+    ),
+    name = "Group"
+  ) +
+  scale_alpha_manual(
+    values = c(0.5, 0.75, 1),
+    name = "Group"
+  ) +
+  scale_size_manual(
+    values = c(2, 2.5, 4),
+    name = "Group"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+    axis.ticks.y = element_line(color = "black", linewidth = 0.25),
+    axis.text.x = element_blank(),
+    axis.title = element_blank(),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    strip.placement = "outside",
+    strip.text.y.left = element_text(angle = 90, margin = margin(r = 0)),
+    strip.switch.pad.grid = grid::unit(0, "pt"),
+    strip.text = element_text(size = 12)
+  )
+
+combined_plot <- ggarrange(
+  ranges, proportions_and_areas,
+  ncol = 2, nrow = 1,
+  widths = c(1.5, 1),
+  labels = c("A", "B"),
+  align = "hv",
+  font.label = list(size = 14, face = "bold")
+)
+
+combined_plot
 ```
 
 Relationship between the maximum absolute latitude of the species range and the maximum absolute latitude at which the minimum annual temperature is greater than or equal to the CT<sub>min</sub> for each species. The dashed line represents a 1:1 relationship.

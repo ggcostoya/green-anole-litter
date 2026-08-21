@@ -12,6 +12,7 @@ library(tidyverse)
 library(NicheMapR)
 library(kableExtra)
 library(TrenchR)
+library(ggpubr)
 
 # options
 options(
@@ -115,8 +116,7 @@ theme_set(
     theme(
       axis.line = element_line(),
       axis.ticks = element_line(),
-      panel.grid.minor = element_blank(),
-      panel.grid.major = element_line(color = "gray90", linewidth = 0.05)
+      panel.grid = element_blank()
     )
 )
 
@@ -245,7 +245,7 @@ First we visualize the relationship between branch temperature and the probabili
 #| fig-width: 4
 #| fig-height: 4
 #| out.width: 66%
-survey_ibutton |>
+obs_prob <- survey_ibutton |>
   group_by(year, doy, branch_temp, litter_temp) |>
   summarise(
     count = n(),
@@ -253,20 +253,34 @@ survey_ibutton |>
     .groups = "drop"
   ) |>
   ggplot(aes(x = branch_temp, y = presence)) +
+  geom_vline(
+    xintercept = 6.6, color = "black", linetype = 2, linewidth = 0.5
+  ) +
+  geom_vline(
+    xintercept = 5.35, color = "steelblue", linetype = 2, linewidth = 0.5
+  ) +
+  geom_vline(
+    xintercept = 0, color = "darkblue", linewidth = 0.5
+  ) +
   geom_jitter(
     width = 0, height = 0.01,
-    color = "forestgreen", alpha = 0.5, size = 3
+    color = "darkred", alpha = 0.5, size = 4
   ) +
   geom_smooth(
     method = "glm", method.args = list(family = "binomial"),
-    color = "darkgreen",
-    fill = "forestgreen",
+    color = "black",
+    fill = "gray80",
     alpha = 0.2
   ) +
   labs(
-    x = "Mean Branch Temp. (°C)",
-    y = "Probability of Seeing at least ONE Lizard"
+    x = "Mean Operative Temperature in Branches (°C)",
+    y = "Observation Probability"
+  ) +
+  theme(
+    axis.title = element_text(size = 12),
+    plot.margin = margin(r = 25)
   )
+obs_prob
 ```
 
 ```{r model-observation-probability}
@@ -309,81 +323,18 @@ tibble(probability = c(0.5, 0.1, 0.05, 0.01)) |>
 
 The model, as expected, shows a significant positive effect of branch temperature on observation probability. The table above shows the estimated branch temperature thresholds at which we expect to observe lizards with different probabilities. For example, we expect to see at least one lizard during a survey 50% of the time when the branch temperature is around `{r} round((log(0.5 / (1 - 0.5)) - coef(presence_model)[1]) / coef(presence_model)[2], 2)` °C, and we expect to see at least one lizard during a survey 10% of the time when the branch temperature is around `{r} round((log(0.1 / (1 - 0.1)) - coef(presence_model)[1]) / coef(presence_model)[2], 2)` °C.
 
-#### Abundance Probability
-
-As before, we first visualize the relationship between branch temperature and the number of lizards observed during a survey.
-
-```{r plot-abundance-probability, warning = FALSE, message = FALSE}
-#| fig-align: "center"
-#| fig-width: 4
-#| fig-height: 4
-#| out.width: 66%
-survey_ibutton |>
-  group_by(year, doy, branch_temp, litter_temp) |>
-  summarise(
-    count = n(),
-    presence = ifelse(count > 1, 1, 0),
-    .groups = "drop"
-  ) |>
-  ggplot(aes(x = branch_temp, y = count - 1)) +
-  geom_jitter(
-    width = 0, height = 0.01,
-    color = "forestgreen", alpha = 0.5, size = 3
-  ) +
-  geom_smooth(
-    method = "glm", method.args = list(family = "poisson"),
-    color = "darkgreen",
-    fill = "forestgreen",
-    alpha = 0.2
-  ) +
-  labs(
-    x = "Mean Branch Temp. (°C)",
-    y = "Number of Lizards Observed"
-  )
-```
-
-```{r model-abundance-probability}
-abundance_model <- glm(
-  count ~ branch_temp,
-  data = survey_ibutton_model_data,
-  family = "poisson"
-)
-summary(abundance_model)
-
-# predict temperature thresholds
-tibble(counts = c(0.5, 1, 2, 5, 10)) |>
-  mutate(
-    log = log(counts),
-    mean_temp_est = round((log - coef(abundance_model)[1]) / coef(abundance_model)[2], 2),
-    max_temp_est = round((log - coef(abundance_model)[1] + 1.96 * summary(abundance_model)$coefficients[2, 2]) / coef(abundance_model)[2], 2),
-    min_temp_est = round((log - coef(abundance_model)[1] - 1.96 * summary(abundance_model)$coefficients[2, 2]) / coef(abundance_model)[2], 2),
-    temp = paste(mean_temp_est, " (", min_temp_est, " - ", max_temp_est, ")", sep = "")
-  ) |>
-  select(counts, temp) |>
-  rename(
-    `Expected Count` = counts,
-    `Air Temperature` = temp
-  ) |>
-  kable() |>
-  kable_styling(
-    full_width = FALSE,
-    position = "center"
-  )
-```
-
-The abundance model shows an even stronger effect of branch temperature on the number of lizards observed during a survey. The table above shows the estimated branch temperature thresholds at which we expect to observe different numbers of lizards during a survey. For example, we expect to see an average of 1 lizard during a survey when the branch temperature is around `{r} round((log(1) - coef(abundance_model)[1]) / coef(abundance_model)[2], 2)` °C, and we expect to see an average of 5 lizards during a survey when the branch temperature is around `{r} round((log(5) - coef(abundance_model)[1]) / coef(abundance_model)[2], 2)` °C.
-
 ## Leaf litter buffering across latitudes
 
 ```{r plot-buffering}
 #| fig-align: "center"
 #| fig-width: 5
 #| fig-height: 5
+#| out.width: 66%
 
 # process iButton data
 ibutton_processed <- ibutton |>
-  filter(temp > - 12) |>
-  filter(doy > 250 | doy < 100) |>
+  filter(temp > -10) |> # remove outliers tude to error
+  filter(doy > 330 | doy < 60) |> # focus on winter months
   group_by(location, year, doy, id, microhabitat) |>
   summarise(
     min_temp = min(temp, na.rm = TRUE),
@@ -398,43 +349,44 @@ ibutton_processed <- ibutton |>
   mutate(
     lat = case_when(
       location == "MIA" ~ 25.7617,
+      location == "PSL" ~ 27.305,
       location == "ORL" ~ 28.5383,
       location == "GNV" ~ 29.6516,
-      location == "PSL" ~ 27.2932,
       location == "ATL" ~ 33.7490
     )
   )
 
 # plot mean minimum temperature across latitudes
-ggplot(
+buffer <- ggplot(
   ibutton_processed,
   aes(x = lat, y = mean_min_temp, color = microhabitat)
 ) +
-  geom_hline(yintercept = 0, color = "red", linetype = 2, linewidth = 0.5) +
+  geom_hline(yintercept = 0, color = "darkblue", linewidth = 0.5) +
+  geom_hline(yintercept = 5.35, color = "steelblue", linetype = 2, linewidth = 0.5) +
+  geom_hline(yintercept = 6.6, color = "black", linetype = 2, linewidth = 0.5) +
+  annotate("label", x = 25.9, y = 5.35, label = "CT[min]", parse = TRUE,
+           hjust = 0, vjust = 0.5, size = 5, color = "steelblue") +
+  annotate("label", x = 27, y = 6.6, label = "T[ret]", parse = TRUE,
+           hjust = 0, vjust = 0.5, size = 5, color = "black") +
   geom_jitter(width = 0.1, height = 0, alpha = 0.5) +
   stat_summary() +
   stat_summary(geom = "line", linewidth = 1) +
   scale_x_continuous(
     breaks = sort(unique(ibutton_processed$lat)),
     labels = paste(
-      c("MIA", "ORL", "GNV", "PSL", "ATL"),
-      " (",
+      c("MIA", "PSL", "ORL", "GNV", "ATL"),
+      "\n(",
       round(sort(unique(ibutton_processed$lat)), 1),
-      "°N)",
+      "°)",
       sep = ""
     )
   ) +
   scale_color_manual(
     values = c("forestgreen", "darkorange"),
-    labels = c("Branch", "Leaf Litter")
+    labels = c("Canopy", "Leaf Litter")
   ) +
-  theme_minimal() +
   theme(
-    axis.line = element_line(),
-    axis.ticks = element_line(),
-    panel.grid.minor = element_blank(),
-    panel.grid.major = element_line(color = "gray90", linewidth = 0.05),
-    axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
+    axis.text.x = element_text(size = 10, color = "black", hjust = 0.5),
     axis.title.x = element_blank(),
     axis.title.y = element_text(size = 12),
     legend.position = c(0.85, 0.85),
@@ -442,51 +394,65 @@ ggplot(
     legend.title = element_text(size = 12)
   ) +
   labs(
-    y = "Mean Minimum Temperature (°C)",
+    y = "Minimum Operative Temperature (°C)",
     color = "Microhabitat"
   )
+buffer
+```
 
-# plot minimum min temperature across latitudes
-ggplot(
-  ibutton_processed,
-  aes(x = lat, y = min_min_temp, color = microhabitat)
-) +
-  geom_hline(yintercept = 0, color = "red", linetype = 2, linewidth = 0.5) +
-  geom_jitter(width = 0.1, height = 0, alpha = 0.5) +
-  stat_summary() +
-  stat_summary(geom = "line", linewidth = 1) +
-  scale_x_continuous(
-    breaks = sort(unique(ibutton_processed$lat)),
-    labels = paste(
-      c("MIA", "ORL", "GNV", "PSL", "ATL"),
-      " (",
-      round(sort(unique(ibutton_processed$lat)), 1),
-      "°N)",
-      sep = ""
-    )
+```{r plot-combined-buffering}
+#| fig-align: "center"
+#| fig-width: 8.25
+#| fig-height: 4
+ggarrange(
+  buffer, obs_prob,
+  ncol = 2, nrow = 1,
+  labels = c("A", "B")
+)
+```
+
+## Plots for paper
+
+```{r plot-microclimate-dynamics}
+#| fig-align: "center"
+#| fig-width: 6
+#| fig-height: 3
+
+day_fluct <- ibutton |>
+  filter(location %in% c("ATL", "MIA")) |>
+  filter(year == 26) |>
+  filter(doy == 12) |>
+  mutate(hour = mod %/% 60) |>
+  ggplot(aes(x = hour, y = temp, color = microhabitat, fill = microhabitat)) +
+  geom_hline(
+    yintercept = 5.35, color = "steelblue", linewidth = 0.5, linetype = 2
   ) +
+  geom_hline(
+    yintercept = 0, color = "darkblue", linewidth = 0.5,
+  ) +
+  stat_summary(aes(group = microhabitat), geom = "line", linewidth = 1) +
+  stat_summary(aes(group = microhabitat), geom = "ribbon", alpha = 0.5, color = NA) +
+  facet_wrap(~location, axes = "all") +
   scale_color_manual(
     values = c("forestgreen", "darkorange"),
-    labels = c("Branch", "Leaf Litter")
+    labels = c("Canopy", "Leaf Litter")
   ) +
-  theme_minimal() +
+  scale_fill_manual(
+    values = c("forestgreen", "darkorange"),
+    labels = c("Canopy", "Leaf Litter")
+  ) +
+  ylab("Operative Temperature (°C)") +
+  scale_x_continuous(
+    expand = c(0, 0),
+    breaks = seq(0, 24, 4),
+    labels = paste0(seq(0, 24, 4), ":00"),
+  ) +
   theme(
-    axis.line = element_line(),
-    axis.ticks = element_line(),
-    panel.grid.minor = element_blank(),
-    panel.grid.major = element_line(color = "gray90", linewidth = 0.05),
-    axis.text.x = element_text(size = 12, angle = 45, hjust = 1),
-    axis.title.x = element_blank(),
+    axis.text = element_text(size = 8),
     axis.title.y = element_text(size = 12),
-    legend.position = c(0.85, 0.85),
-    legend.text = element_text(size = 12),
-    legend.title = element_text(size = 12)
-  ) +
-  labs(
-    y = "Minimum Minimum Temperature (°C)",
-    color = "Microhabitat"
+    axis.title.x = element_blank(),
+    legend.title = element_blank()
   )
 
-
-
+day_fluct
 ```
