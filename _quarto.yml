@@ -8,10 +8,10 @@ website:
     left:
     - href: home.qmd
       text: Start Here
+    - href: live-beyond-ctmin.qmd
+      text: Living Below CT<sub>min</sub>
     - href: time-for-space.qmd
       text: Time-for-Space
-    - href: lizard-overfilling.qmd
-      text: Lizard Overfilling
     - href: biophysical-modeling.qmd
       text: Biophysical Modeling
     - href: memos.qmd

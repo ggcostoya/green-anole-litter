@@ -1,5 +1,5 @@
 ---
-title: "Time for Space Analysis of Retreating Temperatures"
+title: "Green anoles live beyond their thermal limits"
 format:
   html:
     code-fold: true
@@ -9,10 +9,10 @@ format:
 ```{r r-setup, warning = FALSE, message = FALSE}
 # packages
 library(tidyverse)
-library(NicheMapR)
 library(kableExtra)
-library(TrenchR)
 library(ggpubr)
+library(geodata)
+library(terra)
 
 # options
 options(
@@ -22,9 +22,113 @@ options(
 
 ```
 
-### Overview
+## Overview
 
 The goal of this analysis is to estimate the threshold temperature at which Green Anoles (*Anolis carolinensis*) retreat to the leaf litter and are no longer observed in the tree canopy. To determine this threshold, we will combine field survey and iButton-based temperature data and later statistically analyze the relationship between temperature and both presence and abundance of Green Anoles.
+
+## Latitudinal gradient in green anole CT<sub>min</sub>
+
+Below we demonstrate how the critical thermal minimum (CT<sub>min</sub>) of green anoles decreases with latitude but not as fast as the minimum annual temperatures (BIO6) across the same latitudinal gradient. This demonstrates that green anoles live beyond their physiological thermal limits in the vast majority of their range, especially closer to the poleward range edge.
+
+```{r plot-latitudinal-gradient}
+#| fig-align: "center"
+#| fig-width: 5
+#| fig-height: 5
+
+# read CTmin data
+ctmin <- readRDS("data/ctmin_gradient.rds")
+
+# read global min temperatures dataset
+global_min_temp <- readRDS("data/global_min_temp.rds")
+
+# define a search box for the bio6 dataset
+search_box <- ext(
+  min(ctmin$lon) - 1, max(ctmin$lon) + 1,
+  min(ctmin$lat) - 1, max(ctmin$lat) + 0.5
+)
+
+# read in BIO6 data
+bio6 <- terra::rast("raw_data/bio_6.tif")
+
+# extract all BIO6 values and coordinates within the search box
+bio6_data <- terra::crop(bio6, search_box)
+bio6_df <- as.data.frame(bio6_data, xy = TRUE, na.rm = TRUE)
+colnames(bio6_df) <- c("lon", "lat", "bio6")
+bio6_df <- bio6_df |>
+  mutate(lat = round(lat, 1)) |>
+  group_by(lat) |>
+  summarise(
+    mean_bio6 = mean(bio6, na.rm = TRUE),
+    max_bio6 = max(bio6, na.rm = TRUE),
+    min_bio6 = min(bio6, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# plot CTmin and BIO6 data
+ggplot() +
+  geom_hline(yintercept = 0, color = "darkblue", linewidth = 0.5, alpha = 0.5) +
+  geom_jitter(
+    data = ctmin,
+    aes(x = lat, y = ctmin, color = "CTmin"),
+    width = 0.1, height = 0,
+    size = 3, alpha = 0.5,
+    show.legend = FALSE
+  ) +
+  geom_smooth(
+    data = ctmin,
+    aes(x = lat, y = ctmin, color = "CTmin"),
+    method = "lm", fill = "forestgreen", alpha = 0.2,
+    show.legend = TRUE
+  ) +
+  geom_line(
+    data = bio6_df,
+    aes(x = lat, y = mean_bio6, color = "BIO6"),
+    linewidth = 1
+  ) +
+  geom_ribbon(
+    data = bio6_df,
+    aes(x = lat, ymin = min_bio6, ymax = max_bio6),
+    fill = "steelblue", alpha = 0.2, show.legend = FALSE
+  ) +
+  scale_color_manual(
+    name = NULL,
+    values = c("CTmin" = "forestgreen", "BIO6" = "steelblue"),
+    labels = c(
+      "CTmin" = expression(CT[min]),
+      "BIO6" = "Min. Temp."
+    )
+  ) +
+  scale_x_continuous(
+    breaks = seq(24, 36, 2),
+    labels = paste0(seq(24, 36, 2), "°N"),
+    expand = c(0, 0)
+  ) +
+  scale_y_continuous(
+    breaks = seq(-10, 20, 5),
+    labels = paste0(seq(-10, 20, 5), "°C"),
+  ) +
+  theme_classic() +
+  theme(
+    legend.position = "inside",
+    legend.position.inside = c(1, 1),
+    legend.justification = c(1, 1),
+    legend.key.spacing.y = unit(0.5, "lines"),
+    legend.text = element_text(size = 15),
+    axis.title = element_blank(),
+    axis.text = element_text(size = 10)
+  ) +
+  guides(
+    color = guide_legend(
+      override.aes = list(
+        linetype = c(1, 1),
+        linewidth = c(2.5, 2.5),
+        fill = c(NA, NA)
+      )
+    )
+  )
+
+```
+
 
 ### Data Processing
 
@@ -79,7 +183,7 @@ ibutton_survey <- ibutton |>
   mutate(end_mod = ifelse(end_mod > 1440, 1440, end_mod)) |>
   filter(mod >= start_mod & mod <= end_mod) |>
   group_by(year, doy, microhabitat) |>
-  filter(temp > -10) |> # remove erroneous iButton readings
+  filter(temp > -9) |> # remove erroneous iButton readings
   summarise(
     mean_temp = mean(temp, na.rm = TRUE),
     .groups = "drop"
@@ -233,7 +337,6 @@ survey_ibutton |>
 :::
 
 ### Estimating Retreating Temperature Threshold
-
 In the following analyses, we model the relationship between branch temperature and lizard observation/abundance to identify temperature thresholds at which lizards retreat due to cold temperatures. We focus on branch temperature as a representative of the overall air temperature the lizard experiences in its "typical" habitat. We use two different models to estimate these thresholds: a binomial logistic regression and a Poisson regression. From each model fit, we then extract the most relevant temperature thresholds for lizard retreating behavior.
 
 #### Observation Probability
@@ -263,8 +366,7 @@ obs_prob <- survey_ibutton |>
     xintercept = 0, color = "darkblue", linewidth = 0.5
   ) +
   geom_jitter(
-    width = 0, height = 0.01,
-    color = "darkred", alpha = 0.5, size = 4
+    width = 0, height = 0.01, alpha = 0.5, size = 4
   ) +
   geom_smooth(
     method = "glm", method.args = list(family = "binomial"),
@@ -273,7 +375,7 @@ obs_prob <- survey_ibutton |>
     alpha = 0.2
   ) +
   labs(
-    x = "Mean Operative Temperature in Branches (°C)",
+    x = "Mean Canopy Operative Temperature (°C)",
     y = "Observation Probability"
   ) +
   theme(
@@ -333,8 +435,12 @@ The model, as expected, shows a significant positive effect of branch temperatur
 
 # process iButton data
 ibutton_processed <- ibutton |>
-  filter(temp > -10) |> # remove outliers tude to error
-  filter(doy > 330 | doy < 60) |> # focus on winter months
+  mutate(
+    month = doy %/% 30 + 1,
+    month = ifelse(month > 12, 12, month)
+  ) |>
+  filter(temp > -10) |>
+  filter(month %in% c(1, 12)) |>
   group_by(location, year, doy, id, microhabitat) |>
   summarise(
     min_temp = min(temp, na.rm = TRUE),
@@ -364,10 +470,10 @@ buffer <- ggplot(
   geom_hline(yintercept = 0, color = "darkblue", linewidth = 0.5) +
   geom_hline(yintercept = 5.35, color = "steelblue", linetype = 2, linewidth = 0.5) +
   geom_hline(yintercept = 6.6, color = "black", linetype = 2, linewidth = 0.5) +
-  annotate("label", x = 25.9, y = 5.35, label = "CT[min]", parse = TRUE,
-           hjust = 0, vjust = 0.5, size = 5, color = "steelblue") +
-  annotate("label", x = 27, y = 6.6, label = "T[ret]", parse = TRUE,
-           hjust = 0, vjust = 0.5, size = 5, color = "black") +
+  annotate("text", x = 26, y = 5.35, label = "CT[min]", parse = TRUE,
+             hjust = 0, vjust = 1.5, size = 5, color = "steelblue") +
+  annotate("text", x = 26, y = 6.6, label = "T[ret]", parse = TRUE,
+             hjust = 0, vjust = -0.5, size = 5, color = "black") +
   geom_jitter(width = 0.1, height = 0, alpha = 0.5) +
   stat_summary() +
   stat_summary(geom = "line", linewidth = 1) +
@@ -391,11 +497,10 @@ buffer <- ggplot(
     axis.title.y = element_text(size = 12),
     legend.position = c(0.85, 0.85),
     legend.text = element_text(size = 12),
-    legend.title = element_text(size = 12)
+    legend.title = element_blank()
   ) +
   labs(
-    y = "Minimum Operative Temperature (°C)",
-    color = "Microhabitat"
+    y = "Minimum Operative Temperature (°C)"
   )
 buffer
 ```
@@ -455,4 +560,133 @@ day_fluct <- ibutton |>
   )
 
 day_fluct
+```
+
+```{r table-ibutton-temps}
+ibutton |>
+  mutate(
+    month = doy %/% 30 + 1,
+    month = ifelse(month > 12, 12, month)
+  ) |>
+  filter(temp > -10) |>
+  group_by(location, year, month, doy, microhabitat, id) |>
+  summarise(
+    min_temp = min(temp, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  filter(month %in% c(1, 12)) |>
+  group_by(location, year, id, microhabitat) |>
+  summarise(
+    min_temp = mean(min_temp, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  group_by(location, microhabitat) |>
+  summarise(
+    mean_min_temp = mean(min_temp, na.rm = TRUE),
+    min_min_temp = min(min_temp, na.rm = TRUE),
+    max_min_temp = max(min_temp, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  mutate(
+    temp_pretty = paste0(
+      round(mean_min_temp, 1), " (", round(min_min_temp, 1), " - ", round(max_min_temp, 1), ")"
+    )
+  ) |>
+  select(location, microhabitat, temp_pretty) |>
+  pivot_wider(
+    names_from = microhabitat,
+    values_from = temp_pretty
+  ) 
+
+
+```
+
+
+```{r plot-survey-ibutton}
+#| fig-align: "center"
+#| fig-width: 8
+#| fig-height: 4
+
+survey_ibutton |>
+  group_by(year, doy, branch_temp, litter_temp) |>
+  summarise(
+    count = n(),
+    presence = ifelse(count > 1, 1, 0),
+    .groups = "drop"
+  ) |>
+  filter(!is.na(branch_temp) & !is.na(litter_temp)) |>
+  mutate(
+    date = as.Date(paste(year, doy), format = "%Y %j"),
+    presence_scaled = presence *
+      max(c(branch_temp, litter_temp), na.rm = TRUE),
+  ) |>
+  ggplot(aes(x = date)) +
+  geom_hline(
+    yintercept = 0, color = "darkblue", linewidth = 0.5
+  ) +
+  geom_hline(
+    yintercept = 5.35, color = "steelblue",
+    linetype = 2, linewidth = 0.5
+  ) +
+  geom_hline(
+    yintercept = 6.6, color = "black",
+    linetype = 2, linewidth = 0.5
+  ) +
+  annotate(
+    "text", x = as.Date("2025-10-01"), y = 5.35,
+    label = expression(CT[min]), color = "steelblue",
+    vjust = 1.2, size = 5
+  ) +
+  annotate(
+    "text", x = as.Date("2025-10-01"), y = 6.6,
+    label = expression(T[ret]), color = "black",
+    vjust = -0.6, size = 5
+  ) +
+  geom_line(
+    aes(y = branch_temp, color = "Canopy"), linewidth = 1
+  ) +
+  geom_line(
+    aes(y = litter_temp, color = "Leaf litter"), linewidth = 1
+  ) +
+  geom_point(
+    aes(y = presence_scaled),
+    alpha = 0.5, size = 3
+  ) +
+  scale_color_manual(
+    values = c(
+      "Canopy" = "forestgreen",
+      "Leaf litter" = "darkorange"
+    )
+  ) +
+  scale_y_continuous(
+    name = "Operative Temperature (°C)",
+    sec.axis = sec_axis(
+      ~ . / max(c(
+        survey_ibutton$branch_temp,
+        survey_ibutton$litter_temp
+      ), na.rm = TRUE),
+      name = "Green Anole Presence (0/1)"
+    )
+  ) +
+  scale_x_date(
+    date_breaks = "1 month",
+    date_labels = "%b-%Y"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.title.y = element_text(size = 12),
+    axis.title.y.right = element_text(size = 12),
+    axis.text.x = element_text(size = 10),
+    panel.border = element_rect(
+      color = "black", fill = NA, linewidth = 0.5
+    ),
+    axis.ticks = element_line(color = "black", linewidth = 0.25),
+    panel.grid = element_blank(),
+    axis.title.x = element_blank(),
+    legend.position = "top",
+    legend.text = element_text(size = 12),
+    legend.title = element_blank()
+  ) +
+  labs(color = NULL)
+
 ```

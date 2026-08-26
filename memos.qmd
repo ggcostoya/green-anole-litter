@@ -117,6 +117,121 @@ for (i in seq_len(nrow(tss_grid))) {
 saveRDS(tss_grid, "data/tss_grid.rds")
 ```
 
+## OTM Validation
+
+```{r otm-validation}
+
+ibutton <- readRDS("data/ibutton-data.rds")
+
+# summarise iButton data to get monthly minimum temperatures
+ibutton_val <- ibutton |>
+  filter(temp > -9) |>
+  group_by(location, doy, id, microhabitat) |>
+  summarise(
+    min_temp = min(temp, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  mutate(
+    month = doy %/% 30 + 1,
+    month = ifelse(month > 12, 12, month)
+  ) |>
+  group_by(location, month, id, microhabitat) |>
+  summarise(
+    min_temp = mean(min_temp, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  group_by(location, id, microhabitat) |>
+  filter(min_temp == min(min_temp, na.rm = TRUE)) |>
+  ungroup()
+
+# define locations of interest
+locations <- tibble(
+  location = c("MIA", "PSL", "ORL", "GNV", "ATL"),
+  lon = c(-80.1918, -80.3256, -81.3792, -82.3248, -84.3880),
+  lat = c(25.7617, 27.305, 28.5383, 29.6516, 33.7490)
+)
+
+# filter microclimate temps to only include locations only
+# within 0.1 degrees of the defined locations
+microclimate_temps_locations <- microclimate_temps |>
+  filter(
+    purrr::pmap_lgl(
+      list(lon, lat),
+      ~ any(abs(.x - locations$lon) < 0.1 & abs(.y - locations$lat) < 0.1)
+    )
+  )
+
+# add location labels to microclimate temps
+microclimate_temps_locations_sum <- microclimate_temps_locations |>
+  mutate(
+    location = purrr::pmap_chr(
+      list(lon, lat),
+      ~ locations$location[which.min(abs(.x - locations$lon) + abs(.y - locations$lat))]
+    )
+  ) |>
+  filter(
+    as.character(z) %in% c("-0.05", "2.2")
+  ) |>
+  group_by(location, z) |>
+  summarise(
+    mean_min_annual_temp = mean(min_annual_temp, na.rm = TRUE),
+    min_min_annual_temp = min(min_annual_temp, na.rm = TRUE),
+    max_min_annual_temp = max(min_annual_temp, na.rm = TRUE),
+    .groups = "drop",
+    mean_lat = mean(lat, na.rm = TRUE)
+  ) |>
+  mutate(
+    microhabitat = ifelse(z < 0, "leaflitter", "branch")
+  )
+
+# merge iButton data with microclimate temps
+validation_data <- ibutton_val |>
+  left_join(
+    microclimate_temps_locations_sum,
+    by = c("location", "microhabitat")
+  ) |>
+  mutate(
+    microhabitat = factor(microhabitat, levels = c("leaflitter", "branch")),
+    location = factor(location, levels = microclimate_temps_locations_sum |> distinct(location, mean_lat) |> arrange(mean_lat) |> pull(location))
+  )
+
+validation_data |>
+  ggplot(aes(x = mean_min_annual_temp, y = min_temp + 2, color = microhabitat)) +
+  geom_smooth(aes(fill = microhabitat), method = "lm", linewidth = 1, alpha = 0.1) +
+  geom_point(aes(shape = location), size = 3) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed", color = "black") +
+  theme_minimal() +
+  scale_color_manual(
+    values = c("leaflitter" = "darkorange", "branch" = "forestgreen"),
+    name = "Microhabitat",
+    labels = c("Leaf Litter", "Canopy")
+  ) +
+  scale_fill_manual(
+    values = c("leaflitter" = "darkorange", "branch" = "forestgreen"),
+    name = "Microhabitat",
+    labels = c("Leaf Litter", "Canopy")
+  ) +
+  scale_shape_manual(
+    name = "Location",
+    values = c(15, 16, 17, 18, 19),
+    labels = c("MIA", "PSL", "ORL", "GNV", "ATL")
+  ) +
+  theme(
+    legend.position = "right",
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 10),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    panel.grid = element_blank(),
+    axis.line = element_line(color = "black", linewidth = 0.5),
+    axis.ticks = element_line(color = "black", linewidth = 0.5)
+  ) +
+  labs(
+    x = "Predicted minimum operative temperature (°C)",
+    y = "Observed operative temperature (°C)"
+  ) 
+```
+
 ## Paper Figures
 
 ```{r plot-maps}
@@ -125,7 +240,8 @@ saveRDS(tss_grid, "data/tss_grid.rds")
 #| fig.height: 8
 
 microclimates_plot <- microclimate_temps |>
- filter(z %in% c(-0.03, 1.8)) |>
+ filter(z %in% c(1.8, -0.03)) |>
+ mutate(z = factor(z, levels = c(1.8, -0.03))) |>
  ggplot() +
   geom_tile(
     aes(x = lon, y = lat, fill = min_annual_temp)

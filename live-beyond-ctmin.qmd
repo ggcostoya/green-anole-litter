@@ -1,0 +1,852 @@
+---
+title: "Green anoles live beyond their physiological cold tolerance"
+format:
+  html:
+    code-fold: true
+    fig-dpi: 300
+---
+
+```{r setup, warning = FALSE, message = FALSE}
+# packages
+library(tidyverse)
+library(NicheMapR)
+library(kableExtra)
+library(terra)
+library(sf)
+library(geodata)
+library(elevatr)
+library(ggpubr)
+library(ggh4x)
+
+# options
+options(
+  dplyr.summarise.inform = FALSE,
+  knitr.table.html.attr = "quarto-disable-processing=true"
+)
+```
+
+## Overview
+
+## CT<sub>min</sub> does not scale with climate
+
+Below we demonstrate how the critical thermal minimum (CT<sub>min</sub>) of green anoles does not scale with climatic cooling. We do this by comparing empirical CT<sub>min</sub> data with the minimum annual temperatures across a latitudinal gradient spanning the range of the green anole. 
+
+We collected the CT<sub>min</sub> data from 7 locations across the range of *A. carolinensis*. We measured CT<sub>min</sub> by {Insert protocol details}. We also extracted the minimum temperature of the coldest month (BIO6) from WorldClim and obtained the average, minimum and maximum BIO6 values for each 0.1° latitude band across the range of the green anole.
+
+The figure below shows that while BIO6 decreases with latitude, CT<sub>min</sub> does not follow this trend, indicating that green anoles are living in climates colder than their physiological cold tolerance.
+
+```{r ctmin-does-not-scale-with-climate-process-plot}
+#| fig-align: "center"
+#| fig-width: 5
+#| fig-height: 5
+
+# read CTmin data
+ctmin_gradient <- readRDS("data/ctmin_gradient.rds")
+
+# read global min temperatures dataset
+global_min_temp <- readRDS("data/global_min_temp.rds")
+
+# define a search box for the bio6 dataset
+search_box <- ext(
+  min(ctmin_gradient$lon) - 1, max(ctmin_gradient$lon) + 1,
+  min(ctmin_gradient$lat) - 1, max(ctmin_gradient$lat) + 0.5
+)
+
+# read in BIO6 data
+bio6 <- terra::rast("raw_data/bio_6.tif")
+
+# extract all BIO6 values and coordinates within the search box
+bio6_data <- terra::crop(bio6, search_box)
+bio6_df <- as.data.frame(bio6_data, xy = TRUE, na.rm = TRUE)
+colnames(bio6_df) <- c("lon", "lat", "bio6")
+bio6_df <- bio6_df |>
+  mutate(lat = round(lat, 1)) |>
+  group_by(lat) |>
+  summarise(
+    mean_bio6 = mean(bio6, na.rm = TRUE),
+    max_bio6 = max(bio6, na.rm = TRUE),
+    min_bio6 = min(bio6, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# plot CTmin and BIO6 data
+ggplot() +
+  geom_hline(yintercept = 0, color = "darkblue", linewidth = 0.5, alpha = 0.5) +
+  geom_jitter(
+    data = ctmin_gradient,
+    aes(x = lat, y = ctmin, color = "CTmin"),
+    width = 0.1, height = 0,
+    size = 3, alpha = 0.5,
+    show.legend = FALSE
+  ) +
+  geom_smooth(
+    data = ctmin_gradient,
+    aes(x = lat, y = ctmin, color = "CTmin"),
+    method = "lm", fill = "forestgreen", alpha = 0.2,
+    show.legend = TRUE
+  ) +
+  geom_line(
+    data = bio6_df,
+    aes(x = lat, y = mean_bio6, color = "BIO6"),
+    linewidth = 1
+  ) +
+  geom_ribbon(
+    data = bio6_df,
+    aes(x = lat, ymin = min_bio6, ymax = max_bio6),
+    fill = "steelblue", alpha = 0.2, show.legend = FALSE
+  ) +
+  scale_color_manual(
+    name = NULL,
+    values = c("CTmin" = "forestgreen", "BIO6" = "steelblue"),
+    labels = c(
+      "CTmin" = expression(CT[min]),
+      "BIO6" = "Min. Temp."
+    )
+  ) +
+  scale_x_continuous(
+    breaks = seq(24, 36, 2),
+    labels = paste0(seq(24, 36, 2), "°N"),
+    expand = c(0, 0)
+  ) +
+  scale_y_continuous(
+    breaks = seq(-10, 20, 5),
+    labels = paste0(seq(-10, 20, 5), "°C"),
+  ) +
+  theme_classic() +
+  theme(
+    legend.position = "inside",
+    legend.position.inside = c(1, 1),
+    legend.justification = c(1, 1),
+    legend.key.spacing.y = unit(0.5, "lines"),
+    legend.text = element_text(size = 15),
+    axis.title = element_blank(),
+    axis.text = element_text(size = 10)
+  ) +
+  guides(
+    color = guide_legend(
+      override.aes = list(
+        linetype = c(1, 1),
+        linewidth = c(2.5, 2.5),
+        fill = c(NA, NA)
+      )
+    )
+  )
+
+```
+
+Below, we perform a linear regression to test whether CT<sub>min</sub> and BIO6 scale with latitude. We find that while BIO6 decreases with latitude, CT<sub>min</sub> does not, indicating that green anoles are living in climates colder than their physiological cold tolerance.
+
+```{r ctmin-does-not-scale-with-climate-stats}
+# prepare data
+bio6_df_model <- bio6_df |>
+  select(lat, mean_bio6) |>
+  rename(temp = mean_bio6) |>
+  mutate(type = "bio6")
+ctmin_model <- ctmin_gradient |>
+  select(lat, ctmin) |>
+  rename(temp = ctmin) |>
+  mutate(type = "ctmin")
+combined_df <- bind_rows(bio6_df_model, ctmin_model)
+
+# fit linear model with interaction between latitude and type
+lat_temp_model <- lm(temp ~ lat * type, data = combined_df)
+summary(lat_temp_model)
+```
+
+The interaction between latitude and type is positive (`{r}lat_temp_model$coefficients["lat:typectmin"]`), and significant (`{r}summary(lat_temp_model)$coefficients["lat:typectmin", "Pr(>|t|)"]`) indicating that CT<sub>min</sub> does not decrease with latitude as BIO6 does. This suggests that green anoles are living in climates colder than their physiological cold tolerance.
+
+## The green anole is an exceptional case of climatic overfilling
+
+### Data processing
+
+We compiled a dataset of CT<sub>min</sub> and elevational limits for 181 lizard species
+
+```{r load-ctmin-lizards}
+ctmin_lizards <- readRDS("data/ctmin_lizards.rds")
+ctmin_lizards
+```
+
+Below we combine data on the CT<sub>min</sub> and elevational limits of globally distributed lizards to find the total area and proportion of each species' range that is below their CT<sub>min</sub> and below 0°C. We also calculate the maximum latitude at which each species can occur above their CT<sub>min</sub> and above 0°C.
+
+```{r extract-data, eval = FALSE}
+## Note: This code chunk is not evaluated as it takes a long time to run.
+## The same code can be run locally to reproduce the results and the output
+## is stored in the `data/lizard_climatic_overfilling.rds` file.
+
+# read in global BIO6 tif
+bio6 <- terra::rast("raw_data/bio_6.tif")
+elev <- terra::rast("raw_data/elev.tif")
+ranges <- readRDS("raw_data/ranges_vector.rds")
+
+# filter ranges to only include lizard species with CTmin data
+ctmin_lizards_ranges <- ranges[ranges$TaxonID %in% ctmin_lizards$gard_id, ]
+
+# define function to conver lat-lon degree cell to km^2
+deg_to_area <- function(lat, delta_lat = 2.5 / 60, delta_lon = 2.5 / 60) {
+  
+  # unit conversions
+  lat_rad <- lat * pi / 180 # convert to radians
+
+  # define constants
+  equat_radius <- 6378.1370 # equatorial radius
+  polar_radius <- 6356.7523142 # polar radius
+  flat_factor <- 1 / 298.257223563 # flattening factor
+
+  # radius curvature in the meridian
+  e_sq <- (equat_radius^2 - polar_radius^2) / equat_radius^2
+  denominator <- (1 - e_sq * sin(lat_rad)^2)^(1.5)
+  m <- (equat_radius * (1 - e_sq)) / denominator
+
+  # set length of 1 degree latitude in km
+  km_per_degree_lat <- m * (pi / 180)
+  lat_dist <- km_per_degree_lat * delta_lat
+
+  # Calculate distance of 1 degree longitude along the parallel
+  dist_km <- (pi / 180) * equat_radius * cos(lat_rad) / sqrt(1 - (2 * flat_factor - flat_factor^2) * sin(lat_rad)^2) # nolint
+  lon_dist <- delta_lon * dist_km
+
+  # Return cell area in km^2
+  lat_dist * lon_dist
+}
+
+# define results list to extract data
+results_list <- vector("list", nrow(ctmin_lizards))
+
+for (i in seq_along(ctmin_lizards$gard_id)) {
+
+  # get species range and ctmin
+  range <- ctmin_lizards_ranges[ctmin_lizards_ranges$TaxonID == ctmin_lizards$gard_id[i], ] # nolint
+  ctmin <- ctmin_lizards$ctmin[i]
+  min_elev <- ctmin_lizards$min_elev[i]
+  max_elev <- ctmin_lizards$max_elev[i]
+
+  # crop BIO6 and elevation rasters to species range
+  bio6_crop <- terra::crop(terra::mask(bio6, range), range)
+  elev_crop <- terra::crop(terra::mask(elev, range), range)
+
+  # filter all areas within range and within elevation limits
+  valid_cells <- which(
+    !is.na(bio6_crop[]) &
+      !is.na(elev_crop[]) &
+      elev_crop[] >= min_elev &
+      elev_crop[] <= max_elev
+  )
+
+  # filter valid cells in BIo6 raster
+  bio6_crop_filtered <- bio6_crop[valid_cells]
+  bio6_crop_filtered <- bio6_crop_filtered$bio_6
+
+  # extract coordinates of valid cells
+  coords <- terra::xyFromCell(bio6_crop, valid_cells)[, "y"]
+  dist <- deg_to_area(abs(coords))
+
+  # get metrics
+  total_area <- sum(dist)
+  below_ctmin_area <- sum(dist[bio6_crop_filtered < ctmin])
+  below_0_area <- sum(dist[bio6_crop_filtered < 0])
+  below_ctmin_prop <- below_ctmin_area / total_area
+  below_0_prop <- below_0_area / total_area
+  max_lat_above_ctmin <- ifelse(
+    below_ctmin_area %in% c(0, 1),
+    NA,
+    max(abs(coords[bio6_crop_filtered >= ctmin]), na.rm = TRUE)
+  )
+  max_lat_above_0 <- ifelse(
+    below_0_area %in% c(0, 1),
+    NA,
+    max(abs(coords[bio6_crop_filtered >= 0]), na.rm = TRUE)
+  )
+
+  # store results in list
+  results_list[[i]] <- data.frame(
+    family = ctmin_lizards$family[i],
+    genus = ctmin_lizards$genus[i],
+    species = ctmin_lizards$species[i],
+    ctmin = ctmin,
+    substrate = ctmin_lizards$substrate_type[i],
+    min_lat = min(abs(terra::ext(range)[3:4])),
+    max_lat = max(abs(terra::ext(range)[3:4])),
+    total_area = total_area,
+    below_ctmin_area = below_ctmin_area,
+    below_0_area = below_0_area,
+    below_ctmin_prop = below_ctmin_prop,
+    below_0_prop = below_0_prop,
+    max_lat_above_ctmin = max_lat_above_ctmin,
+    max_lat_above_0 = max_lat_above_0
+  )
+
+  # clear up memory
+  rm(
+    range, ctmin, min_elev, max_elev, bio6_crop, elev_crop,
+    valid_cells, bio6_crop_filtered, coords, dist,
+    total_area, below_ctmin_area, below_0_area, below_ctmin_prop,
+    below_0_prop, max_lat_above_ctmin, max_lat_above_0
+  )
+  terra::tmpFiles(remove = TRUE)
+  gc()
+
+  # print progress
+  cat("Processed species", i, "of", nrow(ctmin_lizards), "\n")
+
+}
+
+# bind rows for results and store data
+lizard_climatic_overfilling <- bind_rows(results_list)
+
+# change any NaN or -Inf values to NA across all columns
+lizard_climatic_overfilling <- lizard_climatic_overfilling |>
+  mutate(across(
+    where(is.numeric),
+    ~ ifelse(is.nan(.x) | is.infinite(.x), NA, .x)
+  ))
+
+# calculate global bio6 mean, min and max for every absolute lat degree
+bio6_global <- as.data.frame(bio6, xy = TRUE, na.rm = TRUE) |>
+  mutate(lat = round(abs(y), 0)) |>
+  group_by(lat) |>
+  summarise(
+    mean_bio6 = mean(bio_6, na.rm = TRUE),
+    min_bio6 = quantile(bio_6, 0.025, na.rm = TRUE),
+    max_bio6 = quantile(bio_6, 0.975, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+saveRDS(lizard_climatic_overfilling, "data/lizard_climatic_overfilling.rds")
+saveRDS(bio6_global, "data/bio6_global.rds")
+```
+
+### Statistical analysis
+
+Below we estimate the Z-score of *Anolis carolinensis* range proportion below CT<sub>min</sub> and below 0 °C relative to the distribution of Z-scores for all lizard species in our dataset. 
+
+```{r z-score-analysis}
+
+# load datasets
+lizard_climatic_overfilling <- readRDS("data/lizard_climatic_overfilling.rds")
+
+# define function to get a Z-score for an observation relative to a group
+get_z_score <- function(x, group) {
+  (x - mean(group, na.rm = TRUE)) / sd(group, na.rm = TRUE)
+}
+
+# get Z-scores of A. carolinensis with respect to other groups
+caro_z_scores <- expand_grid(
+  var = c(
+    "below_ctmin_prop",
+    "below_0_prop",
+    "below_ctmin_area",
+    "below_0_area"
+  ),
+  group = c("anolis", "all")
+) |>
+  mutate(
+    z_score = map2_dbl(var, group, \(v, g) {
+      dat <- lizard_climatic_overfilling[[v]]
+      comp <- switch(
+        g,
+        anolis = dat[lizard_climatic_overfilling$genus == "Anolis"],
+        all = dat
+      )
+      x <- dat[lizard_climatic_overfilling$species == "Anolis carolinensis"]
+      get_z_score(x = x, group = comp)
+    })
+  )
+
+# tidy up for display as a table
+caro_z_scores |>
+  pivot_wider(names_from = group, values_from = z_score) |>
+  mutate(
+    across(
+      c(anolis, all),
+      ~ round(.x, 2)
+    )
+  ) |>
+  mutate(
+    metric = case_when(
+      var == "below_ctmin_prop" ~ "Proportion of range below CT[min]",
+      var == "below_0_prop" ~ "Proportion of range below 0°C",
+      var == "below_ctmin_area" ~ "Area of range below CT[min] (km^2)",
+      var == "below_0_area" ~ "Area of range below 0°C (km^2)"
+    )
+  ) |>
+  select(metric, anolis, all) |>
+  kbl(
+    col.names = c(
+      "Metric", "Z-score (relative to Anolis genus)",
+      "Z-score (relative to all lizards)"
+    ),
+    escape = FALSE,
+    align = "c"
+  ) |>
+  kable_styling(
+    full_width = FALSE,
+    position = "center"
+  )
+
+```
+
+We find that *A. carolinensis* has a significantly higher proportion of its range below CT<sub>min</sub> and below 0°C than other lizard species, indicating that it is an exceptional case of climatic overfilling.
+
+### Plots
+
+First, we plot the latitudinal distribution of CT<sub>min</sub> and BIO6 for all lizard species in our dataset. We also highlight the latitudinal distribution of CT<sub>min</sub> for *A. carolinensis* and compare it to the latitudinal distribution of BIO6 across the globe.
+
+```{r plot-lizard-climatic-overfilling-taxonomically}
+#| fig-align: "center"
+#| fig-width: 10
+#| fig-height: 5
+
+# load datasets
+bio6_global <- readRDS("data/bio6_global.rds")
+caro_ctmin_gradient <- readRDS("data/ctmin_gradient.rds")
+
+# create data for A. carolinensis
+ctmin_model <- lm(ctmin ~ lat, data = caro_ctmin_gradient)
+lats <- lizard_climatic_overfilling |>
+  filter(species == "Anolis carolinensis") |>
+  select(min_lat, max_lat)
+lats <- seq(
+  lats$min_lat, lats$max_lat, length.out = 100
+)
+caro_prediction <- predict(ctmin_model, newdata = data.frame(lat = lats))
+caro_ctmin_pred <- tibble(lat = lats, ctmin = caro_prediction, substrate = "arboreal")
+
+# filter taxonomic data for plotting
+lizard_climatic_overfilling <- lizard_climatic_overfilling |>
+  mutate(
+    group = case_when(
+      genus == "Anolis" & species != "Anolis carolinensis" ~ "Anolis Genus",
+      species == "Anolis carolinensis" ~ "Anolis carolinensis",
+      TRUE ~ "Other Lizards"
+    )
+  )
+
+# plot lat ~ temp
+lat_temps <- ggplot() +
+  geom_hline(
+    yintercept = 0, color = "darkblue", linewidth = 0.5, alpha = 0.5,
+    linetype = "dashed"
+  ) +
+  geom_ribbon(
+    data = bio6_global,
+    aes(x = lat, ymin = min_bio6, ymax = max_bio6),
+    fill = "steelblue", alpha = 0.2, show.legend = FALSE
+  ) +
+  geom_line(
+    data = bio6_global,
+    aes(x = lat, y = mean_bio6, color = "Global BIO6"),
+    linewidth = 1
+  ) +
+  geom_segment(
+    data = lizard_climatic_overfilling |> filter(group != "Anolis carolinensis"), # nolint
+    aes(
+      x = min_lat, xend = max_lat,
+      y = ctmin, yend = ctmin,
+      color = group
+    ),
+    linewidth = 1.25, alpha = 0.5
+  ) +
+  geom_line(
+    data = caro_ctmin_pred,
+    aes(x = lat, y = ctmin, color = "Anolis carolinensis"),
+    linewidth = 1.5
+  ) +
+  scale_color_manual(
+    name = NULL,
+    breaks = c(
+      "Anolis carolinensis",
+      "Anolis Genus",
+      "Other Lizards",
+      "Global BIO6"
+    ),
+    values = c(
+      "Anolis carolinensis" = "forestgreen",
+      "Anolis Genus" = "green3",
+      "Other Lizards" = "darkgray",
+      "Global BIO6" = "steelblue"
+    ),
+    labels = c(
+      "Anolis carolinensis" = expression(italic("A. carolinensis")),
+      "Anolis Genus" = expression("Other " * italic("Anolis")),
+      "Other Lizards" = "Other Lizards",
+      "Global BIO6" = "Global Min. Temp."
+    )
+  ) +
+  scale_y_continuous(
+    breaks = seq(-10, 20, 5),
+    expand = c(0, 0)
+  ) +
+  scale_x_continuous(
+    breaks = seq(0, 70, 10),
+    expand = c(0, 0)
+  ) +
+  coord_cartesian(
+    xlim = c(0, max(lizard_climatic_overfilling$max_lat, na.rm = TRUE) + 1),
+    ylim = c(
+      -2, max(lizard_climatic_overfilling$ctmin, na.rm = TRUE) + 2
+    )
+  ) +
+  theme_classic() +
+  theme(
+    legend.position = "inside",
+    legend.position.inside = c(1, 1),
+    legend.justification = c(1, 1),
+    legend.background = element_rect(
+      fill = "white", color = "gray", linewidth = 0.5
+    ),
+    axis.text = element_text(size = 10),
+    legend.text = element_text(size = 12)
+  ) +
+  labs(
+    x = "Absolute Latitude (°)",
+    y = "Temperature (°C)"
+  )
+
+# plot range proportions
+proportions <- lizard_climatic_overfilling |>
+  dplyr::select(
+    group, below_ctmin_prop, below_ctmin_area, below_0_area
+  ) |>
+  mutate(
+    below_ctmin_area = below_ctmin_area + 1, # add 1 to avoid log10(0) issues
+    below_0_area = below_0_area + 1,
+    group = factor(
+      group,
+      levels = c("Other Lizards", "Anolis Genus", "Anolis carolinensis")
+    )
+  ) |>
+  arrange(group) |>
+  pivot_longer(
+    cols = c(below_ctmin_prop, below_ctmin_area, below_0_area),
+    names_to = "metric", values_to = "value"
+  ) |>
+  arrange(group) |>
+  ggplot(
+    aes(x = metric, y = value, color = group, alpha = group, size = group)
+  ) +
+  geom_jitter(width = 0.1, height = 0, show.legend = FALSE) +
+  facet_wrap(
+    ~metric,
+    ncol = 3,
+    scales = "free",
+    strip.position = "left",
+    labeller = as_labeller(
+      c(
+        below_ctmin_prop = "Proportion~of~range~`<`~CT[min]",
+        below_ctmin_area = "Area~of~range~`<`~CT[min]~(km^2)",
+        below_0_area = "Area~of~range~`<`~0*degree*C~(km^2)"
+      ),
+      default = label_parsed
+    )
+  ) +
+  facetted_pos_scales(
+    y = list(
+      metric == "below_ctmin_prop" ~ scale_y_continuous(),
+      metric == "below_ctmin_area" ~ scale_y_continuous(
+        trans = "log10",
+        breaks = c(1, 10, 100, 1000, 10000, 100000, 1000000, 10000000
+        )
+      ),
+      metric == "below_0_area" ~ scale_y_continuous(
+        trans = "log10",
+        breaks = c(1, 10, 100, 1000, 10000, 100000, 1000000, 10000000)
+      )
+    )
+  ) +
+  scale_color_manual(
+    values = c(
+      "Anolis carolinensis" = "darkgreen",
+      "Anolis Genus" = "palegreen3",
+      "Other Lizards" = "gray"
+    ),
+    name = "Group"
+  ) +
+  scale_alpha_manual(
+    values = c(0.5, 0.75, 1),
+    name = "Group"
+  ) +
+  scale_size_manual(
+    values = c(2, 2.5, 4),
+  ) +
+  theme_minimal() +
+  theme(
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+    axis.ticks.y = element_line(color = "black", linewidth = 0.25),
+    axis.text.x = element_blank(),
+    axis.text.y = element_text(color = "black"),
+    axis.title = element_blank(),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    strip.placement = "outside",
+    strip.text.y.left = element_text(angle = 90, margin = margin(r = 0)),
+    strip.switch.pad.grid = grid::unit(0, "pt"),
+    strip.text = element_text(size = 12)
+  )
+
+combined_plot <- ggarrange(
+  lat_temps, proportions,
+  ncol = 2, nrow = 1,
+  widths = c(1.25, 1),
+  labels = c("A", "B"),
+  align = "hv",
+  font.label = list(size = 15, face = "bold", color = "black")
+)
+combined_plot
+
+```
+
+Next we plot by substrate type to see if there are any differences in the latitudinal distribution of CT<sub>min</sub> and BIO6 across different ecological groups of lizards. We also highlight the latitudinal distribution of CT<sub>min</sub> for *A. carolinensis* and compare it to the latitudinal distribution of BIO6 across the globe.
+
+```{r plot-by-substrate}
+#| fig-align: "center"
+#| fig-width: 10
+#| fig-height: 5
+
+# get substrate data and colors
+substrate_data <- lizard_climatic_overfilling |>
+  mutate(
+    substrate = replace_na(as.character(substrate), "Unknown"),
+    substrate = fct_infreq(substrate)
+  )
+
+substrate_levels <- levels(substrate_data$substrate)
+substrate_colors <- setNames(
+  c("peachpuff3", "khaki3", "springgreen3"), substrate_levels
+)
+
+lat_temps_substrate <- ggplot() +
+  geom_hline(
+    yintercept = 0, color = "darkblue", linewidth = 0.5, alpha = 0.5,
+    linetype = "dashed"
+  ) +
+  geom_ribbon(
+    data = bio6_global,
+    aes(x = lat, ymin = min_bio6, ymax = max_bio6),
+    fill = "steelblue", alpha = 0.2, show.legend = FALSE
+  ) +
+  geom_line(
+    data = bio6_global,
+    aes(x = lat, y = mean_bio6, color = "Global BIO6"), linewidth = 1
+  ) +
+  geom_segment(
+    data = substrate_data |>
+      filter(species != "Anolis carolinensis"),
+    aes(
+      x = min_lat, xend = max_lat, y = ctmin, yend = ctmin,
+      color = substrate
+    ),
+    linewidth = 1.25, alpha = 0.5
+  ) +
+  geom_line(
+    data = caro_ctmin_pred,
+    aes(x = lat, y = ctmin, color = "Anolis carolinensis"),
+    linewidth = 1.5
+  ) +
+  scale_color_manual(
+    name = NULL,
+    values = c(
+      substrate_colors,
+      "Anolis carolinensis" = "forestgreen",
+      "Global BIO6" = "steelblue"
+    ),
+    breaks = c(substrate_levels, "Anolis carolinensis", "Global BIO6"),
+    labels = c(
+      as.list(setNames(substrate_levels, substrate_levels)),
+      list(
+        "other" = "Not Arboreal Lizards",
+        "semi-arboreal" = "Semi-Arboreal Lizards",
+        "arboreal" = "Arboreal Lizards",
+        "Anolis carolinensis" = expression(italic("A. carolinensis")),
+        "Global BIO6" = "Global Min. Temp."
+      )
+    )
+  ) +
+  scale_y_continuous(
+    breaks = seq(-10, 20, 5), labels = paste0(seq(-10, 20, 5), " °C"),
+    expand = c(0, 0)
+  ) +
+  scale_x_continuous(
+    breaks = seq(0, 70, 10), labels = paste0(seq(0, 70, 10), "°"),
+    expand = c(0, 0)
+  ) +
+  coord_cartesian(
+    xlim = c(0, max(substrate_data$max_lat, na.rm = TRUE) + 1),
+    ylim = c(-2, max(substrate_data$ctmin, na.rm = TRUE) + 2)
+  ) +
+  theme_classic() +
+  theme(
+    legend.position = "inside", legend.position.inside = c(1, 1),
+    legend.justification = c(1, 1),
+    legend.background = element_rect(
+      fill = "white", color = "gray", linewidth = 0.5
+    ),
+    axis.title.y = element_blank(), axis.text = element_text(size = 10),
+    legend.text = element_text(size = 10),
+    legend.title = element_blank()
+  ) +
+  labs(x = "Absolute Latitude")
+
+proportions_substrate <- substrate_data |>
+  select(substrate, below_ctmin_prop, below_ctmin_area, below_0_area) |>
+  mutate(
+    below_ctmin_area = below_ctmin_area + 1,
+    below_0_area = below_0_area + 1
+  ) |>
+  pivot_longer(
+    cols = c(below_ctmin_prop, below_ctmin_area, below_0_area),
+    names_to = "metric", values_to = "value"
+  ) |>
+  ggplot(aes(x = metric, y = value, color = substrate)) +
+  geom_point(
+    position = position_jitterdodge(
+      dodge.width = 1, jitter.width = 0.2, jitter.height = 0
+    ),
+    show.legend = FALSE,
+    alpha = 0.25
+  ) +
+  stat_summary(
+    position = position_dodge(width = 1)
+  ) +
+  geom_point(
+    data = substrate_data |>
+      filter(species == "Anolis carolinensis") |>
+      mutate(
+        below_ctmin_area = below_ctmin_area + 1,
+        below_0_area = below_0_area + 1
+      ) |>
+      pivot_longer(
+        cols = c(below_ctmin_prop, below_ctmin_area, below_0_area),
+        names_to = "metric", values_to = "value"
+      ),
+    aes(x = 1.33, y = value, group = substrate),
+    color = "forestgreen",
+    size = 4,
+    show.legend = FALSE
+  ) +
+  facet_wrap(
+    ~metric, ncol = 3, scales = "free", strip.position = "left",
+    labeller = as_labeller(
+      c(
+        below_ctmin_prop = "Proportion~of~range~`<`~CT[min]",
+        below_ctmin_area = "Area~of~range~`<`~CT[min]~(km^2)",
+        below_0_area = "Area~of~range~`<`~0*degree*C~(km^2)"
+      ),
+      default = label_parsed
+    )
+  ) +
+  facetted_pos_scales(
+    y = list(
+      metric == "below_ctmin_prop" ~ scale_y_continuous(),
+      metric != "below_ctmin_prop" ~ scale_y_continuous(
+        trans = "log10",
+        breaks = c(1, 10, 100, 1000, 10000, 100000, 1000000, 10000000)
+      )
+    )
+  ) +
+  scale_color_manual(values = substrate_colors) +
+  theme_minimal() +
+  theme(
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+    axis.ticks.y = element_line(color = "black", linewidth = 0.25),
+    axis.text.x = element_blank(),
+    axis.text.y = element_text(color = "black"),
+    axis.title = element_blank(),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    strip.placement = "outside", 
+    strip.text.y.left = element_text(angle = 90),
+    strip.switch.pad.grid = grid::unit(0, "pt"), 
+    strip.text = element_text(size = 12)
+  )
+
+ggarrange(
+  lat_temps_substrate, proportions_substrate,
+  ncol = 2, nrow = 1, widths = c(1.25, 1), labels = c("A", "B"),
+  align = "hv", font.label = list(size = 15, face = "bold", color = "black")
+)
+```
+
+## Tables
+
+Below we table the average, minimum and maximum CT<sub>min</sub> and BIO6 values for each 0.1° latitude band across the range of the green anole.
+
+```{r ctmin-bio6-table}
+
+ctmin_gradient_sum <- ctmin_gradient |>
+  mutate(lat = round(lat, 1)) |>
+  group_by(site, lat) |>
+  summarise(
+    mean_ctmin = mean(ctmin, na.rm = TRUE),
+    min_ctmin = min(ctmin, na.rm = TRUE),
+    max_ctmin = max(ctmin, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  mutate(
+    CTmin = paste0(
+      round(mean_ctmin, 1), " (", round(min_ctmin, 1), ", ",
+      round(max_ctmin, 1), ")"
+    )
+  ) |>
+  select(site, lat, CTmin)
+
+bio6_df_sum <- bio6_df |>
+  filter(lat %in% ctmin_gradient_sum$lat) |>
+  mutate(BIO6 = paste0(
+    round(mean_bio6, 1), " (", round(min_bio6, 1), ", ",
+    round(max_bio6, 1), ")"
+  )) |>
+  select(lat, BIO6)
+
+# combine datasets and table
+ctmin_gradient_sum |>
+  left_join(bio6_df_sum, by = "lat") |>
+  select(site, lat, CTmin, BIO6) |>
+  arrange(lat) |>
+  kbl(
+    col.names = c("Site", "Latitude (°N)", "CT[min] (°C)", "BIO6 (°C)"),
+    escape = FALSE,
+    align = "c"
+  ) |>
+  kable_styling(
+    full_width = FALSE,
+    position = "center"
+  )
+
+```
+
+Last we table to "overfilling" results for all species
+
+```{r lizard-climatic-overfilling-table}
+lizard_climatic_overfilling |>
+  mutate(
+    genus = gsub(" .*", "", species),
+    species = gsub(".* ", "", species)
+  ) |>
+  mutate(
+    below_ctmin_prop = round(below_ctmin_prop, 2),
+    below_0_prop = round(below_0_prop, 2),
+    below_ctmin_area = round(below_ctmin_area / 1e6, 4),
+    below_0_area = round(below_0_area / 1e6, 4),
+    total_area = round(total_area / 1e6, 4)
+  ) |>
+  select(
+    family, genus, species,
+    below_ctmin_prop, below_0_prop,
+    below_ctmin_area, below_0_area, total_area
+  ) |>
+  arrange(genus, species) |>
+  kable(
+    col.names = c(
+      "Family", "Genus", "Species",
+      "Proportion < CTmin",
+      "Proportion < 0°C", "Area < CTmin (10⁶ km²)",
+      "Area < 0°C (10⁶ km²)", "Total area (10⁶ km²)"
+    )
+  ) |>
+  kable_styling(
+    full_width = FALSE,
+    position = "center"
+  )
+```
