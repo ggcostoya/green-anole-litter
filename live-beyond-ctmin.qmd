@@ -306,8 +306,8 @@ bio6_global <- as.data.frame(bio6, xy = TRUE, na.rm = TRUE) |>
   group_by(lat) |>
   summarise(
     mean_bio6 = mean(bio_6, na.rm = TRUE),
-    min_bio6 = quantile(bio_6, 0.025, na.rm = TRUE),
-    max_bio6 = quantile(bio_6, 0.975, na.rm = TRUE),
+    min_bio6 = mean_bio6 - sd(bio_6, na.rm = TRUE),
+    max_bio6 = mean_bio6 + sd(bio_6, na.rm = TRUE),
     .groups = "drop"
   )
 
@@ -401,15 +401,11 @@ bio6_global <- readRDS("data/bio6_global.rds")
 caro_ctmin_gradient <- readRDS("data/ctmin_gradient.rds")
 
 # create data for A. carolinensis
-ctmin_model <- lm(ctmin ~ lat, data = caro_ctmin_gradient)
-lats <- lizard_climatic_overfilling |>
-  filter(species == "Anolis carolinensis") |>
-  select(min_lat, max_lat)
-lats <- seq(
-  lats$min_lat, lats$max_lat, length.out = 100
+caro_ctmin_pred <- tibble(
+  lat = seq(22.75, 36.5, by = 0.1),
+  ctmin = mean(caro_ctmin_gradient$ctmin),
+  substrate = "arboreal"
 )
-caro_prediction <- predict(ctmin_model, newdata = data.frame(lat = lats))
-caro_ctmin_pred <- tibble(lat = lats, ctmin = caro_prediction, substrate = "arboreal")
 
 # filter taxonomic data for plotting
 lizard_climatic_overfilling <- lizard_climatic_overfilling |>
@@ -505,7 +501,7 @@ lat_temps <- ggplot() +
 # plot range proportions
 proportions <- lizard_climatic_overfilling |>
   dplyr::select(
-    group, below_ctmin_prop, below_ctmin_area, below_0_area
+    group, below_ctmin_prop, below_0_prop, below_ctmin_area, below_0_area
   ) |>
   mutate(
     below_ctmin_area = below_ctmin_area + 1, # add 1 to avoid log10(0) issues
@@ -517,39 +513,44 @@ proportions <- lizard_climatic_overfilling |>
   ) |>
   arrange(group) |>
   pivot_longer(
-    cols = c(below_ctmin_prop, below_ctmin_area, below_0_area),
+    cols = c(below_ctmin_prop, below_0_prop, below_ctmin_area, below_0_area),
     names_to = "metric", values_to = "value"
+  ) |>
+  mutate(
+    area_prop = case_when(
+      metric %in% c("below_ctmin_prop", "below_0_prop") ~ "Proportion",
+      metric %in% c("below_ctmin_area", "below_0_area") ~ "Area"
+    ),
+    temp = case_when(
+      metric %in% c("below_ctmin_prop", "below_ctmin_area") ~ "CT[min]",
+      metric %in% c("below_0_prop", "below_0_area") ~ "0°C"
+    )
   ) |>
   arrange(group) |>
   ggplot(
-    aes(x = metric, y = value, color = group, alpha = group, size = group)
+    aes(x = temp, y = value, color = group, alpha = group, size = group)
   ) +
   geom_jitter(width = 0.1, height = 0, show.legend = FALSE) +
   facet_wrap(
-    ~metric,
+    ~area_prop,
     ncol = 3,
     scales = "free",
     strip.position = "left",
     labeller = as_labeller(
       c(
-        below_ctmin_prop = "Proportion~of~range~`<`~CT[min]",
-        below_ctmin_area = "Area~of~range~`<`~CT[min]~(km^2)",
-        below_0_area = "Area~of~range~`<`~0*degree*C~(km^2)"
+        Proportion = "Proportion~of~range",
+        Area = "Area~of~range~(km^2)"
       ),
       default = label_parsed
     )
   ) +
   facetted_pos_scales(
     y = list(
-      metric == "below_ctmin_prop" ~ scale_y_continuous(),
-      metric == "below_ctmin_area" ~ scale_y_continuous(
+      area_prop == "Proportion" ~ scale_y_continuous(),
+      area_prop == "Area" ~ scale_y_continuous(
         trans = "log10",
         breaks = c(1, 10, 100, 1000, 10000, 100000, 1000000, 10000000
         )
-      ),
-      metric == "below_0_area" ~ scale_y_continuous(
-        trans = "log10",
-        breaks = c(1, 10, 100, 1000, 10000, 100000, 1000000, 10000000)
       )
     )
   ) +
@@ -568,11 +569,15 @@ proportions <- lizard_climatic_overfilling |>
   scale_size_manual(
     values = c(2, 2.5, 4),
   ) +
+  scale_x_discrete(
+    labels = c("CT[min]" = expression("< " * "CT"[min]),
+    "0°C" = "< 0°C")
+  ) +
   theme_minimal() +
   theme(
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
-    axis.ticks.y = element_line(color = "black", linewidth = 0.25),
-    axis.text.x = element_blank(),
+    axis.ticks = element_line(color = "black", linewidth = 0.25),
+    axis.text.x = element_text(size = 12, color = "black"),
     axis.text.y = element_text(color = "black"),
     axis.title = element_blank(),
     legend.position = "none",
@@ -688,16 +693,29 @@ lat_temps_substrate <- ggplot() +
   labs(x = "Absolute Latitude")
 
 proportions_substrate <- substrate_data |>
-  select(substrate, below_ctmin_prop, below_ctmin_area, below_0_area) |>
+  select(
+    substrate, below_ctmin_prop, below_0_prop, below_ctmin_area, below_0_area
+  ) |>
   mutate(
     below_ctmin_area = below_ctmin_area + 1,
-    below_0_area = below_0_area + 1
+    below_0_area = below_0_area + 1,
+    substrate = factor(substrate, levels = substrate_levels)
   ) |>
   pivot_longer(
-    cols = c(below_ctmin_prop, below_ctmin_area, below_0_area),
+    cols = c(below_ctmin_prop, below_0_prop, below_ctmin_area, below_0_area),
     names_to = "metric", values_to = "value"
   ) |>
-  ggplot(aes(x = metric, y = value, color = substrate)) +
+  mutate(
+    area_prop = case_when(
+      metric %in% c("below_ctmin_prop", "below_0_prop") ~ "Proportion",
+      metric %in% c("below_ctmin_area", "below_0_area") ~ "Area"
+    ),
+    temp = case_when(
+      metric %in% c("below_ctmin_prop", "below_ctmin_area") ~ "CT[min]",
+      metric %in% c("below_0_prop", "below_0_area") ~ "0°C"
+    )
+  ) |>
+  ggplot(aes(x = temp, y = value, color = substrate)) +
   geom_point(
     position = position_jitterdodge(
       dodge.width = 1, jitter.width = 0.2, jitter.height = 0
@@ -713,43 +731,58 @@ proportions_substrate <- substrate_data |>
       filter(species == "Anolis carolinensis") |>
       mutate(
         below_ctmin_area = below_ctmin_area + 1,
-        below_0_area = below_0_area + 1
+        below_0_area = below_0_area + 1,
+        substrate = factor(substrate, levels = substrate_levels)
       ) |>
       pivot_longer(
-        cols = c(below_ctmin_prop, below_ctmin_area, below_0_area),
+        cols = c(below_ctmin_prop, below_0_prop, below_ctmin_area, below_0_area),
         names_to = "metric", values_to = "value"
+      ) |>
+      mutate(
+        area_prop = case_when(
+          metric %in% c("below_ctmin_prop", "below_0_prop") ~ "Proportion",
+          metric %in% c("below_ctmin_area", "below_0_area") ~ "Area"
+        ),
+        temp = case_when(
+          metric %in% c("below_ctmin_prop", "below_ctmin_area") ~ "CT[min]",
+          metric %in% c("below_0_prop", "below_0_area") ~ "0°C"
+        )
       ),
-    aes(x = 1.33, y = value, group = substrate),
+    aes(x = temp, y = value, group = substrate),
+    position = position_nudge(x = 1/3),
     color = "forestgreen",
     size = 4,
     show.legend = FALSE
   ) +
   facet_wrap(
-    ~metric, ncol = 3, scales = "free", strip.position = "left",
+    ~area_prop, ncol = 2, scales = "free", strip.position = "left",
     labeller = as_labeller(
       c(
-        below_ctmin_prop = "Proportion~of~range~`<`~CT[min]",
-        below_ctmin_area = "Area~of~range~`<`~CT[min]~(km^2)",
-        below_0_area = "Area~of~range~`<`~0*degree*C~(km^2)"
+        Proportion = "Proportion~of~range",
+        Area = "Area~of~range~(km^2)"
       ),
       default = label_parsed
     )
   ) +
   facetted_pos_scales(
     y = list(
-      metric == "below_ctmin_prop" ~ scale_y_continuous(),
-      metric != "below_ctmin_prop" ~ scale_y_continuous(
+      area_prop == "Proportion" ~ scale_y_continuous(),
+      area_prop == "Area" ~ scale_y_continuous(
         trans = "log10",
         breaks = c(1, 10, 100, 1000, 10000, 100000, 1000000, 10000000)
       )
     )
   ) +
+  geom_vline(xintercept = 1.5, color = "gray70", linewidth = 0.2) +
   scale_color_manual(values = substrate_colors) +
+  scale_x_discrete(
+    labels = c("CT[min]" = expression("< " * "CT"[min]), "0°C" = "< 0°C")
+  ) +
   theme_minimal() +
   theme(
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
-    axis.ticks.y = element_line(color = "black", linewidth = 0.25),
-    axis.text.x = element_blank(),
+    axis.ticks = element_line(color = "black", linewidth = 0.25),
+    axis.text.x = element_text(size = 12, color = "black"),
     axis.text.y = element_text(color = "black"),
     axis.title = element_blank(),
     legend.position = "none",
@@ -770,7 +803,7 @@ ggarrange(
 
 ## Tables
 
-Below we table the average, minimum and maximum CT<sub>min</sub> and BIO6 values for each 0.1° latitude band across the range of the green anole.
+We table the average, minimum and maximum CT<sub>min</sub> and BIO6 values for each 0.1° latitude band across the range of the green anole.
 
 ```{r ctmin-bio6-table}
 
@@ -819,6 +852,7 @@ ctmin_gradient_sum |>
 Last we table to "overfilling" results for all species
 
 ```{r lizard-climatic-overfilling-table}
+
 lizard_climatic_overfilling |>
   mutate(
     genus = gsub(" .*", "", species),

@@ -1,0 +1,419 @@
+---
+title: "Green anoles retreat to the leaf litter to avoid extreme cold"
+format:
+  html:
+    code-fold: true
+    fig-dpi: 300
+---
+
+```{r r-setup, warning = FALSE, message = FALSE}
+# packages
+library(tidyverse)
+library(kableExtra)
+library(ggpubr)
+library(broom)
+library(suncalc)
+
+# options
+options(
+  dplyr.summarise.inform = FALSE,
+  knitr.table.html.attr = "quarto-disable-processing=true"
+)
+
+```
+
+## Overview
+
+## Green anoles retreat to the leaf litter
+
+```{r plot-survey-data}
+#| fig-align: center
+#| fig-width: 7
+#| fig-height: 5
+#| out.width: 66%
+
+otms_data <- readRDS("data/otms-data.rds")
+
+# latitudes of locations
+otms_data <- otms_data |>
+  mutate(
+    lat = case_when(
+      location == "MIA" ~ 25.7617,
+      location == "PSL" ~ 27.305,
+      location == "ORL" ~ 28.5383,
+      location == "GNV" ~ 29.6516,
+      location == "ATL" ~ 33.7490
+    )
+  )
+
+# predict CTmin by latitude
+pred_ctmin <- tibble(
+  lat = seq(25, 35, by = 0.1),
+  ctmin = 57 - 1.68 * lat - 41.67 + 1.48 * lat
+)
+
+# read and summarize survey data
+survey <- readRDS("data/sleepy-lizard-survey-data.rds")
+survey_sum <- survey |>
+  group_by(year, doy) |>
+  summarise(
+    count = n() - 1,
+    presence = ifelse(count > 0, 1, 0)
+  ) |>
+  mutate(
+    continuous_doy = ifelse(year == 2026, doy + 365, doy)
+  ) |>
+  filter(continuous_doy < (365 + 30)) |>
+  mutate(
+    date = as.Date(paste(year, doy), format = "%Y %j")
+  ) |>
+  ungroup()
+
+# estimate sunset times for Atlanta, GA
+my_year <- 2026
+my_dates <- seq(
+  as.Date(sprintf("%d-01-01", my_year)),
+  as.Date(sprintf("%d-12-31", my_year)),
+  by = "day"
+)
+my_lat <- 33.7490
+my_lon <- -84.3880
+sunset_times <- getSunlightTimes(
+  date = my_dates,
+  lat = my_lat,
+  lon = my_lon,
+  keep = "sunset",
+  tz = "America/New_York"
+)
+sunset_times$doy <- yday(sunset_times$date)
+sunset_times$mod_sunset <- hour(sunset_times$sunset) * 60 + minute(sunset_times$sunset) # nolint
+sunset_times <- sunset_times |> select(doy, mod_sunset)
+
+# filter otm data
+otm_data_ATL <- otms_data |>
+  filter(location == "ATL") |>
+  filter(year > 24) |>
+  arrange(id, year, doy, mod) |>
+  filter(microhabitat == "branch") |>
+  left_join(sunset_times, by = "doy") |>
+  filter(mod > mod_sunset & mod < mod_sunset + 60) |>
+  mutate(
+    year = year + 2000
+  ) |>
+  mutate(
+    temp = ifelse(year == 2025 & doy < 200, NA, temp),
+    temp = ifelse(year == 2026 & doy > 30, NA, temp),
+  ) |>
+  filter(!is.na(temp)) |>
+  group_by(year, doy) |>
+  summarise(
+    mean_temp = mean(temp, na.rm = TRUE),
+    max_temp = max(temp, na.rm = TRUE),
+    min_temp = min(temp, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  mutate(
+    date = as.Date(paste(year, doy), format = "%Y %j")
+  )
+
+# predict CTmin at ATL latitude
+ctmin_atl <- 57 - 1.68 * my_lat - 41.67 + 1.48 * my_lat
+
+# plot survey data and OTM data
+ggplot() +
+  geom_hline(
+    yintercept = c(1, 0, ctmin_atl / max(otm_data_ATL$mean_temp, na.rm = TRUE)),
+    linetype = "dashed",
+    color = c("gray80", "darkblue", "steelblue"),
+    alpha = 0.5
+  ) +
+  annotate(
+    "label",
+    x = as.Date("2025-10-01"),
+    y = ctmin_atl / max(otm_data_ATL$mean_temp, na.rm = TRUE) + 0.05,
+    label = expression(CT[min]),
+    color = "steelblue",
+    size = 5,
+    fill = "white",
+    vjust = 1
+  ) +
+  geom_line(
+    data = otm_data_ATL,
+    aes(x = date, y = mean_temp / max(otm_data_ATL$mean_temp, na.rm = TRUE)),
+    color = "steelblue", linewidth = 1
+  ) +
+  geom_ribbon(
+    data = otm_data_ATL,
+    aes(
+      x = date,
+      ymin = min_temp / max(otm_data_ATL$mean_temp, na.rm = TRUE),
+      ymax = max_temp / max(otm_data_ATL$mean_temp, na.rm = TRUE)
+    ),
+    fill = "steelblue", alpha = 0.2
+  ) +
+  geom_point(
+    data = survey_sum,
+    aes(x = date, y = presence),
+    color = "darkgreen", size = 3, alpha = 0.75
+  ) +
+  geom_smooth(
+    data = survey_sum,
+    aes(x = date, y = presence),
+    method = "glm",
+    formula = y ~ x,
+    method.args = list(family = binomial(link = "logit")),
+    color = "darkgreen", se = FALSE, linewidth = 2
+  ) +
+  scale_y_continuous(
+    name = "Observation Probability",
+    sec.axis = sec_axis(
+      ~ . * max(otm_data_ATL$mean_temp, na.rm = TRUE),
+      name = "Predicted Lizard Body Temperature (°C)"
+    ),
+    breaks = seq(0, 1, 0.2)
+  ) +
+  scale_x_date(
+    date_breaks = "1 month",
+    date_labels = "%b-%Y"
+  ) +
+  theme_minimal() +
+  theme(
+    panel.border = element_rect(
+      color = "black", fill = NA, linewidth = 0.5
+    ),
+    axis.ticks = element_line(color = "black", linewidth = 0.25),
+    panel.grid = element_blank(),
+    axis.title.x = element_blank(),
+    axis.text.y = element_text(size = 10),
+    axis.title = element_text(size = 12),
+    axis.text.x = element_text(size = 11)
+  ) +
+  labs(color = NULL)
+
+```
+
+```{r model-retreating-temp}
+survey_sum_model <- survey_sum |>
+  left_join(otm_data_ATL, by = c("year", "doy", "date"))
+
+# model
+mod <- glm(
+  presence ~ mean_temp,
+  data = survey_sum_model,
+  family = binomial(link = "logit")
+)
+broom::tidy(mod)
+broom::glance(mod)
+
+# get temperature thresholds for probabilities
+probabilities <- c(0.01, 0.05, 0.1, 0.2, 0.25, 0.5)
+thresholds <- tibble(
+  probability = probabilities,
+  temperature = (log(probabilities / (1 - probabilities)) - coef(mod)[1]) / coef(mod)[2]
+) |>
+  mutate(
+    temperature = round(temperature, 2)
+  )
+thresholds |>
+  kbl(
+    col.names = c("Observation Probability", "Predicted Lizard Body Temperature (°C)"),
+    align = "c"
+  ) |>
+  kable_styling(
+    full_width = FALSE,
+    position = "center",
+    font_size = 12
+  )
+```
+
+```{r plot-threshold-temperature}
+#| fig-align: center
+#| fig-width: 5
+#| fig-height: 5
+#| out.width: 66%
+
+tret <- survey_sum |>
+  left_join(otm_data_ATL, by = c("year", "doy", "date")) |>
+  ggplot(aes(x = mean_temp, y = presence)) +
+  geom_vline(
+    xintercept = c(0, ctmin_atl),
+    linetype = "dashed",
+    color = c("darkblue", "steelblue"),
+  ) +
+  geom_jitter(
+    color = "gray", size = 4, alpha = 0.75,
+    width = 0, height = 0.02
+  ) +
+  geom_smooth(
+    method = "glm",
+    formula = y ~ x,
+    method.args = list(family = binomial(link = "logit")),
+    color = "black", fill = "gray80",
+    se = TRUE, linewidth = 1, alpha = 0.5
+  ) +
+  theme_minimal() +
+  theme(
+    axis.ticks = element_line(color = "black", linewidth = 0.25),
+    axis.line = element_line(color = "black", linewidth = 0.5),
+    panel.grid = element_blank(),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10)
+  ) +
+  labs(
+    x = "Predicted Lizard Body Temperature in Canopy (°C)",
+    y = "Observation Probability"
+  )
+tret
+```
+
+## The leaf litter buffers environmental temperatures
+
+```{r plot-leaf-litter-buffering}
+#| fig-align: center
+#| fig-width: 5
+#| fig-height: 5
+#| out.width: 66%
+
+# summarise data
+otms_data_sum <- otms_data |>
+  mutate(
+    year = year + 2000,
+    date = as.Date(paste(year, doy), format = "%Y %j"),
+    month = format(date, "%b")
+  ) |>
+  group_by(location, lat, id, year, month, doy, microhabitat) |>
+  summarise(
+    min_temp = min(temp, na.rm = TRUE)
+  ) |>
+  filter(month %in% c("Dec", "Jan", "Feb")) |>
+  group_by(location, lat, id, microhabitat, year) |>
+  summarise(
+    min_temp = mean(min_temp, na.rm = TRUE)
+  ) |>
+  ungroup()
+
+# plot
+buffering_plot <- otms_data_sum |>
+  ggplot(aes(x = lat, y = min_temp)) +
+  geom_line(
+    data = pred_ctmin,
+    aes(x = lat, y = ctmin, color = "CTmin"),
+    inherit.aes = FALSE,
+    linetype = "dashed"
+  ) +
+  geom_smooth(
+    aes(color = microhabitat, fill = microhabitat),
+    method = "lm",
+    alpha = 0.2,
+    show.legend = FALSE
+  ) +
+  geom_point(
+    aes(color = microhabitat),
+    size = 3,
+    alpha = 0.5,
+    position = position_jitterdodge(jitter.width = 0.25, dodge.width = 1)
+  ) +
+  geom_hline(
+    yintercept = c(0),
+    linetype = "dashed",
+    color = "darkblue"
+  ) +
+  scale_color_manual(
+    values = c("branch" = "forestgreen", "leaflitter" = "darkorange", "CTmin" = "steelblue"),
+    name = "Microhabitat",
+    breaks = c("branch", "leaflitter", "CTmin"),
+    labels = c("Canopy", "Leaf litter", expression(CT[min]))
+  ) +
+  scale_fill_manual(
+    values = c("branch" = "forestgreen", "leaflitter" = "darkorange"),
+    name = "Microhabitat",
+    labels = c("Canopy", "Leaf litter"),
+    guide = "none"
+  ) +
+  scale_x_continuous(
+    breaks = seq(25, 35, by = 2.5),
+    limits = c(25, 35),
+    expand = c(0, 0)
+  ) +
+  theme_minimal() +
+  theme(
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    panel.grid = element_blank(),
+    legend.position = c(1, 1),
+    legend.justification = c("right", "top"),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 14),
+    legend.key.spacing.y = unit(0.5, "lines"),
+    legend.background = element_rect(fill = "white", color = "gray80", linewidth = 0.5)
+  ) +
+  labs(
+    x = "Latitude (°N)",
+    y = "Predicted Lizard Body Temperature (°C)"
+  )
+buffering_plot
+
+```
+
+```{r stats-leaf-litter-buffering}
+# model
+mod <- lm(min_temp ~ lat * microhabitat, data = otms_data_sum)
+broom::tidy(mod)
+broom::glance(mod)
+```
+
+```{r table-leaf-litter-buffering}
+otms_data_sum |>
+  group_by(location, lat, microhabitat) |>
+  summarise(
+    mean_min_temp = mean(min_temp, na.rm = TRUE),
+    sd_min_temp = sd(min_temp, na.rm = TRUE),
+    n = n()
+  ) |>
+  mutate(
+    est = paste(
+      round(mean_min_temp, 1), "±",
+      round(sd_min_temp, 1), "°C (n =", n, ")"
+    )
+  ) |>
+  mutate(
+    microhabitat = ifelse(microhabitat == "branch", "Canopy", "Leaf litter")
+  ) |>
+  select(location, lat, microhabitat, est) |>
+  pivot_wider(
+    names_from = microhabitat,
+    values_from = est
+  ) |>
+  kbl(
+    col.names = c("Location", "Latitude (°N)", "Canopy", "Leaf litter"),
+    align = "c",
+  ) |>
+  kable_styling(
+    full_width = FALSE,
+    position = "center",
+    font_size = 12
+  )
+```
+
+## Manuscript Figure
+
+```{r plot-manuscript-figure}
+#| fig-align: center
+#| fig-width: 9
+#| fig-height: 4.5
+#| out.width: 100%
+
+ggarrange(
+  tret,
+  buffering_plot,
+  ncol = 2,
+  nrow = 1,
+  labels = c("A", "B"),
+  align = "hv",
+  # increase the size of the labels
+  font.label = list(size = 16, face = "bold")
+)
+
+```

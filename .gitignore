@@ -2,3 +2,4 @@ raw_data/
 /.quarto/
 **/*.quarto_ipynb
 data/ranges_vector.rds
+figures/

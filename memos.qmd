@@ -19,7 +19,150 @@ options(
   knitr.table.html.attr = "quarto-disable-processing=true"
 )
 
+theme_set(theme_minimal(base_family = "Arial"))
+
 ```
+
+## Conceptual figure
+
+```{r memo-conceptual-figure}
+
+# load microclimate data
+microclimate_temps <- readRDS("data/microclimate_temps.rds")
+
+# subset square
+subs <- microclimate_temps |>
+ filter(lat > 33 & lat < 36) |>
+ filter(lon > -89 & lon < -85) |>
+ filter(as.character(z) == "-0.05")
+ 
+# plot temperatures square
+temps <- subs |>
+ ggplot(aes(x = lon, y = lat, fill = min_annual_temp)) +
+ geom_tile() +
+ scale_fill_viridis(
+  option = "magma",
+  labels = function(x) paste0(x, "°C"),
+  guide = guide_colorbar(barwidth = 8, barheight = 0.5)
+  ) +
+ theme_void() +
+ theme(
+  legend.title = element_blank(),
+  legend.margin = margin(b = -15),
+  plot.title = element_text(hjust = 0.5, size = 16, margin = margin(b = 5)),
+  legend.position = "top"
+ ) +
+ coord_fixed() +
+ labs(
+  title = "Predicted Body Temperature"
+ )
+ggsave("figures/memo-conceptual-figure.png", temps, width = 4, height = 4, dpi = 300)
+
+# plot tree cover square
+vegs <- subs |>
+ ggplot(aes(x = lon, y = lat, fill = veg)) +
+ geom_tile() +
+ scale_fill_gradient(
+  low = "orange", high = "darkgreen",
+  labels = function(x) paste0(x * 100, "%"),
+  guide = guide_colorbar(barwidth = 8, barheight = 0.5)
+ ) +
+ theme_void() +
+ theme(
+  legend.title = element_blank(),
+  legend.margin = margin(b = -15),
+  plot.title = element_text(hjust = 0.5, size = 16, margin = margin(b = 5)),
+  legend.position = "top"
+ ) +
+ coord_fixed() +
+ labs(
+  title = "Forest Cover"
+ )
+ggsave("figures/memo-conceptual-figure-veg.png", vegs, width = 4, height = 4, dpi = 300)
+
+# plot optimality
+optimality <- subs |>
+ mutate(suitable = ifelse(min_annual_temp > 0 & veg > 0.5, 1, 0)) |>
+ ggplot(aes(x = lon, y = lat, fill = as.character(suitable))) +
+ geom_tile() +
+ scale_fill_manual(
+  values = c("0" = "gray", "1" = "steelblue4"),
+  labels = c("Unsuitable", "Suitable"),
+  guide = guide_legend(override.aes = list(size = 5))
+ ) +
+ theme_void() +
+ theme(
+  legend.title = element_blank(),
+  legend.margin = margin(b = -12),
+  legend.text = element_text(size = 12),
+  plot.title = element_text(hjust = 0.5, size = 16, margin = margin(b = 5)),
+  legend.position = "top"
+ ) +
+ coord_fixed() +
+ labs(
+  title = "Inferred Suitability"
+ )
+ggsave("figures/memo-conceptual-figure-suitability.png", optimality, width = 4, height = 4, dpi = 300)
+
+# plot species range
+range <- subs |>
+  ggplot(aes(x = lon, y = lat, fill = as.character(presence))) +
+  geom_tile() +
+  scale_fill_manual(
+    values = c("0" = "gray", "1" = "forestgreen"),
+    labels = c("Absent", "Present"),
+    guide = guide_legend(override.aes = list(size = 5))
+  ) +
+  theme_void() +
+  theme(
+    legend.title = element_blank(),
+    legend.margin = margin(b = -12),
+    legend.text = element_text(size = 12),
+    plot.title = element_text(hjust = 0.5, size = 16, margin = margin(b = 5)),
+    legend.position = "top"
+  ) +
+  coord_fixed() +
+  labs(
+    title = "Observed Species Range"
+  )
+ggsave("figures/memo-conceptual-figure-range.png", range, width = 4, height = 4, dpi = 300)
+
+# plot hits figure
+hits <- subs |>
+ mutate(suitable = ifelse(min_annual_temp > 0 & veg > 0.5, 1, 0)) |>
+ mutate(hit = case_when(
+  suitable == 1 & presence == 1 ~ "TP",
+  suitable == 0 & presence == 0 ~ "TN",
+  suitable == 1 & presence == 0 ~ "FP",
+  suitable == 0 & presence == 1 ~ "FN"
+ )) |>
+ ggplot(aes(x = lon, y = lat, fill = hit)) +
+ geom_tile() +
+ scale_fill_manual(
+  values = c(
+   "TP" = "steelblue4",
+   "TN" = "gray",
+   "FP" = "orange",
+   "FN" = "red"
+  ),
+  guide = guide_legend(override.aes = list(size = 5))
+ ) +
+ theme_void() +
+ theme(
+  legend.title = element_blank(),
+  legend.margin = margin(b = -12),
+  legend.text = element_text(size = 12),
+  plot.title = element_text(hjust = 0.5, size = 16, margin = margin(b = 5)),
+  legend.position = "top"
+ ) +
+ coord_fixed() +
+ labs(
+  title = "Model Accuracy"
+ )
+ggsave("figures/memo-conceptual-figure-hits.png", hits, width = 4, height = 4, dpi = 300)
+
+```
+
 
 ```{r load-data}
 
