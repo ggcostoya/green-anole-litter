@@ -5,21 +5,21 @@ project:
 
 website:
   navbar:
+    title: false
     left:
-    - href: home.qmd
-      text: Start Here
-    - href: live-beyond-ctmin.qmd
-      text: Living Below CT<sub>min</sub>
-    - href: leaf-litter-retreat.qmd
-      text: Leaf Litter Retreat
-    - href: biophysical-modeling.qmd
-      text: Biophysical Modeling
-    - href: memos.qmd
-      text: Mechanistic Envelope Models
+    - text: "Start Here"
+      href: home.qmd
+    - text: "Living Below CT<sub>min</sub>"
+      href: live-beyond-ctmin.qmd
+    - text: "Leaf Litter Retreat"
+      href: leaf-litter-retreat.qmd
+    - text: "Prediciting Poleward Limits" 
+      href: leaf-litter-temps-range.qmd
 
 format:
   html:
     theme: cosmo
+    css: styles.css
     toc: true
     lightbox: true
 

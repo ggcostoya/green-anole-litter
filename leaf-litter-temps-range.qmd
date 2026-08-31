@@ -1,0 +1,869 @@
+---
+title: "Leaf litter temperatures predict the green anole's poleward range limit"
+format:
+  html:
+    code-fold: true
+    fig-dpi: 300
+---
+
+```{r r-setup, warning = FALSE, message = FALSE}
+# packages
+library(tidyverse)
+library(terra)
+library(sf)
+library(rnaturalearth)
+library(TrenchR)
+library(kableExtra)
+library(viridis)
+library(ggpubr)
+
+# options
+options(
+  dplyr.summarise.inform = FALSE,
+  knitr.table.html.attr = "quarto-disable-processing=true"
+)
+```
+
+## Overview
+
+## Defining the green anole's range
+
+```{r define-caro-range, eval = FALSE}
+## Note: This code chunk is not evaluated as it requires manual interaction
+## to define the green anole's range using the `mapedit` package. The resulting 
+## range points are saved as an RDS file for later use.
+
+# load packages
+library(mapview)
+library(mapedit)
+
+# load occurrence data
+caro_occ_data <- read.csv("raw_data/anolis_carolinensis_inat_obs.csv")
+
+# round coordinates and remove observations with low positional accuracy
+caro_occ_data <- caro_occ_data |>
+  mutate(
+    lat = round(latitude, 1), lon = round(longitude, 1),
+  ) |>
+  filter(
+    !is.na(positional_accuracy) & positional_accuracy <= 1000
+  ) |>
+  group_by(lon, lat) |>
+  summarise(n = n(), .groups = "drop") |>
+  filter(n > 2) |>
+  select(lon, lat)
+
+# filter data to native range of green anole
+caro_occ_data <- caro_occ_data |>
+  filter(
+    lon > -110 & lon < -70, lat > 22.5 & lat < 37.5
+  )
+
+# remove outliers based on distance to other observations
+caro_occ_data$is_outlier <- apply(
+  caro_occ_data[, c("lon", "lat")], 1, function(x) {
+    distances <- geosphere::distm(
+      x,
+      caro_occ_data[, c("lon", "lat")],
+      fun = distHaversine
+    )
+    # if there are fewer than 3 observations within 50 km, mark as outlier
+    if (length(distances) > 0 && sum(distances < 50000) < 3) {
+      1
+    } else {
+      0
+    }
+  }
+)
+
+# save processed occurrence data
+saveRDS(caro_occ_data, "data/caro_occ_data.rds")
+
+# transform into a spatial object
+caro_occ_sf <- st_as_sf(
+  caro_occ_data[caro_occ_data$is_outlier == 0, ],
+  coords = c("lon", "lat"),
+  crs = 4326
+)
+
+# manually draw map around range
+mapviewOptions(fgb = FALSE)
+caro_range_sf <- editMap(mapview(caro_occ_sf))
+
+# transform into a polygon object
+caro_range_sf <- st_as_sf(caro_range_sf$finished)
+
+# filter data to only include points within the continental US
+caro_range_sf <- st_intersection(
+  caro_range_sf,
+  ne_countries(scale = "medium", returnclass = "sf") |>
+    filter(admin %in% c("United States of America", "Mexico")) |>
+    st_crop(xmin = -125, xmax = -65, ymin = 20, ymax = 50)
+)
+
+# change the spatial resolution of the polygon to 0.04166667 degrees (~5 km)
+caro_range_sf <- st_transform(caro_range_sf, crs = 4326)
+
+# combine into a single (multi)polygon suitable for masking other layers
+caro_range_poly <- st_as_sf(caro_range_sf) |>
+  st_union() |>
+  st_make_valid() |>
+  st_as_sf()
+
+# save caro range
+saveRDS(caro_range_poly, "data/caro_range.rds")
+```
+
+```{r plot-range}
+#| fig-align: "center"
+#| fig-width: 6
+
+caro_range <- readRDS("data/caro_range.rds")
+caro_occ_data <- readRDS("data/caro_occ_data.rds")
+
+ggplot() +
+  geom_polygon(
+    data = map_data("world"),
+    aes(x = long, y = lat, group = group),
+    fill = "lightgray", color = "darkgray"
+  ) +
+  geom_polygon(
+    data = map_data("state"),
+    aes(x = long, y = lat, group = group),
+    fill = NA, color = "gray"
+  ) +
+  geom_sf(
+    data = caro_range,
+    fill = "forestgreen", color = NA, alpha = 0.25
+  ) +
+  geom_point(
+    data = caro_occ_data,
+    aes(x = lon, y = lat, color = as.factor(is_outlier)),
+    size = 1, alpha = 0.75
+  ) +
+  scale_color_manual(
+    values = c("darkgreen", "darkred"),
+    labels = c("In Range", "Outlier")
+  ) +
+  coord_sf(xlim = c(-101, -75), ylim = c(24, 37.5)) +
+  theme_minimal() +
+  scale_x_continuous(
+    breaks = seq(-100, -75, by = 5),
+    labels = function(x) paste0(abs(x), "°W"),
+    expand = c(0, 0)
+  ) +
+  scale_y_continuous(
+    breaks = seq(25, 37.5, by = 2.5),
+    labels = function(x) paste0(x, "°N"),
+    expand = c(0, 0)
+  ) +
+  theme(
+    legend.position = "top",
+    legend.title = element_blank(),
+    legend.text = element_text(size = 10),
+    axis.title = element_blank(),
+    axis.text = element_text(size = 10),
+    panel.border = element_rect(fill = NA),
+    axis.ticks = element_line(),
+    panel.grid = element_blank()
+  )
+```
+
+## Obtaining and processing ecological data
+
+```{r process-ecological-data, eval = FALSE}
+## Note: This code chunk is not evaluated as it requires large raster files
+## that are not included in the repository. The output of this code chunk is
+## saved as an RDS file for later use.
+
+# define land polygon
+land_edge <- ne_countries(scale = "medium", returnclass = "sf") |>
+  filter(admin %in% c("United States of America", "Mexico")) |>
+  st_transform(crs = 4326)
+
+# crop the land polygon to the area surrounding the green anole range
+range_extent <- terra::ext(
+  st_bbox(caro_range_poly)["xmin"] - 2,
+  st_bbox(caro_range_poly)["xmax"] + 2,
+  st_bbox(caro_range_poly)["ymin"] - 2,
+  st_bbox(caro_range_poly)["ymax"] + 2
+)
+
+# crop land edge
+land_edge <- land_edge |>
+  terra::vect() |>
+  terra::crop(range_extent) |>
+  st_as_sf()
+
+# read and process vegetation rasters
+trees <- terra::rast("raw_data/trees.tif")
+mangroves <- terra::rast("raw_data/mangroves.tif")
+wetlands <- terra::rast("raw_data/wetlands.tif")
+veg <- trees + mangroves + wetlands
+veg <- terra::mask(veg, land_edge)
+veg <- terra::crop(veg, range_extent)
+veg <- terra::aggregate(veg, fact = 5, fun = "mean", na.rm = TRUE) # 30'' to 2.5' # nolint
+
+# read and process elevation raster
+elev <- terra::rast("raw_data/elev.tif")
+elev <- terra::mask(elev, land_edge)
+elev <- terra::crop(elev, range_extent)
+
+# read and process tmin and tmax rasters
+tmin <- terra::rast("raw_data/tmin.tif")
+tmin <- terra::mask(tmin, land_edge)
+tmin <- terra::crop(tmin, range_extent)
+tmax <- terra::rast("raw_data/tmax.tif")
+tmax <- terra::mask(tmax, land_edge)
+tmax <- terra::crop(tmax, range_extent)
+
+# match resultion of all raster
+elev <- terra::resample(elev, veg, method = "bilinear")
+tmin <- terra::resample(tmin, veg, method = "bilinear")
+tmax <- terra::resample(tmax, veg, method = "bilinear")
+
+# create a raster for green anole range
+range_rast <- terra::rasterize(
+  terra::vect(caro_range), veg, field = 1, background = 0
+)
+range_rast <- terra::mask(range_rast, land_edge)
+range_rast <- terra::resample(range_rast, veg, method = "bilinear")
+
+# combine all rasters into a single SpatRaster object
+eco_rast <- c(veg, elev, tmin, tmax, range_rast)
+
+# transform into data frame
+eco_df <- as.data.frame(eco_rast, xy = TRUE, na.rm = TRUE)
+colnames(eco_df) <- c(
+  "lon", "lat", "veg", "elev", "tmin", "tmax", "presence"
+)
+eco_df$presence <- ifelse(eco_df$presence > 0, 1, 0)
+
+# save final ecological data
+saveRDS(eco_df, "data/eco_df.rds")
+
+```
+
+```{r plot-eco-data}
+#| fig-align: "center"
+#| fig-width: 20
+
+eco_df <- readRDS("data/eco_df.rds")
+
+# define common theme and axis labels for all plots
+common_theme <- theme_minimal() +
+  theme(
+    axis.title = element_blank(),
+    axis.text = element_text(size = 10),
+    panel.border = element_rect(fill = NA),
+    axis.ticks = element_line(),
+    panel.grid = element_blank()
+  )
+x_axis_common <- scale_x_continuous(
+  breaks = seq(-100, -75, by = 5),
+  labels = function(x) paste0(abs(x), "°W"),
+  expand = c(0, 0)
+)
+y_axis_common <- scale_y_continuous(
+  breaks = seq(25, 37.5, by = 2.5),
+  labels = function(x) paste0(x, "°N"),
+  expand = c(0, 0)
+)
+
+# generate all plots
+veg_plot <- ggplot(eco_df, aes(x = lon, y = lat, fill = veg)) +
+  geom_raster() +
+  scale_fill_gradient(
+    low = "lightyellow", high = "darkgreen", na.value = NA
+  ) +
+  coord_quickmap(xlim = c(-101, -75), ylim = c(24, 37.5)) +
+  common_theme + x_axis_common + y_axis_common +
+  labs(fill = "Vegetation\nCover")
+tmin_plot <- ggplot(eco_df, aes(x = lon, y = lat, fill = tmin)) +
+  geom_raster() +
+  coord_quickmap(xlim = c(-101, -75), ylim = c(24, 37.5)) +
+  common_theme + x_axis_common + y_axis_common +
+  labs(fill = "Minimum\nTemp. (°C)")
+tmax_plot <- ggplot(eco_df, aes(x = lon, y = lat, fill = tmax)) +
+  geom_raster() +
+  scale_fill_viridis(
+    option = "plasma", na.value = NA
+  ) +
+  coord_quickmap(xlim = c(-101, -75), ylim = c(24, 37.5)) +
+  common_theme + x_axis_common + y_axis_common +
+  labs(fill = "Maximum\nTemp. (°C)")
+elev_plot <- ggplot(eco_df, aes(x = lon, y = lat, fill = elev)) +
+  geom_raster() +
+  scale_fill_viridis() +
+  coord_quickmap(xlim = c(-101, -75), ylim = c(24, 37.5)) +
+  common_theme + x_axis_common + y_axis_common +
+  labs(fill = "Elevation\n(m)")
+presence_plot <- ggplot(eco_df, aes(x = lon, y = lat, fill = as.factor(presence))) + # nolint
+  geom_raster() +
+  scale_fill_manual(
+    values = c("lightgray", "forestgreen"), na.value = NA,
+    labels = c("Absent", "Present")
+  ) +
+  coord_quickmap(xlim = c(-101, -75), ylim = c(24, 37.5)) +
+  common_theme + x_axis_common + y_axis_common +
+  labs(fill = "Green Anole\nPresence")
+
+# combine all plots into a single figure
+ggarrange(
+  veg_plot, tmin_plot, tmax_plot, elev_plot, presence_plot,
+  ncol = 3, nrow = 2,
+  align = "hv"
+)
+
+```
+
+## Biophysical models
+
+```{r define-biophys-params}
+#| code-summary: "Biophysical model parameters"
+
+# define physical constants
+k <- 0.05 # thermal conductivity of leaf litter (W m^-1 K^-1)
+rho <- 150 # bulk density of leaf litter (kg m^-3)
+cp <- 2500 # specific heat capacity of leaf litter (J kg^-1 K^-1)
+cc <- 0.007 # canopy cooling coefficient (W m^-2)
+srh <- 0.02 # surface radiative heat flux coefficient (C / W m^-2 K^-1)
+ecc <- 0.0167 # earth orbit eccentricity
+spo <- 1.36 # extraterrestial solar radiation (kW m^-2)
+atc <- 0.83 # atmospheric transmissivity coefficient (unitless)
+sigma <- 5.670374e-8  # Stefan-Boltzmann constant (W m^-2 K^-4)
+lizard_emissivity <- 0.95 # Longwave emissivity of reptile skin
+sky_emissivity <- 0.75 # Longwave emissivity of the night sky
+wind_speed <- 0.1 # Wind speed in m/s
+f_sky <- 0.5 # Sky view factor above ground (50%)
+f_ground <- 0.5 # Ground view factor above ground (50%)
+convection_ground <- 2.5 # Conductive/convective transfer from ground
+
+# calculate derived physical constants
+diff_sec <- k / (rho * cp) # thermal diffusivity of leaf litter (m^2 s^-1)
+diff_hour <- diff_sec * 3600 # thermal diffusivity of leaf litter (m^2 h^-1)
+omega <- 2 * pi / 24 # angular frequency of diurnal temperature cycle (rad h^-1)
+damping_depth <- sqrt((2 * diff_hour) / omega) # damping depth (m)
+
+# define list of heights and depths of interest
+zs <- c(seq(-0.2, -0.01, by = 0.01), 0, 1.8, 2)
+
+```
+
+```{r define-biophysical functions}
+#| code-summary: "Biophysical model functions"
+
+# solar radiation profile
+get_solar_rad_profile <- function(lat, elev, doy, solar_noon) {
+  hours <- 0:23
+  elon <- (2 * pi / 365) * (doy - 80) + 2 * ecc * (sin(2 * pi / 365 * doy) - sin(2 * pi / 365 * 80)) # nolint
+  dec_ang <- asin(0.3879672 * sin(elon))
+  p_a <- 101.3 * exp(-elev / 8200)
+  geo_lat <- lat * (pi / 180)
+  sin_alt_ang <- sin(geo_lat) * sin(dec_ang) + cos(geo_lat) * cos(dec_ang) * outer(solar_noon, hours, function(s, h) cos(0.2618 * (h - s))) # nolint
+  m_a <- p_a / (101.3 * (1 / sin_alt_ang))
+  solar_rad <- spo * atc ^ m_a * sin_alt_ang
+  solar_rad[solar_rad < 0] <- 0
+  drop(solar_rad * 1000)
+}
+
+# air temperature profile
+get_air_temp_profile <- function(tmax, tmin) {
+  w <- pi / 12
+  gamma <- 0.44 - 0.46 * sin(0.9 + w * (0:23)) + 0.11 * sin(0.9 + 2 * w * (0:23)) # nolint
+  drop(outer(tmax, gamma) + outer(tmin, 1 - gamma))
+}
+
+# canopy cooling correction
+correct_air_temp_profile <- function(
+    air_temp_profile, cc = 0.007, solar_rad_profile, veg_cover) {
+  is_vec <- is.vector(air_temp_profile)
+  if (is_vec) {
+    air_temp_profile  <- matrix(air_temp_profile,  nrow = 1)
+    solar_rad_profile <- matrix(solar_rad_profile, nrow = 1)
+  }
+  result <- air_temp_profile - sweep(cc * solar_rad_profile, 1, veg_cover, "*")
+  if (is_vec) drop(result) else result
+}
+
+# surface temperature profile
+get_surf_temp_profile <- function(
+    air_temp_profile, solar_rad_profile, srh = 0.02, veg_cover) {
+  is_vec <- is.vector(air_temp_profile)
+  if (is_vec) {
+    air_temp_profile  <- matrix(air_temp_profile,  nrow = 1)
+    solar_rad_profile <- matrix(solar_rad_profile, nrow = 1)
+  }
+  result <- air_temp_profile + sweep(srh * solar_rad_profile, 1, 1 - veg_cover, "*") # nolint
+  if (is_vec) drop(result) else result
+}
+
+# temperature profile across depths
+get_z_temp_profile <- function(
+  z_list, surf_temp_profile, air_temp_profile, damping_depth, ref_height = 1.8
+) {
+
+  # check if the input profiles are vectors or matrices
+  is_vec <- is.vector(surf_temp_profile)
+  if (is_vec) {
+    surf_temp_profile <- matrix(surf_temp_profile, nrow = 1)
+    air_temp_profile  <- matrix(air_temp_profile,  nrow = 1)
+  }
+
+  # define hours and extended hours for interpolation
+  hours <- 0:23
+  surf_temp_mean <- rowMeans(surf_temp_profile)
+  extended_hours <- c(hours - 24, hours, hours + 24)
+
+  # calculate temperature profiles at different heights and depths
+  z_temp_profiles <- lapply(z_list, function(z) {
+    if (z == 0) {
+      surf_temp_profile
+    } else if (z == ref_height) {
+      air_temp_profile
+    } else if (z > 0) {
+      a <- log((z + 0.01) / 0.01) / log((ref_height + 0.01) / 0.01)
+      surf_temp_profile - (surf_temp_profile - air_temp_profile) * a
+    } else {
+      damp_ratio <- exp(-abs(z) / damping_depth)
+      phase_lag <- (abs(z) / damping_depth) * (24 / (2 * pi))
+      xout <- hours - phase_lag
+      idx <- findInterval(xout, extended_hours)
+      w <- (xout - extended_hours[idx]) / (extended_hours[idx + 1] - extended_hours[idx]) # nolint
+      ext_surf <- cbind(surf_temp_profile, surf_temp_profile, surf_temp_profile)
+      shifted_temp <- sweep(ext_surf[, idx],     2, 1 - w, "*") + sweep(ext_surf[, idx + 1], 2, w, "*") # nolint
+      surf_temp_mean + (shifted_temp - surf_temp_mean) * damp_ratio
+    }
+  })
+
+  # combine the temperature profiles into a matrix
+  names(z_temp_profiles) <- z_list
+  if (is_vec) z_temp_profiles <- lapply(z_temp_profiles, drop)
+  z_temp_profiles
+
+}
+
+# operative (body) temperature transformation
+get_body_temp <- function(ambient_t, mass, in_litter) {
+
+  # calculate derived values
+  ambient_t_k <- ground_t_k <- ambient_t + 273.15 # C to KernSmooth
+  l <- 0.02 * (mass / 1000)^(1 / 3) # characteristic length of lizard (m))
+  forced_convection <- 10.3 * (wind_speed^0.6) / (l^0.4) # forced convection (W m^-2 K^-1) # nolint
+  free_convection <- 3.5 * (1 / l)^0.25 # baseline free convection (W m^-2 K^-1)
+  total_convection <- pmax(forced_convection, free_convection) # total convection (W m^-2 K^-1) # nolint
+  rad_heat_transfer <- 4 * lizard_emissivity * sigma * (ambient_t_k^3) # radiative transfer coefficient (W m^-2 K^-1) # nolint
+  sky_t_k <- (sky_emissivity)^0.25 * ambient_t_k # night sky radiative temperature (K) # nolint
+  radiant_t <- (f_sky * (sky_t_k^4) + f_ground * (ground_t_k^4))^0.25 - 273.15 # equivalent radiant temperature (°C) # nolint
+
+  # calculate operative temperature above ground
+  a <- (
+    total_convection * ambient_t +
+      convection_ground * ambient_t +
+      rad_heat_transfer * radiant_t
+  )
+  b <- total_convection + convection_ground + rad_heat_transfer
+  op_t <- a / b
+
+  ifelse(in_litter, ambient_t, op_t)
+
+}
+
+```
+
+```{r run-biophys-models, eval = FALSE}
+#| code-summary: "Run biophysical models"
+
+eco_df$solar_noon <- mapply(
+  TrenchR::solar_noon,
+  lon = eco_df$lon,
+  doy = 15
+)
+air_temp_prof <- get_air_temp_profile(
+  tmax = eco_df$tmax,
+  tmin = eco_df$tmin
+)
+solar_rad_prof <- get_solar_rad_profile(
+  lat = eco_df$lat,
+  elev = eco_df$elev,
+  doy = 15,
+  solar_noon = eco_df$solar_noon
+)
+air_temp_prof_corrected <- correct_air_temp_profile(
+  air_temp_profile = air_temp_prof,
+  solar_rad_profile = solar_rad_prof,
+  veg_cover = eco_df$veg
+)
+surf_temp_prof <- get_surf_temp_profile(
+  air_temp_profile = air_temp_prof_corrected,
+  solar_rad_profile = solar_rad_prof,
+  veg_cover = eco_df$veg
+)
+zs_temp_profiles <- get_z_temp_profile(
+  z_list = zs,
+  surf_temp_profile = surf_temp_prof,
+  air_temp_profile = air_temp_prof_corrected,
+  damping_depth = damping_depth
+)
+# summarize zs temperature profiles into a data frame
+micro_df <- Map(
+  function(z_temp, z_val) {
+    data.frame(
+      lon = eco_df$lon,
+      lat = eco_df$lat,
+      elev = eco_df$elev,
+      veg = eco_df$veg,
+      presence = eco_df$presence,
+      z  = z_val,
+      min_temp = do.call(pmin, as.data.frame(z_temp)),
+      hours_below_0C   = rowSums(z_temp < 0),
+      hours_below_6.8C = rowSums(z_temp < 6.8)
+    )
+  },
+  zs_temp_profiles, zs
+) |>
+  bind_rows() |>
+  group_by(lon, lat, elev, veg, presence, z) |>
+  summarise(
+    min_annual_temp   = min(min_temp),
+    hours_below_0C    = sum(hours_below_0C),
+    hours_below_ctmin = sum(hours_below_6.8C),
+    .groups = "drop"
+  )
+micro_df$min_annual_body_temp <- get_body_temp(
+  in_litter = ifelse(micro_df$z < 0, TRUE, FALSE),
+  ambient_t = micro_df$min_annual_temp,
+  mass = 3.1
+)
+
+# save the microclimate data frame
+saveRDS(micro_df, "data/micro_df.rds")
+
+```
+
+```{r validate-biophys-model-results}
+#| code-summary: "Validate biophysical model results"
+#| fig-align: "center"
+#| fig-width: 5
+#| fig-height: 5
+#| out-width: "66%"
+
+micro_df <- readRDS("data/micro_df.rds")
+otms <- readRDS("data/otms-data.rds")
+
+# prepare OTM data for validation
+otms_val <- otms |>
+  filter(doy > 10 & doy < 20) |>
+  group_by(location, doy, id, microhabitat) |>
+  summarise(
+    min_temp = min(temp, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  group_by(location, id, microhabitat) |>
+  summarise(
+    mean_min_temp = mean(min_temp, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# define locations of interest
+locations <- tibble(
+  location = c("MIA", "PSL", "ORL", "GNV", "ATL"),
+  lon = c(-80.1918, -80.3256, -81.3792, -82.3248, -84.3880),
+  lat = c(25.7617, 27.305, 28.5383, 29.6516, 33.7490)
+)
+
+# filter microclimate temps to only include locations only
+# within 0.1 degrees of the defined locations
+micro_df_loc <- micro_df |>
+  filter(as.character(z) %in% c("-0.08", "1.8")) |>
+  filter(
+    purrr::pmap_lgl(
+      list(lon, lat),
+      ~ any(abs(.x - locations$lon) < 0.1 & abs(.y - locations$lat) < 0.1)
+    )
+  ) |>
+  mutate(
+    location = purrr::pmap_chr(
+      list(lon, lat),
+      ~ locations$location[
+        which.min(abs(.x - locations$lon) + abs(.y - locations$lat))
+      ]
+    )
+  ) |>
+  group_by(location, z) |>
+  summarise(
+    mean_min_annual_temp = mean(min_annual_body_temp, na.rm = TRUE),
+    mean_lat = mean(lat),
+    .groups = "drop"
+  ) |>
+  arrange(location, z) |>
+  mutate(
+    microhabitat = ifelse(z < 0, "leaflitter", "branch")
+  )
+
+# create a combined data frame for plotting
+validation_df <- micro_df_loc |>
+  left_join(otms_val, by = c("location", "microhabitat"))
+
+validation_df |>
+  ggplot(
+    aes(
+      x = mean_min_annual_temp,
+      y = mean_min_temp,
+      color = microhabitat,
+      fill = microhabitat
+    )
+  ) +
+  geom_point(size = 3) +
+  geom_smooth(method = "lm", alpha = 0.25, linetype = "solid") +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  scale_color_manual(
+    values = c("leaflitter" = "darkorange", "branch" = "forestgreen"),
+    labels = c("leaflitter" = "Leaf Litter", "branch" = "Canopy")
+  ) +
+  scale_fill_manual(
+    values = c("leaflitter" = "darkorange", "branch" = "forestgreen"),
+    labels = c("leaflitter" = "Leaf Litter", "branch" = "Canopy")
+  ) +
+  labs(
+    x = "Prediction (°C)",
+    y = "Observation (°C)",
+    color = "Operative temperature in:",
+    fill = "Operative temperature in:"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    panel.grid = element_blank(),
+    axis.line = element_line(linewidth = 0.5),
+    axis.ticks = element_line(linewidth = 0.25),
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 14),
+    legend.position = "inside",
+    legend.position.inside = c(0.02, 0.98),
+    legend.justification = c(0, 1),
+    legend.key.spacing.y = unit(0.5, "lines")
+  )
+
+```
+
+## Mechanistic envelope models
+
+```{r define-thresholds}
+#| code-summary: "Define thresholds for mechanistic envelope models"
+#| fig-align: "center"
+#| fig-width: 7
+#| out-width: "66%"
+
+# estimate thresholds
+thresh <- micro_df |>
+  filter(z == 1.8) |>
+  mutate(
+    predicted_ctmin = 15.33 - 0.204 * lat
+  ) |>
+  mutate(
+    thresh = case_when(
+      min_annual_temp < 0 ~ "below_zero",
+      min_annual_temp < predicted_ctmin ~ "below_ctmin",
+      TRUE ~ "rest_of_range"
+    )
+  ) |>
+  select(lon, lat, elev, veg, presence, thresh)
+
+# join micro_df with thresholds
+micro_df <- micro_df |>
+  left_join(thresh, by = c("lon", "lat", "elev", "veg", "presence"))
+
+# plot thresholds
+thresh |>
+  ggplot(aes(x = lon, y = lat, fill = thresh)) +
+  geom_tile() +
+  geom_contour(aes(z = presence), color = "white") +
+  scale_x_continuous(
+    breaks = seq(-100, -75, by = 5),
+    labels = function(x) paste0(abs(x), "°W"),
+    expand = c(0, 0)
+  ) +
+  scale_y_continuous(
+    breaks = seq(25, 37.5, by = 2.5),
+    labels = function(x) paste0(x, "°N"),
+    expand = c(0, 0)
+  ) +
+  scale_fill_manual(
+    values = c(
+      "below_zero" = "darkblue",
+      "below_ctmin" = "skyblue",
+      "rest_of_range" = "gray80"
+    ),
+    breaks = c("below_zero", "below_ctmin"),
+    labels = c(
+      "below_zero" = "< 0°C",
+      "below_ctmin" = expression("< " * CT[min])
+    )
+  ) +
+  coord_quickmap(xlim = c(-101, -75), ylim = c(24, 37.5)) +
+  theme_minimal() +
+  theme(
+    panel.border = element_rect(fill = NA),
+    axis.ticks = element_line(),
+    panel.grid = element_blank(),
+    axis.title = element_blank(),
+    axis.text = element_text(size = 10),
+    legend.position = "inside",
+    legend.position.inside = c(0.02, 0.98),
+    legend.justification = c(0, 1),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 14),
+    legend.key.spacing.y = unit(0.5, "lines"),
+    legend.background = element_rect(fill = "white", color = "gray")
+  )
+
+```
+
+```{r run-memo, eval = FALSE}
+
+# define TSS grid
+thresh_names <- unique(micro_df$thresh)
+veg <- seq(0, 1, by = 0.05)
+zs <- unique(micro_df$z)
+tss_grid <- expand.grid(
+  thresh = thresh_names,
+  veg = veg,
+  z = zs
+)
+tss_grid$tss <- NA
+
+# loop through
+for (i in seq_len(nrow(tss_grid))) {
+
+  # filter data of interest
+  micro_df_sub <- micro_df |> filter(z == tss_grid$z[i])
+  if (tss_grid$thresh[i] == "below_zero") {
+    micro_df_sub <- micro_df_sub |> filter(thresh == "below_zero")
+  } else if (tss_grid$thresh[i] == "below_ctmin") {
+    micro_df_sub <- micro_df_sub |> filter(thresh != "rest_of_range")
+  }
+
+  tss_value <- micro_df_sub |>
+    mutate(
+      pred = min_annual_body_temp > 0 & veg > tss_grid$veg[i]
+    ) |>
+    summarise(
+      tp = sum(pred & presence),
+      fp = sum(pred & !presence),
+      fn = sum(!pred & presence),
+      tn = sum(!pred & !presence)
+    ) |>
+    mutate(tss = (tp / (tp + fn)) + (tn / (tn + fp)) - 1) |>
+    pull(tss)
+  tss_grid$tss[i] <- tss_value
+
+  # track progress
+  if (i %% 100 == 0) {
+    message(paste("Processed", i, "of", nrow(tss_grid), "rows"))
+  }
+
+}
+
+# save tss grid
+saveRDS(tss_grid, "data/tss_grid.rds")
+
+```
+
+```{r plot-memo-results}
+#| code-summary: "Plot mechanistic envelope model results"
+#| fig-align: "center"
+#| fig-width: 10
+#| fig-height: 5
+
+# load TSS grid
+tss_grid <- readRDS("data/tss_grid.rds")
+
+# get maximum TSS values for each threshold
+tss_grid_max <- tss_grid |>
+  group_by(thresh) |>
+  filter(tss == max(tss, na.rm = TRUE)) |>
+  ungroup()
+
+# refactor threshold names for plotting
+tss_grid$thresh <- factor(
+  tss_grid$thresh,
+  levels = c("below_zero", "below_ctmin", "rest_of_range"),
+)
+
+# plot TSS grid
+tss_grid |>
+  filter(z < 2) |>
+  ggplot(aes(x = veg, y = as.factor(z), fill = tss)) +
+  geom_tile() +
+  geom_point(
+    data = tss_grid_max,
+    color = "red",
+    size = 3,
+    shape = 1
+  ) +
+  geom_hline(
+    yintercept = 20.5, color = "white", linetype = "solid"
+  ) +
+  geom_hline(
+    yintercept = 22, color = "white", linetype = "dashed"
+  ) +
+  scale_fill_viridis_b(
+    name = "TSS",
+    limits = c(
+      min(tss_grid$tss, na.rm = TRUE), max(tss_grid$tss, na.rm = TRUE)
+    ),
+    breaks = seq(
+      min(tss_grid$tss, na.rm = TRUE), max(tss_grid$tss, na.rm = TRUE),
+      by = 0.05
+    ),
+    # only show labels for every other break
+    labels = function(x) ifelse(seq_along(x) %% 2 == 1, x, ""),
+    guide = guide_colorsteps(
+      barheight = unit(8, "cm"),
+      barwidth = unit(0.5, "cm")
+    )
+  ) +
+    scale_x_continuous(
+    breaks = seq(0, 1, by = 0.2),
+    labels = scales::percent_format(accuracy = 1),
+    expand = c(0, 0)
+  ) +
+  scale_y_discrete(
+    breaks = unique(tss_grid$z),
+    labels = function(x) {
+      negative <- which(x < 0)
+      x[negative[seq_along(negative) %% 2 == 1]] <- ""
+      x
+    },
+    expand = c(0, 0),
+  ) +
+  facet_wrap(
+    ~thresh, 
+    ncol = 3,
+    axes = "all",
+    labeller = labeller(
+      thresh = as_labeller(
+        c(
+          below_zero = "atop('Hard Physiological', 'Threshold (' * 0 * degree * 'C)')", # nolint
+          below_ctmin = "atop('Soft Physiological', 'Threshold (' * CT[min] * ')')", # nolint
+          rest_of_range = "atop('Rest of', 'Range')"
+        ),
+        label_parsed
+      )
+    )
+  ) +
+  labs(
+    x = "Vegetation Cover",
+    y = "Distance from surface above\nor below leaf litter (m)"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    strip.text = element_text(size = 14),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+    axis.ticks = element_line(color = "black", linewidth = 0.25),
+    axis.title = element_text(size = 14, lineheight = 1.25),
+  )
+```

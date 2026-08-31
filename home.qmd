@@ -1,0 +1,199 @@
+---
+title: "Behavioral buffering facilitates the poleward range expansion of a tropical lizard beyond its physiological limits"
+format:
+  html:
+    code-fold: true
+    fig-dpi: 300
+---
+
+```{r r-setup, warning = FALSE, message = FALSE}
+# packages
+library(tidyverse)
+library(kableExtra)
+library(viridis)
+library(ggpubr)
+library(ggtext)
+
+# options
+options(
+  dplyr.summarise.inform = FALSE,
+  knitr.table.html.attr = "quarto-disable-processing=true"
+)
+```
+
+```{r plot-maps}
+#| fig-align: "center"
+#| fig-height: 7.5
+
+# load data
+micro_df <- readRDS("data/micro_df.rds")
+
+# plot temperature maps
+micro_df |>
+  filter(as.character(z) %in% c("-0.04", "1.8")) |>
+  mutate(
+    z = factor(
+      z,
+      levels = c("1.8", "-0.04"),
+      labels = c(
+        "Lizard Body Temperature in <span style='color: forestgreen;'><b>Canopy</b></span>",
+        "Lizard Body Temperature in <span style='color: darkorange;'><b>Leaf Litter</b></span>"
+      )
+    )
+  ) |>
+  ggplot(aes(x = lon, y = lat)) +
+  geom_tile(aes(fill = min_annual_body_temp)) +
+  geom_tile(
+    data = micro_df |>
+      select(lon, lat, presence) |>
+      distinct() |> 
+      filter(presence == 1),
+    aes(x = lon, y = lat),
+    fill = "forestgreen",
+    alpha = 0.2
+  ) +
+  geom_contour(
+    aes(x = lon, y = lat, z = presence, color = "Range"),
+    linewidth = 0.5
+  ) +
+  geom_contour(
+    aes(x = lon, y = lat, z = min_annual_body_temp, color = "0 °C"),
+    breaks = c(0),
+    linewidth = 1
+  ) +
+  geom_contour(
+    aes(x = lon, y = lat, z = min_annual_body_temp, color = "CTmin"),
+    breaks = c(7),
+    linewidth = 1
+  ) +
+  scale_color_manual(
+    name = NULL,
+    values = c(
+      "0 °C" = "steelblue4",
+      "CTmin" = "skyblue",
+      "Range" = "forestgreen"
+    ),
+    breaks = c("0 °C", "CTmin", "Range"),
+    labels = expression(bold("0 °C"), bold(CT[min]), bold("Range"))
+  ) +
+  scale_fill_viridis(
+    option = "magma",
+    guide = guide_colorbar(
+      title.position = "top",
+      label.position = "left",
+      barheight = unit(5, "cm")
+    ),
+    breaks = seq(-10, 25, 10),
+    labels = paste0(seq(-10, 25, 10), " °C"),
+  ) +
+  scale_x_continuous(
+    breaks = seq(-100, -70, 5),
+    labels = paste0(seq(100, 70, -5), "°W"),
+    expand = c(0, 0)
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, 45, 2.5),
+    labels = paste0(seq(0, 45, 2.5), "°N"),
+    expand = c(0, 0)
+  ) +
+  facet_wrap(
+    ~ z,
+    ncol = 1,
+    axes = "all"
+  ) +
+  coord_quickmap(xlim = c(-101, -75), ylim = c(24, 38)) +
+  theme_minimal() +
+  guides(
+    color = guide_legend(
+      label.position = "left",
+      override.aes = list(linewidth = 2),
+      theme = theme(
+        legend.text = element_text(size = 18, face = "bold"),
+        legend.key.spacing.y = unit(0.5, "cm")
+      )
+    )
+  ) +
+  theme(
+    legend.position = "left",
+    legend.box = "vertical",
+    legend.box.just = "left",
+    legend.box.spacing = unit(0.1, "cm"),
+    legend.key.width = unit(0.5, "cm"),
+    legend.text = element_text(size = 10),
+    legend.title = element_blank(),
+    panel.grid = element_blank(),
+    axis.title = element_blank(),
+    panel.border = element_rect(fill = NA, color = "black", linewidth = 0.5),
+    axis.ticks = element_line(color = "black", linewidth = 0.25),
+    strip.text = ggtext::element_markdown(size = 16, hjust = 0.5),
+    plot.margin = margin(r = 10, t = -100, b = -100, l = 10)
+  )
+```
+
+```{r plot-veg-map}
+#| fig-align: "center"
+#| fig-height: 5
+
+# plot vegetation map
+micro_df |>
+  filter(z == 0) |>
+  ggplot(aes(x = lon, y = lat)) +
+  geom_tile(aes(fill = veg)) +
+  geom_contour(
+    aes(x = lon, y = lat, z = presence),
+    color = "black",
+    linewidth = 0.5
+  ) +
+  scale_fill_gradient(
+    low = "lightgoldenrod1",
+    high = "darkgreen",
+    guide = guide_colorbar(
+      title.position = "top",
+      label.position = "left",
+      barheight = unit(5, "cm")
+    ),
+    breaks = seq(0, 1, 0.2),
+    labels = paste0(seq(0, 1, 0.2) * 100, "%"),
+  ) +
+  scale_x_continuous(
+    breaks = seq(-100, -70, 5),
+    labels = paste0(seq(100, 70, -5), "°W"),
+    expand = c(0, 0)
+  ) +
+  scale_y_continuous(
+    breaks = seq(0, 45, 2.5),
+    labels = paste0(seq(0, 45, 2.5), "°N"),
+    expand = c(0, 0)
+  ) +
+  coord_quickmap(xlim = c(-101, -75), ylim = c(24, 38)) +
+  theme_minimal() +
+  guides(
+    color = guide_legend(
+      label.position = "left",
+      override.aes = list(linewidth = 2),
+      theme = theme(
+        legend.text = element_text(size = 14),
+        legend.key.spacing.y = unit(0.5, "cm")
+      )
+    )
+  ) +
+  theme(
+    legend.position = "left",
+    legend.box = "vertical",
+    legend.box.just = "left",
+    legend.box.spacing = unit(0.1, "cm"),
+    legend.key.width = unit(0.5, "cm"),
+    legend.text = element_text(size = 10),
+    legend.title = element_blank(),
+    panel.grid = element_blank(),
+    axis.title = element_blank(),
+    panel.border = element_rect(fill = NA, color = "black", linewidth = 0.5),
+    axis.ticks = element_line(color = "black", linewidth = 0.25),
+    strip.text = ggtext::element_markdown(size = 16, hjust = 0.5),
+    plot.title = element_text(size = 17, hjust = 0.5),
+    plot.margin = margin(r = 10, t = -10, b = -10, l = 10)
+  ) +
+  labs(
+    title = "Tree Cover"
+  )
+```
