@@ -197,3 +197,104 @@ micro_df |>
     title = "Tree Cover"
   )
 ```
+
+```{r plot-example-otm-dynamic}
+#| fig-align: "center"
+#| fig-width: 7
+#| fig-height: 4
+
+# read data
+otm_data <- readRDS("data/otms-data.rds")
+
+# plot example OTM dynamic
+otm_data |>
+  filter(location %in% c("ATL", "MIA")) |>
+  mutate(
+    location = factor(
+      location,
+      levels = c("MIA", "ATL"),
+      labels = c("Miami (25.7 °N)", "Atlanta (33.7 °N)")
+    )
+  ) |>
+  filter(doy == 19) |>
+  mutate(hour = round(mod / 60)) |>
+  group_by(location, microhabitat, hour) |>
+  summarise(
+    mean_temp = mean(temp, na.rm = TRUE),
+    sd_temp = sd(temp, na.rm = TRUE),
+  ) |>
+  ggplot(aes(x = hour, y = mean_temp, color = microhabitat)) +
+  annotate(
+    "segment",
+    x = -Inf,
+    xend = Inf,
+    y = 0,
+    yend = 0,
+    linetype = 2,
+    color = "steelblue4"
+  ) +
+  annotate(
+    "text",
+    x = 18,
+    y = 9.5,
+    label = expression(bold(CT[min])),
+    color = "skyblue",
+    hjust = 0,
+    vjust = 0,
+    size = 5
+  ) +
+  annotate(
+    "segment",
+    x = -Inf,
+    xend = Inf,
+    y = 9,
+    yend = 9,
+    linetype = 2,
+    color = "skyblue"
+  ) +
+  geom_ribbon(
+    aes(
+      ymin = mean_temp - sd_temp,
+      ymax = mean_temp + sd_temp,
+      fill = microhabitat
+    ),
+    alpha = 0.2
+  ) +
+  scale_fill_manual(
+    values = c("forestgreen", "darkorange"),
+    labels = c("Canopy", "Leaf Litter"),
+    name = NULL
+  ) +
+  scale_color_manual(
+    values = c("forestgreen", "darkorange"),
+    labels = c("Canopy", "Leaf Litter"),
+    name = NULL
+  ) +
+  facet_wrap(~location, axes = "all", ncol = 2, as.table = TRUE) +
+  theme_minimal() +
+  scale_x_continuous(
+    breaks = seq(0, 24, 6),
+    labels = paste0(seq(0, 24, 6), ":00"),
+    expand = c(0, 0)
+  ) +
+  theme(
+    panel.border = element_rect(fill = NA, color = "black", linewidth = 0.5),
+    axis.ticks = element_line(color = "black", linewidth = 0.25),
+    strip.text = element_text(size = 12, hjust = 0.5, face = "bold"),
+    legend.position = "inside",
+    legend.position.inside = c(1, 1),
+    legend.justification = c(1, 1),
+    legend.background = element_blank(),
+    legend.text = element_text(size = 14),
+    panel.grid = element_blank(),
+    axis.text = element_text(size = 10),
+    axis.title.x = element_blank(),
+    axis.title.y = element_text(size = 14),
+    panel.spacing = unit(1, "lines"),
+    plot.margin = margin(r = 15, l = 10, b = 5)
+  ) +
+  labs(
+    y = "Lizard Body Temperature (°C)"
+  )
+
+```

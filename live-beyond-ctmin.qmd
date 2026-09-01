@@ -39,6 +39,7 @@ The figure below shows that while BIO6 decreases with latitude, CT<sub>min</sub>
 #| fig-align: "center"
 #| fig-width: 5
 #| fig-height: 5
+#| out-width: "50%"
 
 # read CTmin data
 ctmin_gradient <- readRDS("data/ctmin_gradient.rds")
@@ -71,7 +72,7 @@ bio6_df <- bio6_df |>
 
 # plot CTmin and BIO6 data
 ggplot() +
-  geom_hline(yintercept = 0, color = "darkblue", linewidth = 0.5, alpha = 0.5) +
+  geom_hline(yintercept = 0, color = "steelblue4", linetype = 2) +
   geom_jitter(
     data = ctmin_gradient,
     aes(x = lat, y = ctmin, color = "CTmin"),
@@ -83,7 +84,8 @@ ggplot() +
     data = ctmin_gradient,
     aes(x = lat, y = ctmin, color = "CTmin"),
     method = "lm", fill = "forestgreen", alpha = 0.2,
-    show.legend = TRUE
+    show.legend = TRUE,
+    fullrange = TRUE
   ) +
   geom_line(
     data = bio6_df,
@@ -104,13 +106,10 @@ ggplot() +
     )
   ) +
   scale_x_continuous(
-    breaks = seq(24, 36, 2),
-    labels = paste0(seq(24, 36, 2), "°N"),
     expand = c(0, 0)
   ) +
   scale_y_continuous(
     breaks = seq(-10, 20, 5),
-    labels = paste0(seq(-10, 20, 5), "°C"),
   ) +
   theme_classic() +
   theme(
@@ -119,8 +118,8 @@ ggplot() +
     legend.justification = c(1, 1),
     legend.key.spacing.y = unit(0.5, "lines"),
     legend.text = element_text(size = 15),
-    axis.title = element_blank(),
-    axis.text = element_text(size = 10)
+    axis.text = element_text(size = 10),
+    axis.title = element_text(size = 14)
   ) +
   guides(
     color = guide_legend(
@@ -130,6 +129,10 @@ ggplot() +
         fill = c(NA, NA)
       )
     )
+  ) +
+  labs(
+    x = "Latitude (°N)",
+    y = "Temperature (°C)"
   )
 
 ```
@@ -153,7 +156,69 @@ lat_temp_model <- lm(temp ~ lat * type, data = combined_df)
 summary(lat_temp_model)
 ```
 
-The interaction between latitude and type is positive (`{r}lat_temp_model$coefficients["lat:typectmin"]`), and significant (`{r}summary(lat_temp_model)$coefficients["lat:typectmin", "Pr(>|t|)"]`) indicating that CT<sub>min</sub> does not decrease with latitude as BIO6 does. This suggests that green anoles are living in climates colder than their physiological cold tolerance.
+The interaction between latitude and type is positive (`{r} lat_temp_model$coefficients["lat:typectmin"]`), and significant (`{r} summary(lat_temp_model)$coefficients["lat:typectmin", "Pr(>|t|)"]`) indicating that CT<sub>min</sub> does not decrease with latitude as BIO6 does. This suggests that green anoles are living in climates colder than their physiological cold tolerance.
+
+```{r table-ctmin-by-latitude}
+
+# get average temps by location
+bio6_df_table <- bio6_df |>
+  filter(lat %in% round(unique(ctmin_gradient$lat), 1)) |>
+  mutate(
+    site = case_when(
+      lat == 33.7 ~ "Atlanta, GA",
+      lat == 35.9 ~ "Knoxville, TN",
+      lat == 29.7 ~ "Gainesville, FL",
+      lat == 31.5 ~ "Tifton, GA",
+      lat == 27.3 ~ "Port Saint Lucie, FL",
+      lat == 28.5 ~ "Orlando, FL",
+      lat == 25.8 ~ "Miami, FL"
+    )
+  ) |>
+  select(site, mean_bio6, min_bio6, max_bio6)
+
+
+ctmin_gradient |>
+  group_by(site, lat) |>
+  summarise(
+    mean_ctmin = mean(ctmin, na.rm = TRUE),
+    sd_ctmin = sd(ctmin, na.rm = TRUE),
+    n = n(),
+  ) |>
+  mutate(
+    site = case_when(
+      site == "ATL" ~ "Atlanta, GA",
+      site == "KNX" ~ "Knoxville, TN",
+      site == "GNV" ~ "Gainesville, FL",
+      site == "TIF" ~ "Tifton, GA",
+      site == "PSL" ~ "Port Saint Lucie, FL",
+      site == "ORL" ~ "Orlando, FL",
+      site == "MIA" ~ "Miami, FL"
+    )
+  ) |>
+  ungroup() |>
+  left_join(bio6_df_table, by = c("site")) |>
+  mutate(
+    across(
+      c(mean_ctmin, sd_ctmin, mean_bio6, min_bio6, max_bio6),
+      ~ round(.x, 2)
+    )
+  ) |>
+  select(
+    site, lat, n, mean_ctmin, sd_ctmin, mean_bio6, min_bio6, max_bio6
+  ) |>
+  kbl(
+    col.names = c(
+      "Site", "Latitude (°N)", "N", "Mean CT[min] (°C)",
+      "SD CT[min] (°C)", "Mean BIO6 (°C)", "Min BIO6 (°C)", "Max BIO6 (°C)"
+    ),
+    escape = FALSE,
+    align = "c"
+  ) |>
+  kable_styling(
+    full_width = FALSE,
+    position = "center"
+  )
+```
 
 ## The green anole is an exceptional case of climatic overfilling
 
@@ -337,7 +402,7 @@ caro_z_scores <- expand_grid(
     "below_ctmin_area",
     "below_0_area"
   ),
-  group = c("anolis", "all")
+  group = c("anolis", "arboreal", "all")
 ) |>
   mutate(
     z_score = map2_dbl(var, group, \(v, g) {
@@ -345,6 +410,7 @@ caro_z_scores <- expand_grid(
       comp <- switch(
         g,
         anolis = dat[lizard_climatic_overfilling$genus == "Anolis"],
+        arboreal = dat[lizard_climatic_overfilling$substrate == "arboreal"],
         all = dat
       )
       x <- dat[lizard_climatic_overfilling$species == "Anolis carolinensis"]
@@ -357,7 +423,7 @@ caro_z_scores |>
   pivot_wider(names_from = group, values_from = z_score) |>
   mutate(
     across(
-      c(anolis, all),
+      c(anolis, arboreal, all),
       ~ round(.x, 2)
     )
   ) |>
@@ -369,10 +435,11 @@ caro_z_scores |>
       var == "below_0_area" ~ "Area of range below 0°C (km^2)"
     )
   ) |>
-  select(metric, anolis, all) |>
+  select(metric, anolis, arboreal, all) |>
   kbl(
     col.names = c(
       "Metric", "Z-score (relative to Anolis genus)",
+      "Z-score (relative to arboreal lizards)",
       "Z-score (relative to all lizards)"
     ),
     escape = FALSE,
@@ -805,47 +872,53 @@ ggarrange(
 
 We table the average, minimum and maximum CT<sub>min</sub> and BIO6 values for each 0.1° latitude band across the range of the green anole.
 
-```{r ctmin-bio6-table}
+Table "overfilling" results by family and genus
 
-ctmin_gradient_sum <- ctmin_gradient |>
-  mutate(lat = round(lat, 1)) |>
-  group_by(site, lat) |>
-  summarise(
-    mean_ctmin = mean(ctmin, na.rm = TRUE),
-    min_ctmin = min(ctmin, na.rm = TRUE),
-    max_ctmin = max(ctmin, na.rm = TRUE),
-    .groups = "drop"
+```{r lizard-climatic-overfilling-table-family-genus}
+
+lizard_climatic_overfilling |>
+  mutate(
+    genus = gsub(" .*", "", species),
+    species = gsub(".* ", "", species)
   ) |>
   mutate(
-    CTmin = paste0(
-      round(mean_ctmin, 1), " (", round(min_ctmin, 1), ", ",
-      round(max_ctmin, 1), ")"
+    below_ctmin_prop = round(below_ctmin_prop, 2),
+    below_0_prop = round(below_0_prop, 2),
+    below_ctmin_area = round(below_ctmin_area / 1e6, 4),
+    below_0_area = round(below_0_area / 1e6, 4),
+    total_area = round(total_area / 1e6, 4)
+  ) |>
+  group_by(family, genus) |>
+  summarise(
+    below_ctmin_prop = mean(below_ctmin_prop, na.rm = TRUE),
+    below_0_prop = mean(below_0_prop, na.rm = TRUE),
+    below_ctmin_area = mean(below_ctmin_area, na.rm = TRUE),
+    below_0_area = mean(below_0_area, na.rm = TRUE),
+    total_area = mean(total_area, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  # round everything to 3 decimal digits
+  mutate(
+    across(
+      c(below_ctmin_prop, below_0_prop, below_ctmin_area, below_0_area, total_area),
+      ~ round(.x, 3)
     )
   ) |>
-  select(site, lat, CTmin)
-
-bio6_df_sum <- bio6_df |>
-  filter(lat %in% ctmin_gradient_sum$lat) |>
-  mutate(BIO6 = paste0(
-    round(mean_bio6, 1), " (", round(min_bio6, 1), ", ",
-    round(max_bio6, 1), ")"
-  )) |>
-  select(lat, BIO6)
-
-# combine datasets and table
-ctmin_gradient_sum |>
-  left_join(bio6_df_sum, by = "lat") |>
-  select(site, lat, CTmin, BIO6) |>
-  arrange(lat) |>
-  kbl(
-    col.names = c("Site", "Latitude (°N)", "CT[min] (°C)", "BIO6 (°C)"),
-    escape = FALSE,
-    align = "c"
+  arrange(family, genus) |>
+  kable(
+    col.names = c(
+      "Family", "Genus",
+      "Proportion < CTmin",
+      "Proportion < 0°C", "Area < CTmin (10⁶ km²)",
+      "Area < 0°C (10⁶ km²)", "Total area (10⁶ km²)"
+    )
   ) |>
   kable_styling(
     full_width = FALSE,
     position = "center"
   )
+  
+
 
 ```
 
