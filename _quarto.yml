@@ -4,8 +4,14 @@ project:
   output-dir: docs
 
 website:
+  announcement:
+    dismissable: false
+    position: above-navbar
+    content: "Behavioral buffering enabled the poleward range expansion of a tropical ectotherm beyond its physiological limits"
   navbar:
     title: false
+    background: "#d8f3dc"
+    foreground: "#1b4332"
     left:
     - text: "Start Here"
       href: home.qmd
@@ -18,7 +24,9 @@ website:
 
 format:
   html:
-    theme: cosmo
+    theme: 
+      - cosmo
+      - brand
     css: styles.css
     toc: true
     lightbox: true

@@ -154,6 +154,15 @@ combined_df <- bind_rows(bio6_df_model, ctmin_model)
 # fit linear model with interaction between latitude and type
 lat_temp_model <- lm(temp ~ lat * type, data = combined_df)
 summary(lat_temp_model)
+
+broom::tidy(lat_temp_model)
+broom::glance(lat_temp_model) |>
+  pivot_longer(
+    cols = everything(),
+    names_to = "stat",
+    values_to = "value"
+  )
+
 ```
 
 The interaction between latitude and type is positive (`{r} lat_temp_model$coefficients["lat:typectmin"]`), and significant (`{r} summary(lat_temp_model)$coefficients["lat:typectmin", "Pr(>|t|)"]`) indicating that CT<sub>min</sub> does not decrease with latitude as BIO6 does. This suggests that green anoles are living in climates colder than their physiological cold tolerance.
@@ -470,7 +479,7 @@ caro_ctmin_gradient <- readRDS("data/ctmin_gradient.rds")
 # create data for A. carolinensis
 caro_ctmin_pred <- tibble(
   lat = seq(22.75, 36.5, by = 0.1),
-  ctmin = mean(caro_ctmin_gradient$ctmin),
+  ctmin = 6.8,
   substrate = "arboreal"
 )
 
@@ -565,8 +574,8 @@ lat_temps <- ggplot() +
     y = "Temperature (°C)"
   )
 
-# plot range proportions
-proportions <- lizard_climatic_overfilling |>
+# plot range proportions/areas
+range_data <- lizard_climatic_overfilling |>
   dplyr::select(
     group, below_ctmin_prop, below_0_prop, below_ctmin_area, below_0_area
   ) |>
@@ -593,34 +602,24 @@ proportions <- lizard_climatic_overfilling |>
       metric %in% c("below_0_prop", "below_0_area") ~ "0°C"
     )
   ) |>
-  arrange(group) |>
+  arrange(group)
+
+proportions <- range_data |>
+  filter(area_prop == "Proportion") |>
   ggplot(
     aes(x = temp, y = value, color = group, alpha = group, size = group)
   ) +
   geom_jitter(width = 0.1, height = 0, show.legend = FALSE) +
   facet_wrap(
     ~area_prop,
-    ncol = 3,
     scales = "free",
     strip.position = "left",
     labeller = as_labeller(
-      c(
-        Proportion = "Proportion~of~range",
-        Area = "Area~of~range~(km^2)"
-      ),
+      c(Proportion = "Proportion~of~range"),
       default = label_parsed
     )
   ) +
-  facetted_pos_scales(
-    y = list(
-      area_prop == "Proportion" ~ scale_y_continuous(),
-      area_prop == "Area" ~ scale_y_continuous(
-        trans = "log10",
-        breaks = c(1, 10, 100, 1000, 10000, 100000, 1000000, 10000000
-        )
-      )
-    )
-  ) +
+  scale_y_continuous() +
   scale_color_manual(
     values = c(
       "Anolis carolinensis" = "darkgreen",
@@ -656,12 +655,67 @@ proportions <- lizard_climatic_overfilling |>
     strip.text = element_text(size = 12)
   )
 
+areas <- range_data |>
+  filter(area_prop == "Area") |>
+  ggplot(
+    aes(x = temp, y = value, color = group, alpha = group, size = group)
+  ) +
+  geom_jitter(width = 0.1, height = 0, show.legend = FALSE) +
+  facet_wrap(
+    ~area_prop,
+    scales = "free",
+    strip.position = "left",
+    labeller = as_labeller(
+      c(Area = "Area~of~range~(km^2)"),
+      default = label_parsed
+    )
+  ) +
+  scale_y_continuous(
+    trans = "log10", 
+    breaks = c(1, 10, 100, 1000, 10000, 100000, 1000000, 10000000)
+  ) +
+  scale_color_manual(
+    values = c(
+      "Anolis carolinensis" = "darkgreen",
+      "Anolis Genus" = "palegreen3",
+      "Other Lizards" = "gray"
+    ),
+    name = "Group"
+  ) +
+  scale_alpha_manual(
+    values = c(0.5, 0.75, 1),
+    name = "Group"
+  ) +
+  scale_size_manual(
+    values = c(2, 2.5, 4),
+  ) +
+  scale_x_discrete(
+    labels = c(
+      "CT[min]" = expression("< " * "CT"[min]),
+      "0°C" = "< 0°C"
+    )
+  ) +
+  theme_minimal() +
+  theme(
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+    axis.ticks = element_line(color = "black", linewidth = 0.25),
+    axis.text.x = element_text(size = 12, color = "black"),
+    axis.text.y = element_text(color = "black"),
+    axis.title = element_blank(),
+    legend.position = "none",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank(),
+    strip.placement = "outside",
+    strip.text.y.left = element_text(angle = 90, margin = margin(r = 0)),
+    strip.switch.pad.grid = grid::unit(0, "pt"),
+    strip.text = element_text(size = 12)
+  )
+
 combined_plot <- ggarrange(
-  lat_temps, proportions,
-  ncol = 2, nrow = 1,
-  widths = c(1.25, 1),
-  labels = c("A", "B"),
-  align = "hv",
+  lat_temps, proportions, areas,
+  ncol = 3, nrow = 1,
+  widths = c(1.25, 0.5, 0.5),
+  labels = c("A", "B", "C"),
   font.label = list(size = 15, face = "bold", color = "black")
 )
 combined_plot
@@ -759,6 +813,78 @@ lat_temps_substrate <- ggplot() +
   ) +
   labs(x = "Absolute Latitude")
 
+make_substrate_plot <- function(data, metric_type, y_label) {
+  data |>
+    filter(area_prop == metric_type) |>
+    ggplot(aes(x = temp, y = value, color = substrate)) +
+    geom_point(
+      position = position_jitterdodge(
+        dodge.width = 1,
+        jitter.width = 0.2,
+        jitter.height = 0
+      ),
+      show.legend = FALSE,
+      alpha = 0.25
+    ) +
+    stat_summary(position = position_dodge(width = 1)) +
+    geom_point(
+      data = substrate_data |>
+        filter(species == "Anolis carolinensis") |>
+        mutate(
+          below_ctmin_area = below_ctmin_area + 1,
+          below_0_area = below_0_area + 1,
+          substrate = factor(substrate, levels = substrate_levels)
+        ) |>
+        pivot_longer(
+          cols = c(below_ctmin_prop, below_0_prop,
+            below_ctmin_area, below_0_area),
+          names_to = "metric",
+          values_to = "value"
+        ) |>
+        mutate(
+          area_prop = case_when(
+            metric %in% c("below_ctmin_prop", "below_0_prop") ~ "Proportion",
+            metric %in% c("below_ctmin_area", "below_0_area") ~ "Area"
+          ),
+          temp = case_when(
+            metric %in% c("below_ctmin_prop", "below_ctmin_area") ~ "CT[min]",
+            metric %in% c("below_0_prop", "below_0_area") ~ "0°C"
+          )
+        ) |>
+        filter(area_prop == metric_type),
+      aes(x = temp, y = value, group = substrate),
+      position = position_nudge(x = 1 / 3),
+      color = "forestgreen",
+      size = 4,
+      show.legend = FALSE
+    ) +
+    geom_vline(xintercept = 1.5, color = "gray70", linewidth = 0.2) +
+    scale_color_manual(values = substrate_colors) +
+    scale_x_discrete(
+      labels = c(
+        "CT[min]" = expression("< " * "CT"[min]),
+        "0°C" = "< 0°C"
+      )
+    ) +
+    theme_minimal() +
+    theme(
+      panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+      axis.ticks = element_line(color = "black", linewidth = 0.25),
+      axis.text.x = element_text(size = 12, color = "black"),
+      axis.text.y = element_text(color = "black"),
+      axis.title.x = element_blank(),
+      axis.title.y = element_text(size = 12, color = "black"),
+      legend.position = "none",
+      panel.grid.minor = element_blank(),
+      panel.grid.major.x = element_blank(),
+      strip.text = element_blank()
+    ) +
+    labs(
+      y = y_label,
+      subtitle = NULL
+    )
+}
+
 proportions_substrate <- substrate_data |>
   select(
     substrate, below_ctmin_prop, below_0_prop, below_ctmin_area, below_0_area
@@ -770,7 +896,8 @@ proportions_substrate <- substrate_data |>
   ) |>
   pivot_longer(
     cols = c(below_ctmin_prop, below_0_prop, below_ctmin_area, below_0_area),
-    names_to = "metric", values_to = "value"
+    names_to = "metric",
+    values_to = "value"
   ) |>
   mutate(
     area_prop = case_when(
@@ -782,89 +909,46 @@ proportions_substrate <- substrate_data |>
       metric %in% c("below_0_prop", "below_0_area") ~ "0°C"
     )
   ) |>
-  ggplot(aes(x = temp, y = value, color = substrate)) +
-  geom_point(
-    position = position_jitterdodge(
-      dodge.width = 1, jitter.width = 0.2, jitter.height = 0
+  make_substrate_plot("Proportion", "Proportion of range") +
+  scale_y_continuous()
+
+areas_substrate <- substrate_data |>
+  select(
+    substrate, below_ctmin_prop, below_0_prop, below_ctmin_area, below_0_area
+  ) |>
+  mutate(
+    below_ctmin_area = below_ctmin_area + 1,
+    below_0_area = below_0_area + 1,
+    substrate = factor(substrate, levels = substrate_levels)
+  ) |>
+  pivot_longer(
+    cols = c(below_ctmin_prop, below_0_prop, below_ctmin_area, below_0_area),
+    names_to = "metric",
+    values_to = "value"
+  ) |>
+  mutate(
+    area_prop = case_when(
+      metric %in% c("below_ctmin_prop", "below_0_prop") ~ "Proportion",
+      metric %in% c("below_ctmin_area", "below_0_area") ~ "Area"
     ),
-    show.legend = FALSE,
-    alpha = 0.25
-  ) +
-  stat_summary(
-    position = position_dodge(width = 1)
-  ) +
-  geom_point(
-    data = substrate_data |>
-      filter(species == "Anolis carolinensis") |>
-      mutate(
-        below_ctmin_area = below_ctmin_area + 1,
-        below_0_area = below_0_area + 1,
-        substrate = factor(substrate, levels = substrate_levels)
-      ) |>
-      pivot_longer(
-        cols = c(below_ctmin_prop, below_0_prop, below_ctmin_area, below_0_area),
-        names_to = "metric", values_to = "value"
-      ) |>
-      mutate(
-        area_prop = case_when(
-          metric %in% c("below_ctmin_prop", "below_0_prop") ~ "Proportion",
-          metric %in% c("below_ctmin_area", "below_0_area") ~ "Area"
-        ),
-        temp = case_when(
-          metric %in% c("below_ctmin_prop", "below_ctmin_area") ~ "CT[min]",
-          metric %in% c("below_0_prop", "below_0_area") ~ "0°C"
-        )
-      ),
-    aes(x = temp, y = value, group = substrate),
-    position = position_nudge(x = 1/3),
-    color = "forestgreen",
-    size = 4,
-    show.legend = FALSE
-  ) +
-  facet_wrap(
-    ~area_prop, ncol = 2, scales = "free", strip.position = "left",
-    labeller = as_labeller(
-      c(
-        Proportion = "Proportion~of~range",
-        Area = "Area~of~range~(km^2)"
-      ),
-      default = label_parsed
+    temp = case_when(
+      metric %in% c("below_ctmin_prop", "below_ctmin_area") ~ "CT[min]",
+      metric %in% c("below_0_prop", "below_0_area") ~ "0°C"
     )
-  ) +
-  facetted_pos_scales(
-    y = list(
-      area_prop == "Proportion" ~ scale_y_continuous(),
-      area_prop == "Area" ~ scale_y_continuous(
-        trans = "log10",
-        breaks = c(1, 10, 100, 1000, 10000, 100000, 1000000, 10000000)
-      )
-    )
-  ) +
-  geom_vline(xintercept = 1.5, color = "gray70", linewidth = 0.2) +
-  scale_color_manual(values = substrate_colors) +
-  scale_x_discrete(
-    labels = c("CT[min]" = expression("< " * "CT"[min]), "0°C" = "< 0°C")
-  ) +
-  theme_minimal() +
-  theme(
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
-    axis.ticks = element_line(color = "black", linewidth = 0.25),
-    axis.text.x = element_text(size = 12, color = "black"),
-    axis.text.y = element_text(color = "black"),
-    axis.title = element_blank(),
-    legend.position = "none",
-    panel.grid.minor = element_blank(),
-    panel.grid.major.x = element_blank(),
-    strip.placement = "outside", 
-    strip.text.y.left = element_text(angle = 90),
-    strip.switch.pad.grid = grid::unit(0, "pt"), 
-    strip.text = element_text(size = 12)
+  ) |>
+  make_substrate_plot("Area", "Area of range (km^2)") +
+  scale_y_continuous(
+    trans = "log10",
+    breaks = c(1, 10, 100, 1000, 10000, 100000, 1000000, 10000000)
   )
 
 ggarrange(
-  lat_temps_substrate, proportions_substrate,
-  ncol = 2, nrow = 1, widths = c(1.25, 1), labels = c("A", "B"),
-  align = "hv", font.label = list(size = 15, face = "bold", color = "black")
+  lat_temps_substrate, proportions_substrate, areas_substrate,
+  ncol = 3, nrow = 1,
+  widths = c(1.25, 0.5, 0.5),
+  labels = c("A", "B", "C"),
+  align = "hv",
+  font.label = list(size = 15, face = "bold", color = "black")
 )
 ```
 

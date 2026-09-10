@@ -1,8 +1,38 @@
 
-.navbar {
-	width: auto;
-	max-width: none;
-	margin-left: 0;
-	margin-right: 0;
+#quarto-announcement {
+  justify-content: center;
+  font-size: 1.25em; /* default is 0.9em */
+  background-color: #1b4332 !important; /* dark green */
+  color: #fff !important;
+  border-color: #1b4332 !important;
+}
+
+#quarto-announcement .quarto-announcement-content {
+  margin: 0 auto;
+  text-align: center;
+  color: #fff;
+}
+
+/* Center navbar links (search icon is taken out of flow so it doesn't skew centering) */
+@media (min-width: 992px) {
+  .navbar-container.container-fluid {
+    position: relative;
+    justify-content: center;
+  }
+
+  #quarto-search {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
+  }
+
+  #navbarCollapse {
+    flex-grow: 0;
+  }
+}
+
+#navbarCollapse .navbar-nav {
+  margin: 0 auto !important;
 }
 

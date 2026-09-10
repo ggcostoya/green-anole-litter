@@ -272,7 +272,10 @@ ggarrange(
 
 ```{r model-retreating-temp}
 survey_sum_model <- survey_sum |>
-  left_join(filter(otm_data_ATL, microhabitat == "branch"), by = c("year", "doy", "date"))
+  left_join(
+    filter(otm_data_ATL, microhabitat == "branch"),
+    by = c("year", "doy", "date")
+  )
 
 # model
 mod <- glm(
@@ -296,7 +299,8 @@ thresholds |>
   kbl(
     col.names = c(
       "Observation Probability",
-      "Predicted Lizard Body Temperature (°C)"),
+      "Predicted Lizard Body Temperature (°C)"
+    ),
     align = "c"
   ) |>
   kable_styling(
@@ -312,12 +316,15 @@ thresholds |>
 #| out.width: 66%
 
 tret <- survey_sum |>
-  left_join(filter(otm_data_ATL, microhabitat == "branch"), by = c("year", "doy", "date")) |>
+  left_join(
+    filter(otm_data_ATL, microhabitat == "branch"),
+    by = c("year", "doy", "date")
+  ) |>
   ggplot(aes(x = mean_temp, y = presence)) +
   geom_vline(
-    xintercept = c(0, ctmin_atl),
+    xintercept = c(0, 6.8, 8.8),
     linetype = "dashed",
-    color = c("darkblue", "steelblue"),
+    color = c("darkblue", "steelblue", "lightblue")
   ) +
   geom_jitter(
     color = "gray", size = 4, alpha = 0.75,
@@ -360,8 +367,8 @@ otms_data_sum <- otms_data |>
     date = as.Date(paste(year, doy), format = "%Y %j"),
     month = format(date, "%b")
   ) |>
-  filter(month %in% c("Dec", "Jan", "Feb")) |>
-  group_by(location, lat, id, year, microhabitat) |>
+  filter(month %in% c("Jan")) |>
+  group_by(location, lat, id, year, microhabitat, doy) |>
   summarise(
     min_temp = min(temp, na.rm = TRUE)
   ) |>
@@ -369,40 +376,59 @@ otms_data_sum <- otms_data |>
 
 # plot
 buffering_plot <- otms_data_sum |>
+  mutate(
+    location = factor(location, levels = c("ATL", "GNV", "ORL", "PSL", "MIA"))
+  ) |>
   ggplot(aes(x = lat, y = min_temp)) +
-  geom_line(
-    data = pred_ctmin,
-    aes(x = lat, y = ctmin, color = "CTmin"),
-    inherit.aes = FALSE,
-    linetype = "dashed"
-  ) +
-  geom_smooth(
-    aes(color = microhabitat, fill = microhabitat),
-    method = "lm",
-    alpha = 0.2,
-    show.legend = FALSE
-  ) +
-  stat_summary(
-    aes(color = microhabitat),
-    fun.data = mean_sdl,
-    fun.args = list(mult = 1)
-  ) +
   geom_hline(
     yintercept = c(0),
     linetype = "dashed",
     color = "darkblue"
   ) +
+  geom_hline(
+    linetype = "dashed",
+    aes(yintercept = 6.8, color = "CTmin"),
+    show.legend = TRUE
+  ) +
+  geom_hline(
+    linetype = "dashed",
+    aes(yintercept = 8.8, color = "Tret"),
+    show.legend = TRUE
+  ) +
+  geom_smooth(
+    aes(color = microhabitat),
+    method = "lm",
+    se = FALSE,
+  ) +
+  stat_summary(
+    aes(color = microhabitat, fill = location),
+    position = position_dodge(width = 0.5),
+    fun.data = mean_sdl,
+    fun.args = list(mult = 1),
+    shape = 21,
+    size = 1
+  ) +
   scale_color_manual(
-    values = c("branch" = "forestgreen", "leaflitter" = "darkorange", "CTmin" = "steelblue"),
+    values = c(
+      "branch" = "forestgreen",
+      "leaflitter" = "darkorange",
+      "CTmin" = "steelblue",
+      "Tret" = "skyblue"
+    ),
     name = "Microhabitat",
-    breaks = c("branch", "leaflitter", "CTmin"),
-    labels = c("Canopy", "Leaf litter", expression(CT[min]))
+    breaks = c("branch", "leaflitter", "CTmin", "Tret"),
+    labels = c(
+      "Canopy", "Leaf litter", expression(CT[min]), expression(T[ret])
+    )
   ) +
   scale_fill_manual(
-    values = c("branch" = "forestgreen", "leaflitter" = "darkorange"),
-    name = "Microhabitat",
-    labels = c("Canopy", "Leaf litter"),
-    guide = "none"
+    values = c(
+      "ATL" = "lightblue2",
+      "GNV" = "darkseagreen2",
+      "ORL" = "lightgoldenrod1",
+      "PSL" = "tan1",
+      "MIA" = "indianred1"
+    )
   ) +
   scale_x_continuous(
     breaks = seq(25, 35, by = 2.5),
@@ -416,15 +442,9 @@ buffering_plot <- otms_data_sum |>
     axis.line = element_line(color = "black"),
     axis.ticks = element_line(color = "black"),
     panel.grid = element_blank(),
-    legend.position = c(1, 1),
-    legend.justification = c("right", "top"),
     legend.title = element_blank(),
     legend.text = element_text(size = 14),
-    legend.key.spacing.y = unit(0.5, "lines"),
-    legend.background = element_rect(
-      fill = "white", color = "gray80", linewidth = 0.5
-    ),
-    plot.margin = margin(5, 5, 5, 5)
+    legend.key.spacing.y = unit(0.5, "lines")
   ) +
   labs(
     x = "Latitude (°N)",
@@ -468,7 +488,10 @@ otms_data_sum |>
   ) |>
   select(location, lat, est_Canopy, `est_Leaf litter`, buffering) |>
   kbl(
-    col.names = c("Location", "Latitude (°N)", "Canopy", "Leaf litter", "Average Buffering (°C)"),
+    col.names = c(
+      "Location", "Latitude (°N)", "Canopy",
+      "Leaf litter", "Average Buffering (°C)"
+    ),
     align = "c",
   ) |>
   kable_styling(
@@ -491,9 +514,8 @@ ggarrange(
   buffering_plot,
   ncol = 2,
   nrow = 1,
+  widths = c(1, 1.25),
   labels = c("A", "B"),
-  align = "hv",
-  # increase the size of the labels
   font.label = list(size = 16, face = "bold")
 )
 

@@ -660,12 +660,10 @@ validation_df |>
 thresh <- micro_df |>
   filter(z == 1.8) |>
   mutate(
-    predicted_ctmin = 15.33 - 0.204 * lat
-  ) |>
-  mutate(
     thresh = case_when(
       min_annual_temp < 0 ~ "below_zero",
-      min_annual_temp < predicted_ctmin ~ "below_ctmin",
+      min_annual_temp < 6.8 ~ "below_ctmin",
+      min_annual_temp < 8.8 ~ "below_tret",
       TRUE ~ "rest_of_range"
     )
   ) |>
@@ -676,10 +674,10 @@ micro_df <- micro_df |>
   left_join(thresh, by = c("lon", "lat", "elev", "veg", "presence"))
 
 # plot thresholds
-thresh |>
+thresh_plot <- thresh |>
   ggplot(aes(x = lon, y = lat, fill = thresh)) +
   geom_tile() +
-  geom_contour(aes(z = presence), color = "white") +
+  geom_contour(aes(z = presence), color = "white", breaks = 1) +
   scale_x_continuous(
     breaks = seq(-100, -75, by = 5),
     labels = function(x) paste0(abs(x), "°W"),
@@ -693,13 +691,16 @@ thresh |>
   scale_fill_manual(
     values = c(
       "below_zero" = "darkblue",
-      "below_ctmin" = "skyblue",
+      "below_ctmin" = "steelblue",
+      "below_tret" = "lightblue",
       "rest_of_range" = "gray80"
     ),
-    breaks = c("below_zero", "below_ctmin"),
+    breaks = c("below_zero", "below_ctmin", "below_tret", "rest_of_range"),
     labels = c(
       "below_zero" = "< 0°C",
-      "below_ctmin" = expression("< " * CT[min])
+      "below_tret" = expression("< " * T[ret]),
+      "below_ctmin" = expression("< " * CT[min]),
+      "rest_of_range" = "Rest of range"
     )
   ) +
   coord_quickmap(xlim = c(-101, -75), ylim = c(24, 37.5)) +
@@ -710,15 +711,11 @@ thresh |>
     panel.grid = element_blank(),
     axis.title = element_blank(),
     axis.text = element_text(size = 10),
-    legend.position = "inside",
-    legend.position.inside = c(0.02, 0.98),
-    legend.justification = c(0, 1),
+    legend.position = "top",
     legend.title = element_blank(),
     legend.text = element_text(size = 14),
-    legend.key.spacing.y = unit(0.5, "lines"),
-    legend.background = element_rect(fill = "white", color = "gray")
+    legend.key.spacing.x = unit(0.5, "lines")
   )
-
 ```
 
 ```{r run-memo, eval = FALSE}
@@ -742,7 +739,11 @@ for (i in seq_len(nrow(tss_grid))) {
   if (tss_grid$thresh[i] == "below_zero") {
     micro_df_sub <- micro_df_sub |> filter(thresh == "below_zero")
   } else if (tss_grid$thresh[i] == "below_ctmin") {
-    micro_df_sub <- micro_df_sub |> filter(thresh != "rest_of_range")
+    micro_df_sub <- micro_df_sub |> 
+      filter(thresh %in% c("below_zero", "below_ctmin"))
+  } else if (tss_grid$thresh[i] == "below_tret") {
+    micro_df_sub <- micro_df_sub |>
+      filter(thresh %in% c("below_zero", "below_ctmin", "below_tret"))
   }
 
   tss_value <- micro_df_sub |>
@@ -772,10 +773,8 @@ saveRDS(tss_grid, "data/tss_grid.rds")
 ```
 
 ```{r plot-memo-results}
-#| code-summary: "Plot mechanistic envelope model results"
 #| fig-align: "center"
-#| fig-width: 10
-#| fig-height: 5
+#| fig-height: 10
 
 # load TSS grid
 tss_grid <- readRDS("data/tss_grid.rds")
@@ -789,11 +788,11 @@ tss_grid_max <- tss_grid |>
 # refactor threshold names for plotting
 tss_grid$thresh <- factor(
   tss_grid$thresh,
-  levels = c("below_zero", "below_ctmin", "rest_of_range"),
+  levels = c("below_zero", "below_ctmin", "below_tret", "rest_of_range"),
 )
 
 # plot TSS grid
-tss_grid |>
+tss_grid_plot <- tss_grid |>
   filter(z < 2) |>
   ggplot(aes(x = veg, y = as.factor(z), fill = tss)) +
   geom_tile() +
@@ -825,9 +824,8 @@ tss_grid |>
       barwidth = unit(0.5, "cm")
     )
   ) +
-    scale_x_continuous(
+  scale_x_continuous(
     breaks = seq(0, 1, by = 0.2),
-    labels = scales::percent_format(accuracy = 1),
     expand = c(0, 0)
   ) +
   scale_y_discrete(
@@ -837,18 +835,20 @@ tss_grid |>
       x[negative[seq_along(negative) %% 2 == 1]] <- ""
       x
     },
-    expand = c(0, 0),
+    expand = c(0, 0)
   ) +
   facet_wrap(
-    ~thresh, 
-    ncol = 3,
+    ~thresh,
+    ncol = 2,
+    nrow = 2,
     axes = "all",
     labeller = labeller(
       thresh = as_labeller(
         c(
-          below_zero = "atop('Hard Physiological', 'Threshold (' * 0 * degree * 'C)')", # nolint
-          below_ctmin = "atop('Soft Physiological', 'Threshold (' * CT[min] * ')')", # nolint
-          rest_of_range = "atop('Rest of', 'Range')"
+          below_zero = "bold(atop('< Hard Physiological', 'Threshold (' * 0 * degree * C * ')'))", # nolint
+          below_ctmin = "bold(atop('< Soft Physiological', 'Threshold (' * CT[min] * ')'))", # nolint
+          below_tret = "bold(atop('< Behavior', 'Threshold (' * T[ret] * ')'))", # nolint
+          rest_of_range = "bold(atop('Entire', 'range'))"
         ),
         label_parsed
       )
@@ -856,14 +856,23 @@ tss_grid |>
   ) +
   labs(
     x = "Vegetation Cover",
-    y = "Distance from surface above\nor below leaf litter (m)"
+    y = "Distance from surface above or below leaf litter (m)"
   ) +
   theme_minimal() +
   theme(
     legend.position = "right",
-    strip.text = element_text(size = 14),
+    strip.text = element_text(size = 12),
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
     axis.ticks = element_line(color = "black", linewidth = 0.25),
     axis.title = element_text(size = 14, lineheight = 1.25),
+    legend.title = element_text(size = 14, hjust = 0.5, vjust = 1)
   )
+
+ggarrange(
+  thresh_plot,
+  tss_grid_plot,
+  ncol = 1,
+  heights = c(1.5, 3),
+  labels = c("A", "B")
+)
 ```
