@@ -305,7 +305,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb2-87"><a href="#cb2-87" aria-hidden="true" tabindex="-1"></a><span class="co"># plot observation probability and OTM data</span></span>
 <span id="cb2-88"><a href="#cb2-88" aria-hidden="true" tabindex="-1"></a>obs_plot <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
 <span id="cb2-89"><a href="#cb2-89" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(</span>
-<span id="cb2-90"><a href="#cb2-90" aria-hidden="true" tabindex="-1"></a>    <span class="at">yintercept =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">0</span>, ctmin_atl <span class="sc">/</span> <span class="fu">max</span>(otm_data_ATL<span class="sc">$</span>mean_temp, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="cb2-90"><a href="#cb2-90" aria-hidden="true" tabindex="-1"></a>    <span class="at">yintercept =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">0</span>, <span class="fl">6.8</span> <span class="sc">/</span> <span class="fu">max</span>(otm_data_ATL<span class="sc">$</span>mean_temp, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
 <span id="cb2-91"><a href="#cb2-91" aria-hidden="true" tabindex="-1"></a>    <span class="at">linetype =</span> <span class="st">"dashed"</span>,</span>
 <span id="cb2-92"><a href="#cb2-92" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="fu">c</span>(<span class="st">"gray80"</span>, <span class="st">"darkblue"</span>, <span class="st">"steelblue"</span>),</span>
 <span id="cb2-93"><a href="#cb2-93" aria-hidden="true" tabindex="-1"></a>    <span class="at">alpha =</span> <span class="fl">0.5</span></span>
@@ -743,42 +743,47 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <details class="code-fold">
 <summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>otms_data_sum <span class="sc">|&gt;</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(location, lat, microhabitat) <span class="sc">|&gt;</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(location, lat, microhabitat, id) <span class="sc">|&gt;</span></span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
 <span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_min_temp =</span> <span class="fu">mean</span>(min_temp, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">sd_min_temp =</span> <span class="fu">sd</span>(min_temp, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">n =</span> <span class="fu">n</span>()</span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">est =</span> <span class="fu">paste</span>(</span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>      <span class="fu">round</span>(mean_min_temp, <span class="dv">1</span>), <span class="st">"±"</span>,</span>
-<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>      <span class="fu">round</span>(sd_min_temp, <span class="dv">1</span>), <span class="st">"°C (n ="</span>, n, <span class="st">")"</span></span>
-<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">microhabitat =</span> <span class="fu">ifelse</span>(microhabitat <span class="sc">==</span> <span class="st">"branch"</span>, <span class="st">"Canopy"</span>, <span class="st">"Leaf litter"</span>)</span>
-<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(location, lat, microhabitat, est, mean_min_temp) <span class="sc">|&gt;</span></span>
-<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(</span>
-<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">names_from =</span> microhabitat,</span>
-<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">values_from =</span> <span class="fu">c</span>(est, mean_min_temp)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">abs_min_temp =</span> <span class="fu">min</span>(min_temp, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(location, lat, microhabitat) <span class="sc">|&gt;</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_mt =</span> <span class="fu">mean</span>(mean_min_temp, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">sd_mt =</span> <span class="fu">sd</span>(mean_min_temp, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">abs_mt =</span> <span class="fu">mean</span>(abs_min_temp, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">est =</span> <span class="fu">paste</span>(</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>      <span class="fu">round</span>(mean_mt, <span class="dv">1</span>), <span class="st">"±"</span>,</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>      <span class="fu">round</span>(sd_mt, <span class="dv">1</span>), <span class="st">"°C (min ="</span>, <span class="fu">round</span>(abs_mt, <span class="dv">1</span>), <span class="st">")"</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">microhabitat =</span> <span class="fu">ifelse</span>(microhabitat <span class="sc">==</span> <span class="st">"branch"</span>, <span class="st">"Canopy"</span>, <span class="st">"Leaf litter"</span>)</span>
 <span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">buffering =</span> <span class="fu">round</span>(<span class="st">`</span><span class="at">mean_min_temp_Leaf litter</span><span class="st">`</span> <span class="sc">-</span> mean_min_temp_Canopy, <span class="dv">1</span>)</span>
-<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(location, lat, est_Canopy, <span class="st">`</span><span class="at">est_Leaf litter</span><span class="st">`</span>, buffering) <span class="sc">|&gt;</span></span>
-<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kbl</span>(</span>
-<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">col.names =</span> <span class="fu">c</span>(</span>
-<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Location"</span>, <span class="st">"Latitude (°N)"</span>, <span class="st">"Canopy"</span>,</span>
-<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Leaf litter"</span>, <span class="st">"Average Buffering (°C)"</span></span>
-<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">align =</span> <span class="st">"c"</span>,</span>
-<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable_styling</span>(</span>
-<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">full_width =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> <span class="st">"center"</span>,</span>
-<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">font_size =</span> <span class="dv">12</span></span>
-<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(location, lat, microhabitat, est, mean_mt) <span class="sc">|&gt;</span></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(</span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">names_from =</span> microhabitat,</span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">values_from =</span> <span class="fu">c</span>(est, mean_mt)</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">buffering =</span> <span class="fu">round</span>(<span class="st">`</span><span class="at">mean_mt_Leaf litter</span><span class="st">`</span> <span class="sc">-</span> mean_mt_Canopy, <span class="dv">1</span>)</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(location, lat, est_Canopy, <span class="st">`</span><span class="at">est_Leaf litter</span><span class="st">`</span>, buffering) <span class="sc">|&gt;</span></span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kbl</span>(</span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">col.names =</span> <span class="fu">c</span>(</span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Location"</span>, <span class="st">"Latitude (°N)"</span>, <span class="st">"Canopy"</span>,</span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Leaf litter"</span>, <span class="st">"Average Buffering (°C)"</span></span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">align =</span> <span class="st">"c"</span>,</span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable_styling</span>(</span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">full_width =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> <span class="st">"center"</span>,</span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">font_size =</span> <span class="dv">12</span></span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <table quarto-disable-processing="true" class="table" style="font-size: 12px; width: auto !important; margin-left: auto; margin-right: auto;">
@@ -795,36 +800,36 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <tr>
    <td style="text-align:center;"> ATL </td>
    <td style="text-align:center;"> 33.7490 </td>
-   <td style="text-align:center;"> 1.7 ± 6.4 °C (n = 372 ) </td>
-   <td style="text-align:center;"> 5.9 ± 4.5 °C (n = 279 ) </td>
+   <td style="text-align:center;"> 1.7 ± 0.4 °C (min = -10.6 ) </td>
+   <td style="text-align:center;"> 5.9 ± 1.8 °C (min = -1.3 ) </td>
    <td style="text-align:center;"> 4.2 </td>
   </tr>
   <tr>
    <td style="text-align:center;"> GNV </td>
    <td style="text-align:center;"> 29.6516 </td>
-   <td style="text-align:center;"> 6.8 ± 6 °C (n = 90 ) </td>
-   <td style="text-align:center;"> 11.6 ± 3.7 °C (n = 90 ) </td>
+   <td style="text-align:center;"> 6.8 ± 0.1 °C (min = -2.4 ) </td>
+   <td style="text-align:center;"> 11.6 ± 1 °C (min = 6.5 ) </td>
    <td style="text-align:center;"> 4.8 </td>
   </tr>
   <tr>
    <td style="text-align:center;"> MIA </td>
    <td style="text-align:center;"> 25.7617 </td>
-   <td style="text-align:center;"> 14.9 ± 4.9 °C (n = 58 ) </td>
-   <td style="text-align:center;"> 19.2 ± 2.9 °C (n = 87 ) </td>
+   <td style="text-align:center;"> 14.9 ± 0.3 °C (min = 5.5 ) </td>
+   <td style="text-align:center;"> 19.2 ± 0.5 °C (min = 14.2 ) </td>
    <td style="text-align:center;"> 4.3 </td>
   </tr>
   <tr>
    <td style="text-align:center;"> ORL </td>
    <td style="text-align:center;"> 28.5383 </td>
-   <td style="text-align:center;"> 8.5 ± 5.3 °C (n = 88 ) </td>
-   <td style="text-align:center;"> 14.6 ± 3 °C (n = 58 ) </td>
+   <td style="text-align:center;"> 8.5 ± 0.3 °C (min = -1 ) </td>
+   <td style="text-align:center;"> 14.6 ± 1.6 °C (min = 9.8 ) </td>
    <td style="text-align:center;"> 6.1 </td>
   </tr>
   <tr>
    <td style="text-align:center;"> PSL </td>
    <td style="text-align:center;"> 27.3050 </td>
-   <td style="text-align:center;"> 12.5 ± 5.3 °C (n = 60 ) </td>
-   <td style="text-align:center;"> 16.2 ± 2.8 °C (n = 60 ) </td>
+   <td style="text-align:center;"> 12.5 ± 0.2 °C (min = 3.5 ) </td>
+   <td style="text-align:center;"> 16.2 ± 0.5 °C (min = 11.5 ) </td>
    <td style="text-align:center;"> 3.6 </td>
   </tr>
 </tbody>

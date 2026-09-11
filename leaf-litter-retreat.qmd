@@ -121,7 +121,7 @@ ctmin_atl <- 57 - 1.68 * my_lat - 41.67 + 1.48 * my_lat
 # plot observation probability and OTM data
 obs_plot <- ggplot() +
   geom_hline(
-    yintercept = c(1, 0, ctmin_atl / max(otm_data_ATL$mean_temp, na.rm = TRUE)),
+    yintercept = c(1, 0, 6.8 / max(otm_data_ATL$mean_temp, na.rm = TRUE)),
     linetype = "dashed",
     color = c("gray80", "darkblue", "steelblue"),
     alpha = 0.5
@@ -463,28 +463,33 @@ broom::glance(mod)
 
 ```{r table-leaf-litter-buffering}
 otms_data_sum |>
-  group_by(location, lat, microhabitat) |>
+  group_by(location, lat, microhabitat, id) |>
   summarise(
     mean_min_temp = mean(min_temp, na.rm = TRUE),
-    sd_min_temp = sd(min_temp, na.rm = TRUE),
-    n = n()
+    abs_min_temp = min(min_temp, na.rm = TRUE)
+  ) |>
+  group_by(location, lat, microhabitat) |>
+  summarise(
+    mean_mt = mean(mean_min_temp, na.rm = TRUE),
+    sd_mt = sd(mean_min_temp, na.rm = TRUE),
+    abs_mt = mean(abs_min_temp, na.rm = TRUE)
   ) |>
   mutate(
     est = paste(
-      round(mean_min_temp, 1), "±",
-      round(sd_min_temp, 1), "°C (n =", n, ")"
+      round(mean_mt, 1), "±",
+      round(sd_mt, 1), "°C (min =", round(abs_mt, 1), ")"
     ),
   ) |>
   mutate(
     microhabitat = ifelse(microhabitat == "branch", "Canopy", "Leaf litter")
   ) |>
-  select(location, lat, microhabitat, est, mean_min_temp) |>
+  select(location, lat, microhabitat, est, mean_mt) |>
   pivot_wider(
     names_from = microhabitat,
-    values_from = c(est, mean_min_temp)
+    values_from = c(est, mean_mt)
   ) |>
   mutate(
-    buffering = round(`mean_min_temp_Leaf litter` - mean_min_temp_Canopy, 1)
+    buffering = round(`mean_mt_Leaf litter` - mean_mt_Canopy, 1)
   ) |>
   select(location, lat, est_Canopy, `est_Leaf litter`, buffering) |>
   kbl(
