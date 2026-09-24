@@ -6,7 +6,11 @@ format:
     fig-dpi: 300
 ---
 
+## Overview
+
 ```{r r-setup, warning = FALSE, message = FALSE}
+#| code-summary: "R setup"
+
 # packages
 library(tidyverse)
 library(terra)
@@ -16,6 +20,7 @@ library(TrenchR)
 library(kableExtra)
 library(viridis)
 library(ggpubr)
+library(geosphere)
 
 # options
 options(
@@ -24,24 +29,46 @@ options(
 )
 ```
 
-## Overview
-
 ## Defining the green anole's range
 
+We downloaded all research-quality iNaturalist observations of the green anole (*Anolis carolinensis*). Below we present the structure of the raw data, which is stored in the `data` folder:
+
+```{r present-structure-inat-obs-data}
+#| code-fold: false
+
+# load occurrence data
+caro_inat_data <- readRDS("data/caro_inat_data.rds")
+as_tibble(caro_inat_data)
+str(caro_inat_data)
+```
+
+We use the occurence data to define the green anole's range. To do this, we first curate the original dataset by:
+
+1. Rounding coordinates to one decimal place.
+
+2. Removing observations with low positional accuracy (< 1 km<sup>2</sup>).
+
+3. Filtering to the native range of the green anole defined by the following bounding box: longitude between -110 and -70 W, latitude between 22.5 and 37.5 N.
+
+4. Adding up all observations within every 0.1 x 0.1 degree grid cell and keeping only cells with at least 2 observations. The goal of this step is to eliminate stand-alone observations caused by potential errors or rare occurrences.
+
+5. Removing outliers based on distance to other observations. Any observation is considered an outlier if there are fewer than 3 observations within 50 km.
+
+Lastly, we use the curated occurrence data to manually define the green anole's range using the `mapedit` package.
+
 ```{r define-caro-range, eval = FALSE}
+#| code-summary: "Curate iNat data and define green anole range"
+
 ## Note: This code chunk is not evaluated as it requires manual interaction
-## to define the green anole's range using the `mapedit` package. The resulting 
+## to define the green anole's range using the `mapedit` package. The resulting
 ## range points are saved as an RDS file for later use.
 
 # load packages
 library(mapview)
 library(mapedit)
 
-# load occurrence data
-caro_occ_data <- read.csv("raw_data/anolis_carolinensis_inat_obs.csv")
-
 # round coordinates and remove observations with low positional accuracy
-caro_occ_data <- caro_occ_data |>
+caro_occ_data <- caro_inat_data |>
   mutate(
     lat = round(latitude, 1), lon = round(longitude, 1),
   ) |>
@@ -65,7 +92,7 @@ caro_occ_data$is_outlier <- apply(
     distances <- geosphere::distm(
       x,
       caro_occ_data[, c("lon", "lat")],
-      fun = distHaversine
+      fun = geosphere::distHaversine
     )
     # if there are fewer than 3 observations within 50 km, mark as outlier
     if (length(distances) > 0 && sum(distances < 50000) < 3) {
@@ -76,7 +103,7 @@ caro_occ_data$is_outlier <- apply(
   }
 )
 
-# save processed occurrence data
+# save curated occurrence data
 saveRDS(caro_occ_data, "data/caro_occ_data.rds")
 
 # transform into a spatial object
@@ -114,13 +141,18 @@ caro_range_poly <- st_as_sf(caro_range_sf) |>
 saveRDS(caro_range_poly, "data/caro_range.rds")
 ```
 
-```{r plot-range}
-#| fig-align: "center"
-#| fig-width: 6
+Below we plot the range in relationship to the curated occurance data indicating which observations we consider to be outliers. Both the curated occurance data (`caro_occ_data.rds`) and the defined range (`caro_range.rds`, saved as a `MULTIPOLYGON` object) are saved in the `data` folder.
 
+```{r plot-range}
+#| code-summary: "Plot the native range and occurrence data of the green anole"
+#| fig-align: "center"
+#| fig-width: 5
+
+# load datasets
 caro_range <- readRDS("data/caro_range.rds")
 caro_occ_data <- readRDS("data/caro_occ_data.rds")
 
+# plot
 ggplot() +
   geom_polygon(
     data = map_data("world"),
@@ -160,18 +192,34 @@ ggplot() +
   theme(
     legend.position = "top",
     legend.title = element_blank(),
-    legend.text = element_text(size = 10),
+    legend.text = element_text(size = 12),
     axis.title = element_blank(),
     axis.text = element_text(size = 10),
     panel.border = element_rect(fill = NA),
     axis.ticks = element_line(),
-    panel.grid = element_blank()
-  )
+    panel.grid = element_blank(),
+    plot.margin = margin(r = 10, t = -20, b = -20, l = 10)
+  ) +
+  guides(color = guide_legend(override.aes = list(size = 3)))
 ```
 
 ## Obtaining and processing ecological data
 
+Next, we obtain the layers of ecological data we will need for the biophysical models. These include:
+
+1. **Forest cover**: A raster layer representing the proportion of land covered by forests in each spatial cell. We obtained this data using the [`landcover`](https://rspatial.github.io/geodata/reference/landcover.html) function of the [`geodata`](https://rspatial.github.io/geodata/index.html) package and combined the outputs of running this function setting `var` to `"trees"`, `"mangroves"`, and `"wetlands"`. This data is, by default, offered at a 30 arc-second resolution. As part of our processing, we aggregated it to a 2.5 arc-minute resolution to match the resolution of the climate data.
+
+2. **Elevation**: A raster layer representing the elevation of each spatial cell. We obtained this data from the [WorldClim](https://www.worldclim.org/data/worldclim21.html) database at a 2.5 arc-minute resolution.
+
+3. **Minimum and maximum temperatures**: Raster layers representing the minimum and maximum temperatures for each spatial cell. We obtained this data from the [WorldClim](https://www.worldclim.org/data/worldclim21.html) database at a 2.5 arc-minute resolution.
+
+We `masked` all ecological data to the spatial extent of the green anole's range polygon + 2 degrees in all directions to have a representative sample of areas where the species does and does not occur. Further, we `masked` the rasters to only land areas within the continental United States and Mexico, the two countries were green anoles are considerd to be native. 
+
+Lastly, we add the species presence data to the ecological layers and save the resulting dataset (`eco_df`) as an RDS file for later use. The file is available in the `data` folder.
+
 ```{r process-ecological-data, eval = FALSE}
+#| code-summary: "Obtaining and processing ecological data"
+
 ## Note: This code chunk is not evaluated as it requires large raster files
 ## that are not included in the repository. The output of this code chunk is
 ## saved as an RDS file for later use.
@@ -202,7 +250,8 @@ wetlands <- terra::rast("raw_data/wetlands.tif")
 veg <- trees + mangroves + wetlands
 veg <- terra::mask(veg, land_edge)
 veg <- terra::crop(veg, range_extent)
-veg <- terra::aggregate(veg, fact = 5, fun = "mean", na.rm = TRUE) # 30'' to 2.5' # nolint
+# 30'' to 2.5'
+veg <- terra::aggregate(veg, fact = 5, fun = "mean", na.rm = TRUE)
 
 # read and process elevation raster
 elev <- terra::rast("raw_data/elev.tif")
@@ -244,9 +293,13 @@ saveRDS(eco_df, "data/eco_df.rds")
 
 ```
 
+Below we plot the ecological data for the green anole's range, including forest cover, minimum and maximum temperatures, elevation, and species presence.
+
 ```{r plot-eco-data}
+#| code-summary: "Plotting ecological data for the green anole's range"
 #| fig-align: "center"
-#| fig-width: 20
+#| fig-width: 10
+#| fig-height: 10
 
 eco_df <- readRDS("data/eco_df.rds")
 
@@ -278,7 +331,7 @@ veg_plot <- ggplot(eco_df, aes(x = lon, y = lat, fill = veg)) +
   ) +
   coord_quickmap(xlim = c(-101, -75), ylim = c(24, 37.5)) +
   common_theme + x_axis_common + y_axis_common +
-  labs(fill = "Vegetation\nCover")
+  labs(fill = "Forest\nCover")
 tmin_plot <- ggplot(eco_df, aes(x = lon, y = lat, fill = tmin)) +
   geom_raster() +
   coord_quickmap(xlim = c(-101, -75), ylim = c(24, 37.5)) +
@@ -298,20 +351,11 @@ elev_plot <- ggplot(eco_df, aes(x = lon, y = lat, fill = elev)) +
   coord_quickmap(xlim = c(-101, -75), ylim = c(24, 37.5)) +
   common_theme + x_axis_common + y_axis_common +
   labs(fill = "Elevation\n(m)")
-presence_plot <- ggplot(eco_df, aes(x = lon, y = lat, fill = as.factor(presence))) + # nolint
-  geom_raster() +
-  scale_fill_manual(
-    values = c("lightgray", "forestgreen"), na.value = NA,
-    labels = c("Absent", "Present")
-  ) +
-  coord_quickmap(xlim = c(-101, -75), ylim = c(24, 37.5)) +
-  common_theme + x_axis_common + y_axis_common +
-  labs(fill = "Green Anole\nPresence")
 
 # combine all plots into a single figure
 ggarrange(
-  veg_plot, tmin_plot, tmax_plot, elev_plot, presence_plot,
-  ncol = 3, nrow = 2,
+  veg_plot, tmin_plot, tmax_plot, elev_plot,
+  ncol = 2, nrow = 2,
   align = "hv"
 )
 
@@ -319,89 +363,257 @@ ggarrange(
 
 ## Biophysical models
 
-```{r define-biophys-params}
-#| code-summary: "Biophysical model parameters"
+### Functions & parameters
 
-# define physical constants
-k <- 0.05 # thermal conductivity of leaf litter (W m^-1 K^-1)
-rho <- 150 # bulk density of leaf litter (kg m^-3)
-cp <- 2500 # specific heat capacity of leaf litter (J kg^-1 K^-1)
-cc <- 0.007 # canopy cooling coefficient (W m^-2)
-srh <- 0.02 # surface radiative heat flux coefficient (C / W m^-2 K^-1)
-ecc <- 0.0167 # earth orbit eccentricity
-spo <- 1.36 # extraterrestial solar radiation (kW m^-2)
-atc <- 0.83 # atmospheric transmissivity coefficient (unitless)
-sigma <- 5.670374e-8  # Stefan-Boltzmann constant (W m^-2 K^-4)
-lizard_emissivity <- 0.95 # Longwave emissivity of reptile skin
-sky_emissivity <- 0.75 # Longwave emissivity of the night sky
-wind_speed <- 0.1 # Wind speed in m/s
-f_sky <- 0.5 # Sky view factor above ground (50%)
-f_ground <- 0.5 # Ground view factor above ground (50%)
-convection_ground <- 2.5 # Conductive/convective transfer from ground
+#### **Solar radiation profile**
 
-# calculate derived physical constants
-diff_sec <- k / (rho * cp) # thermal diffusivity of leaf litter (m^2 s^-1)
-diff_hour <- diff_sec * 3600 # thermal diffusivity of leaf litter (m^2 h^-1)
-omega <- 2 * pi / 24 # angular frequency of diurnal temperature cycle (rad h^-1)
-damping_depth <- sqrt((2 * diff_hour) / omega) # damping depth (m)
+We estimated direct hourly solar radiation ($R_{solar}$) as a function of geographic coordinates, seasonal timing and local topography. We first estimated the position of the sun throughout the year cycle (i.e., its ecliptic longitude $\lambda$) as a function of day of the year ($DOY$) and the Earth’s orbital eccentricity ($e = 0.0167$) as:
+$$
+\lambda = \frac{2\pi}{365}\cdot(DOY - 80) + 2 \cdot e \cdot (\sin(\frac{2\pi}{365}\cdot DOY) - \sin(\frac{2\pi}{365}\cdot 80))
+$$
 
-# define list of heights and depths of interest
-zs <- c(seq(-0.2, -0.01, by = 0.01), 0, 1.8, 2)
+Above, 80 is chosen to represent the day of the year when the vernal equinox occurs (typically March 21st). Using the ecliptic longitude, we then calculated the solar declination angle ($\delta$), which dictates day length and solar intensity as.
 
-```
+$$
+\delta = \arcsin(0.3879672 \cdot \sin(\lambda))
+$$
 
-```{r define-biophysical functions}
-#| code-summary: "Biophysical model functions"
+In the expression above, $0.3879672$ is chosen to represent the Earth’s approximate average axial tilt throughout a year (arcsin(0.3879672) = 22.82$^\circ$). From this we calculate the sine of the solar altitude angle at a given hour of the day ($a(h)$) as a function of the latitude ($lat$) and the difference between the hour of the day ($h$) and the time of solar noon ($S_n$).
 
-# solar radiation profile
+$$
+a(h) = \sin(lat)\cdot \sin(\delta) + \cos(lat)\cdot\cos(\delta) \cdot \cos\left(0.2618 \cdot (h - S_n)\right)
+$$
+
+Where $0.2618 \text{ rad h}^{-1}$ represents the Earth’s rotational speed ($15^\circ h^{-1}$). To obtain the time of solar noon at a given location in a given day of the year we used the `get_solar_noon` function from the `R` package `TrenchR` ([[Buckely et al. 2023]]).
+To account for the effects of elevation when computing the degree to which the atmosphere absorbs incoming solar radiation, we modeled barometric pressure ($p_a$) using an exponential attitudinal decay function.
+
+$$
+p_a = 101.3 \cdot e^{-Elev /8200}
+$$
+
+Combining $\text{sin}(a)$ and $p_a$ we then compute the path length of solar radiation through the atmosphere as:
+
+$$
+m_a(h) = \frac{p_a}{101.3 \cdot (\frac{1}{a_h})}
+$$
+
+Finally, hourly direct solar radiation ($R_{solar}$, in $\text{W m}^{-2}$) is modeled by combining $\text{sin}(\alpha)$, $m_a$, the extraterrestrial solar constant ($E_{sc} = 1.36 \text{kW m}^-2$) with the atmospheric transmittance coefficient ($\tau = 0.83$).
+
+$$
+R_{solar}(h) = E_{sc} \cdot \tau^{m_a(h)} \cdot a(h) \cdot 1000
+$$
+
+We implement the function in `R` as follows:
+
+```{r define-solar-radiation-profile-function}
+#| code-fold: false
+
+# define constants
+ecc <- 0.0167 # Earth's orbital eccentricity
+spo <- 1.36 # extraterrestrial solar constant in kW m^-2
+atc <- 0.83 # atmospheric transmittance coefficient
+
+# define function
 get_solar_rad_profile <- function(lat, elev, doy, solar_noon) {
+
   hours <- 0:23
-  elon <- (2 * pi / 365) * (doy - 80) + 2 * ecc * (sin(2 * pi / 365 * doy) - sin(2 * pi / 365 * 80)) # nolint
+
+  # calculate solar longitude and declination angle
+  elon <- (2 * pi / 365) * (doy - 80) + 2 *
+    ecc * (sin(2 * pi / 365 * doy) - sin(2 * pi / 365 * 80))
   dec_ang <- asin(0.3879672 * sin(elon))
+
+  # calculate atmospheric pressure at the given elevation
   p_a <- 101.3 * exp(-elev / 8200)
+
+  # calculate solar altitude angle
   geo_lat <- lat * (pi / 180)
-  sin_alt_ang <- sin(geo_lat) * sin(dec_ang) + cos(geo_lat) * cos(dec_ang) * outer(solar_noon, hours, function(s, h) cos(0.2618 * (h - s))) # nolint
+  sin_alt_ang <- sin(geo_lat) * sin(dec_ang) +
+    cos(geo_lat) * cos(dec_ang) *
+      outer(solar_noon, hours, function(s, h) cos(0.2618 * (h - s)))
+
+  # calculate air mass and solar radiation
   m_a <- p_a / (101.3 * (1 / sin_alt_ang))
   solar_rad <- spo * atc ^ m_a * sin_alt_ang
   solar_rad[solar_rad < 0] <- 0
   drop(solar_rad * 1000)
+
 }
 
-# air temperature profile
+```
+
+#### **Air temperature profile**
+
+We estimated hourly air temperature ($T_{air}$) by interpolating between the daily maximum ($T_{max}$) and minimum ($T_{min}$) temperatures using a sinusoidal weighting function. We first defined the angular frequency of the diurnal temperature cycle ($\omega$) as:
+
+$$
+\omega = \frac{\pi}{12}
+$$
+
+reflecting a full cycle over the 24 hours of the day. From this we computed an hourly weighting coefficient ($\gamma(h)$), which determines the relative contribution of $T_{max}$ and $T_{min}$ to air temperature at a given hour of the day ($h$):
+
+$$
+\gamma(h) = 0.44 - 0.46\cdot\sin(0.9 + \omega \cdot h) + 0.11\cdot\sin(0.9 + 2 \cdot \omega \cdot h)
+$$
+
+Finally, hourly air temperature ($T_{air}(h)$, in $^\circ C$) was calculated by weighting $T_{max}$ and $T_{min}$ by $\gamma(h)$ and $1 - \gamma(h)$, respectively:
+
+$$
+T_{air}(h) = T_{max} \cdot \gamma(h) + T_{min} \cdot (1 - \gamma(h))
+$$
+
+We implement the function in `R` as follows:
+
+```{r define-air-temperature-profile-function}
+#| code-fold: false
 get_air_temp_profile <- function(tmax, tmin) {
   w <- pi / 12
   gamma <- 0.44 - 0.46 * sin(0.9 + w * (0:23)) + 0.11 * sin(0.9 + 2 * w * (0:23)) # nolint
   drop(outer(tmax, gamma) + outer(tmin, 1 - gamma))
 }
+```
 
-# canopy cooling correction
+#### **Correct air temperature profile using vegetation cover**
+
+We corrected the hourly air temperature profile ($T_{air}$) to account for the buffering effect of vegetation cover on incoming solar radiation. We assumed that forest canopy intercepts a portion of direct solar radiation ($R_{solar}$) before it reaches the ground, cooling the air in proportion to both the amount of solar radiation available to be intercepted and the fraction of forest cover ($C_{forest}$, ranging from 0 to 1) at a given location. We modeled this using a canopy cooling coefficient ($\kappa = 0.007 \text{°C}\cdot(\text{W m}^{-2})^{-1}$), such that the corrected hourly air temperature ($T_{air}^{\prime}(h)$) is:
+
+$$
+T_{air}^{\prime}(h) = T_{air}(h) - \kappa \cdot R_{solar}(h) \cdot C_{forest}
+$$
+
+Under peak solar radiation (800 - 1000 W m<sup>-2</sup>) and a fully closed canopy, this coefficient yields a peak daytime cooling buffer of 5.6 - 7 $^\circ$C. This range is consistent with empirical understory microclimate logger networks in temperate and subtropical forests (De Frenne et al., 2013, 2019; Zellweger et al., 2020) and standard surface-layer energy balance assumptions under suppressed convective mixing (Campbell & Norman, 1998).
+
+We implement the function in `R` as follows:
+
+```{r define-correct-air-temp-profile-function}
+#| code-fold: false
+
+# define parameters
+cc <- 0.007 # canopy cooling coefficient (W m^-2)
+
+# define function
 correct_air_temp_profile <- function(
-    air_temp_profile, cc = 0.007, solar_rad_profile, veg_cover) {
+  air_temp_profile, solar_rad_profile, forest_cover
+) {
   is_vec <- is.vector(air_temp_profile)
   if (is_vec) {
     air_temp_profile  <- matrix(air_temp_profile,  nrow = 1)
     solar_rad_profile <- matrix(solar_rad_profile, nrow = 1)
   }
-  result <- air_temp_profile - sweep(cc * solar_rad_profile, 1, veg_cover, "*")
+  result <- air_temp_profile - 
+    sweep(cc * solar_rad_profile, 1, forest_cover, "*")
   if (is_vec) drop(result) else result
 }
+```
+
+`air_temp_profile` and `solar_rad_profile` may each represent either a single day (a vector of 24 hourly values) or multiple locations/days at once (a matrix with one row per location/day and one column per hour). The function first coerces vector inputs into single-row matrices so that the remainder of the computation can be written generically for both cases, then `drop()`s the result back to a vector at the end if needed. `forest_cover` varies by location (i.e., by row) but must be applied uniformly across all 24 hourly columns of `solar_rad_profile`. Because R recycles values column-by-column, multiplying the `solar_rad_profile` matrix directly by the `forest_cover` vector would misalign values whenever there is more than one row. `sweep()` avoids this by explicitly multiplying along `MARGIN = 1` (rows), ensuring that each location's forest cover value is applied only to its own row of hourly solar radiation values.
+
+#### **Surface temperature profile**
+
+We estimated the hourly surface temperature profile ($T_{surf}$) by adjusting hourly corrected air temperature ($T_{air}^{\prime}$) upward to reflect the additional heating that exposed ground surfaces experience from direct solar radiation ($R_{solar}$), relative to the surrounding air. We assumed that this surface heating effect is proportional to the fraction of ground not shaded by forest cover ($C_{veg}$, ranging from 0 to 1), such that fully covered surfaces experience no additional heating while fully exposed surfaces experience the maximum effect. We modeled this using a surface radiative heat flux coefficient ($\sigma = 0.02 \text{°C}\cdot(\text{W m}^{-2})^{-1}$), such that hourly surface temperature ($T_{surf}(h)$) is:
+
+$$
+T_{surf}(h) = T_{air}^{\prime}(h) + \sigma \cdot R_{solar}(h) \cdot (1 - C_{veg})
+$$
+
+The surface radiative heat flux coefficient ($\sigma = 0.02 \text{ °C}\cdot(\text{W m}^{-2})^{-1}$) reflects the thermal response of dry organic leaf litter under low boundary-layer convective mixing. Under maximum unshaded solar radiation (800 - 1000 W m<sup>-2</sup>), this yields a daytime surface temperature excess of 16 - 20 $^\circ$C above ambient air, consistent with standard microclimate energy balance formulations (Campbell & Norman, 1998) and empirical forest floor microclimate measurements (De Frenne et al., 2019; Maclean et al., 2019).
+
+We implement the function in `R` as follows:
+
+```{r define-surface-temperature-profile-section}
+#| code-fold: false
+
+# define parameters
+srh <- 0.02 # surface radiative heat flux coefficient
 
 # surface temperature profile
 get_surf_temp_profile <- function(
-    air_temp_profile, solar_rad_profile, srh = 0.02, veg_cover) {
+  air_temp_profile, solar_rad_profile, veg_cover
+) {
   is_vec <- is.vector(air_temp_profile)
   if (is_vec) {
     air_temp_profile  <- matrix(air_temp_profile,  nrow = 1)
     solar_rad_profile <- matrix(solar_rad_profile, nrow = 1)
   }
-  result <- air_temp_profile + sweep(srh * solar_rad_profile, 1, 1 - veg_cover, "*") # nolint
+  result <- air_temp_profile + 
+    sweep(srh * solar_rad_profile, 1, 1 - veg_cover, "*")
   if (is_vec) drop(result) else result
 }
 
-# temperature profile across depths
-get_z_temp_profile <- function(
-  z_list, surf_temp_profile, air_temp_profile, damping_depth, ref_height = 1.8
-) {
+```
+
+#### **Above- and Below-ground (leaf-litter) temperature profile**
+
+To model the vertical temperature profile we defined separate functions for above and below the surface. Starting with above the surface, we assumed a smooth transition between the surface and the corrected air temperature measured at a reference height of 1.8 m (the reference height assumed by WorldClim). Following this assumption we first defined a dimensionless vertical profile function $\phi(z)$ that would capture the relative influence of the surface temperature with height ($z$), as: 
+
+$$
+\phi(z) = \frac{\ln\left(\frac{z + z_0}{z_0}\right)}{\ln\left(\frac{z_{ref} + z_0}{z_0}\right)}
+$$
+
+Above we assume $z_0 = 0.01$ m. This provides a small roughness-length offset added to avoid the singularity of the logarithm at the surface ($z = 0$). Then we, estimated the temperature at any height above the surface by applying this profile function as:
+
+$$
+T(z,h) = T_{surf}(h) - \left[T_{surf}(h) - T_{air}^{\prime}(h)\right] \cdot \phi(z)
+$$
+
+Below the surface, we modeled the propagation of temperature from the surface using the analytical solution to the one-dimensional heat conduction equation defined in Campbell and Norman 1998. To achieve this, we first calculated the thermal diffusivity of leaf litter ($\kappa$) from its thermal conductivity ($k$), bulk density ($\rho$), and specific heat capacity ($c_p$):
+
+$$
+\kappa = \frac{k}{\rho \cdot c_p}
+$$
+
+We parameterized $k$, $\rho$, and $c_p$ using literature values representative of dry, loosely-packed organic leaf litter  rather than mineral soil, since litter's high porosity ($\approx$ 80-90%) traps insulating pockets of still air that give it much lower thermal conductivity and bulk density than mineral soil. We set:
+
+- $k = 0.05 \text{ W m}^{-1}\text{K}^{-1}$, within the $0.04\text{-}0.06 \text{ W m}^{-1}\text{K}^{-1}$ range reported for dry organic litter layers (Campbell and Norman 1998; Oke 1987).
+
+- $\rho = 150 \text{ kg m}^{-3}$, representing a slightly settled field-layer density within the $60\text{--}180 \text{ kg m}^{-3}$ range measured for surficial $O_i$ litter (Sato et al. 2004; Gaudinski et al. 2000).
+
+- $c_p = 2500 \text{ J kg}^{-1}\text{K}^{-1}$, the standard value used for the dry solid organic fraction of soils (De Vries 1963; Bonan 2019).
+
+Given the angular frequency of the diurnal temperature cycle ($\omega = 2\pi/24 \text{ rad h}^{-1}$), we then calculated the damping depth ($D$), i.e. the depth at which the amplitude of the surface temperature wave is reduced by a factor of $e^{-1}$:
+
+$$
+D = \sqrt{\frac{2\kappa}{\omega}}
+$$
+
+At a given depth, temperature fluctuations are both damped in amplitude and delayed in phase relative to the surface. To account for this, we calculated the damping ratio ($A(z)$) and phase lag ($\Delta t(z)$, in hours) as:
+
+$$
+A(z) = e^{-|z|/D}
+$$
+
+$$
+\Delta t(z) = \frac{|z|}{D} \cdot \frac{24}{2\pi}
+$$
+
+Finally, temperature at depth $z$ and hour $h$ ($T(z,h)$) was calculated by damping the phase-shifted surface temperature ($T_{surf}(h - \Delta t(z))$, obtained by linearly interpolating the surface temperature profile) around the mean daily surface temperature ($\bar{T}_{surf}$):
+
+$$
+T(z,h) = \bar{T}_{surf} + \left[T_{surf}(h - \Delta t(z)) - \bar{T}_{surf}\right] \cdot A(z)
+$$
+
+We implement the function in `R` as follows:
+
+```{r define-below-ground-leaf-litter-profile-section}
+#| code-fold: false
+
+# heights and depths of interests
+z_list <- zs <- c(seq(-0.2, -0.01, by = 0.01), 0, 1.8, 2)
+
+# parameters
+k <- 0.05 # thermal conductivity of leaf litter (W m^-1 K^-1)
+rho <- 150 # bulk density of leaf litter (kg m^-3)
+cp <- 2500 # specific heat capacity of leaf litter (J kg^-1 K^-1)
+ref_height <- 1.8 # reference height (m)
+
+# derived parameters
+diff_sec <- k / (rho * cp) # thermal diffusivity of leaf litter (m^2 s^-1)
+diff_hour <- diff_sec * 3600 # thermal diffusivity of leaf litter (m^2 h^-1)
+omega <- 2 * pi / 24 # angular frequency of diurnal temperature cycle (rad h^-1)
+damping_depth <- sqrt((2 * diff_hour) / omega) # damping depth (m)
+
+# function to calculate temperature profile at different heights and depths
+get_z_temp_profile <- function(z_list, surf_temp_profile, air_temp_profile) {
 
   # check if the input profiles are vectors or matrices
   is_vec <- is.vector(surf_temp_profile)
@@ -410,29 +622,38 @@ get_z_temp_profile <- function(
     air_temp_profile  <- matrix(air_temp_profile,  nrow = 1)
   }
 
-  # define hours and extended hours for interpolation
+  # define extended hours for interpolation
   hours <- 0:23
   surf_temp_mean <- rowMeans(surf_temp_profile)
-  extended_hours <- c(hours - 24, hours, hours + 24)
+  ext_hours <- c(hours - 24, hours, hours + 24)
 
   # calculate temperature profiles at different heights and depths
   z_temp_profiles <- lapply(z_list, function(z) {
+
     if (z == 0) {
       surf_temp_profile
+
     } else if (z == ref_height) {
+
       air_temp_profile
+
     } else if (z > 0) {
+
       a <- log((z + 0.01) / 0.01) / log((ref_height + 0.01) / 0.01)
       surf_temp_profile - (surf_temp_profile - air_temp_profile) * a
+
     } else {
+
       damp_ratio <- exp(-abs(z) / damping_depth)
       phase_lag <- (abs(z) / damping_depth) * (24 / (2 * pi))
       xout <- hours - phase_lag
-      idx <- findInterval(xout, extended_hours)
-      w <- (xout - extended_hours[idx]) / (extended_hours[idx + 1] - extended_hours[idx]) # nolint
+      idx <- findInterval(xout, ext_hours)
+      w <- (xout - ext_hours[idx]) / (ext_hours[idx + 1] - ext_hours[idx])
       ext_surf <- cbind(surf_temp_profile, surf_temp_profile, surf_temp_profile)
-      shifted_temp <- sweep(ext_surf[, idx],     2, 1 - w, "*") + sweep(ext_surf[, idx + 1], 2, w, "*") # nolint
+      shifted_temp <- sweep(ext_surf[, idx], 2, 1 - w, "*") +
+        sweep(ext_surf[, idx + 1], 2, w, "*")
       surf_temp_mean + (shifted_temp - surf_temp_mean) * damp_ratio
+
     }
   })
 
@@ -443,20 +664,92 @@ get_z_temp_profile <- function(
 
 }
 
-# operative (body) temperature transformation
+```
+
+The function above relies on several programming techniques to efficiently compute temperature at many heights/depths, locations and hours at once. `lapply()` iterates over `z_list`, evaluating a separate branch of the `if`/`else if`/`else` logic for each height/depth `z`, and returns the results as a list, avoiding an explicit `for` loop while keeping one profile (of potentially many rows/locations, by 24 columns/hours) per element. Because `get_z_temp_profile()` is a closure, the branches inside `lapply()` can freely access objects defined outside the function itself (e.g., `damping_depth`, `ref_height`) as well as arguments of the function itself (e.g., `z_list`) without having to pass them in explicitly. As with the earlier profile-correction functions, vector inputs are first coerced into single-row matrices so that the same matrix-based code handles both a single location/day and many at once, and `drop()` reverses this at the end when appropriate.
+
+The belowground branch (`z < 0`) additionally needs to look up surface temperature at fractional, phase-shifted hours (e.g., `hour - phase_lag`) that can fall before hour `0` or after hour `23`. To do this without treating the daily cycle as artificially bounded, `hours` is tiled into `ext_hours`, a length-72 sequence spanning the day before, the day itself, and the day after (`hours - 24`, `hours`, `hours + 24`), and `surf_temp_profile` is likewise tiled column-wise into `ext_surf` via `cbind()`. `findInterval()` then locates, for each shifted hour in `xout`, the index of the nearest surrounding pair of columns in `ext_hours`, and linear interpolation weights (`w`) are computed from the relative distance to each. `sweep()` is used again here, this time along `MARGIN = 2` (columns), to apply a different interpolation weight to each of the 24 target hours while still allowing multiple rows (locations/days) to be processed simultaneously.
+
+#### **Operative temperature (body temperature) transformation**
+
+We estimated the minimum operative temperature ($T_e$) of a lizard (i.e., the steady-state body temperature reached at thermal equilibrium) across a range of above-ground and below-ground (leaf-litter) microhabitats. Because the coldest temperatures of a given day generally occur at night, this allowed us to assume that shortwave solar radiation was absent. Further, if the lizard is fully enclosed within the leaf litter, its view factor to the open sky drops to zero, all surrounding surfaces and boundary air are at ambient temperature, and radiative cooling to the sky is eliminated making $T_e = T(z)$. Instead, if the lizard is aboveground, we assumed that $T_e$  equilibrium, $T_e$ is a conductance-weighted average of minimum ambient temperature in a given microclimate ($T(z)$), ground temperature ($T_{ground}$), and an equivalent radiant temperature ($T_{rad}$):
+
+$$
+T_e = \frac{h_c \cdot T(z) + h_k \cdot T_{ground} + h_r \cdot T_{rad}}{h_c + h_k + h_r}
+$$
+
+Where $h_c$, $h_k$, and $h_r$ are, respectively, the convective, conductive, and radiative heat transfer coefficients. To solve for $T_e$ when exposed, we first scaled body mass ($m$, in kg) to a characteristic length ($L$) assuming standard reptile allometry:
+
+$$
+L = 0.02 \cdot m^{1/3}
+$$
+
+We then calculated the convective heat transfer coefficient ($h_c$) as the greater of forced convection (driven by wind speed, $u$) and free convection (driven by buoyancy):
+
+$$
+h_{c,forced} = \frac{10.3 \cdot u^{0.6}}{L^{0.4}} \qquad h_{c,free} = 3.5 \cdot L^{-0.25} \qquad h_c = \max(h_{c,forced},\ h_{c,free})
+$$
+
+We set wind speed to $u = 0.1 \text{ m s}^{-1}$, representing the near-still boundary layer typical of sheltered forest understories at night, which minimizes forced convection and thereby amplifies the relative impact of radiative cooling. We treated conduction to the ground as a fixed empirical coefficient, $h_k = 2.5 \text{ W m}^{-2}\text{K}^{-1}$, representing a small reptile resting against a solid substrate to maximize heat exchange.
+
+Radiative heat transfer was linearized around the Stefan-Boltzmann constant ($\sigma = 5.670374\times10^{-8} \text{ W m}^{-2}\text{K}^{-4}$) and lizard skin emissivity ($\epsilon_{lizard} = 0.95$, reflecting near-blackbody behavior of biological tissue in the thermal infrared):
+
+$$
+h_r = 4 \cdot \epsilon_{lizard} \cdot \sigma \cdot T_{air,K}^3
+$$
+
+The equivalent radiant temperature ($T_{rad}$) integrates thermal radiation from the night sky and the ground, weighted by their respective view factors ($F_{sky}$ and $F_{ground}$, each set to $0.5$ assuming a flat, horizontal perching posture typical of a lizard when sleeping):
+
+$$
+T_{sky,K} = \epsilon_{sky}^{0.25} \cdot T_{air,K} \qquad T_{rad,K} = \left(F_{sky} \cdot T_{sky,K}^4 + F_{ground} \cdot T_{ground,K}^4\right)^{0.25}
+$$
+
+Where sky emissivity ($\epsilon_{sky} = 0.75$) represents a clear night sky, whose lack of cloud cover lets substantial longwave radiation escape to space, dropping the effective sky temperature well below ambient air temperature. 
+
+While it likely that some of the assumptions we take here are simplifications of real-world conditions, they provide a useful framework for estimating the operative temperature of a small reptile in a forest understory at night.
+
+We implement the function in `R` as follows:
+
+```{r define-tb-function}
+#| code-fold: false
+
+# parameters
+sigma <- 5.670374e-8  # Stefan-Boltzmann constant (W m^-2 K^-4)
+lizard_emissivity <- 0.95 # Longwave emissivity of reptile skin
+sky_emissivity <- 0.75 # Longwave emissivity of the night sky
+wind_speed <- 0.1 # Wind speed in m/s
+f_sky <- 0.5 # Sky view factor above ground (50%)
+f_ground <- 0.5 # Ground view factor above ground (50%)
+convection_ground <- 2.5 # Conductive/convective transfer from ground
+
+# define function to calculate operative (body) temperature
 get_body_temp <- function(ambient_t, mass, in_litter) {
 
   # calculate derived values
-  ambient_t_k <- ground_t_k <- ambient_t + 273.15 # C to KernSmooth
-  l <- 0.02 * (mass / 1000)^(1 / 3) # characteristic length of lizard (m))
-  forced_convection <- 10.3 * (wind_speed^0.6) / (l^0.4) # forced convection (W m^-2 K^-1) # nolint
-  free_convection <- 3.5 * (1 / l)^0.25 # baseline free convection (W m^-2 K^-1)
-  total_convection <- pmax(forced_convection, free_convection) # total convection (W m^-2 K^-1) # nolint
-  rad_heat_transfer <- 4 * lizard_emissivity * sigma * (ambient_t_k^3) # radiative transfer coefficient (W m^-2 K^-1) # nolint
-  sky_t_k <- (sky_emissivity)^0.25 * ambient_t_k # night sky radiative temperature (K) # nolint
-  radiant_t <- (f_sky * (sky_t_k^4) + f_ground * (ground_t_k^4))^0.25 - 273.15 # equivalent radiant temperature (°C) # nolint
+  ambient_t_k <- ground_t_k <- ambient_t + 273.15 # C to K
 
-  # calculate operative temperature above ground
+  # characteristic length of lizard (m))
+  l <- 0.02 * (mass / 1000)^(1 / 3)
+
+  # forced convection (W m^-2 K^-1)
+  forced_convection <- 10.3 * (wind_speed^0.6) / (l^0.4)
+
+  # baseline free convection (W m^-2 K^-1)
+  free_convection <- 3.5 * (1 / l)^0.25
+
+  # total convection (W m^-2 K^-1)
+  total_convection <- pmax(forced_convection, free_convection)
+
+  # radiative transfer coefficient (W m^-2 K^-1)
+  rad_heat_transfer <- 4 * lizard_emissivity * sigma * (ambient_t_k^3)
+
+   # night sky radiative temperature
+  sky_t_k <- (sky_emissivity)^0.25 * ambient_t_k
+
+  # equivalent radiant temperature (°C)
+  radiant_t <- (f_sky * (sky_t_k^4) + f_ground * (ground_t_k^4))^0.25 - 273.15
+
+  # operative temperature above ground
   a <- (
     total_convection * ambient_t +
       convection_ground * ambient_t +
@@ -465,11 +758,16 @@ get_body_temp <- function(ambient_t, mass, in_litter) {
   b <- total_convection + convection_ground + rad_heat_transfer
   op_t <- a / b
 
+  # return above or below ground based on `in_litter` parameter
   ifelse(in_litter, ambient_t, op_t)
 
 }
 
 ```
+
+### Run biophysical models
+
+Below we implement all the biophyscial modeling functions described above to estimate the minimum annual operative temperature of a green anole across 22 microclimates in a typical year for every 2.5' latitude and longitude spatial cell. Because minimum annual temperatures in the northern hemisphere typically occur in January, we use January 15 (`doy = 15`) as the representative day for our calculations. 
 
 ```{r run-biophys-models, eval = FALSE}
 #| code-summary: "Run biophysical models"
@@ -533,13 +831,17 @@ micro_df <- Map(
 micro_df$min_annual_body_temp <- get_body_temp(
   in_litter = ifelse(micro_df$z < 0, TRUE, FALSE),
   ambient_t = micro_df$min_annual_temp,
-  mass = 3.1
+  mass = 3.1 # typical mass of a green anole (g)
 )
 
 # save the microclimate data frame
 saveRDS(micro_df, "data/micro_df.rds")
 
 ```
+
+### Validation
+
+We compare the minimum annual operative temperatures estimated from our biophysical models (`micro_df`) with the observed minimum temperatures from the operative temperature models (`otms`). This validation helps assess the accuracy of our microclimate and biophysical modeling approach.
 
 ```{r validate-biophys-model-results}
 #| code-summary: "Validate biophysical model results"
@@ -605,6 +907,7 @@ micro_df_loc <- micro_df |>
 validation_df <- micro_df_loc |>
   left_join(otms_val, by = c("location", "microhabitat"))
 
+# plot validation of microclimate model against operative temperature models
 validation_df |>
   ggplot(
     aes(
@@ -695,12 +998,11 @@ thresh_plot <- thresh |>
       "below_tret" = "lightblue",
       "rest_of_range" = "gray80"
     ),
-    breaks = c("below_zero", "below_ctmin", "below_tret", "rest_of_range"),
+    breaks = c("below_zero", "below_ctmin", "below_tret"),
     labels = c(
       "below_zero" = "< 0°C",
       "below_tret" = expression("< " * T[ret]),
-      "below_ctmin" = expression("< " * CT[min]),
-      "rest_of_range" = "Rest of range"
+      "below_ctmin" = expression("< " * CT[min])
     )
   ) +
   coord_quickmap(xlim = c(-101, -75), ylim = c(24, 37.5)) +
@@ -775,6 +1077,8 @@ saveRDS(tss_grid, "data/tss_grid.rds")
 ```{r plot-memo-results}
 #| fig-align: "center"
 #| fig-height: 10
+#| fig-width: 6
+
 
 # load TSS grid
 tss_grid <- readRDS("data/tss_grid.rds")
@@ -784,6 +1088,7 @@ tss_grid_max <- tss_grid |>
   group_by(thresh) |>
   filter(tss == max(tss, na.rm = TRUE)) |>
   ungroup()
+tss_grid_max
 
 # refactor threshold names for plotting
 tss_grid$thresh <- factor(
@@ -794,19 +1099,21 @@ tss_grid$thresh <- factor(
 # plot TSS grid
 tss_grid_plot <- tss_grid |>
   filter(z < 2) |>
-  ggplot(aes(x = veg, y = as.factor(z), fill = tss)) +
-  geom_tile() +
+  mutate(tile_height = ifelse(z > 0, 0.2, 0.01)) |>
+  mutate(z_mod = ifelse(z > 0, 0.1, z)) |>
+  as_tibble() |>
+  arrange(desc(tile_height)) |>
+  ggplot(aes(x = veg, fill = tss)) +
+  geom_tile(aes(y = z_mod, height = tile_height)) +
   geom_point(
+    aes(y = z),
     data = tss_grid_max,
     color = "red",
     size = 3,
     shape = 1
   ) +
   geom_hline(
-    yintercept = 20.5, color = "white", linetype = "solid"
-  ) +
-  geom_hline(
-    yintercept = 22, color = "white", linetype = "dashed"
+    yintercept = 0, color = "white", linetype = "solid"
   ) +
   scale_fill_viridis_b(
     name = "TSS",
@@ -828,14 +1135,10 @@ tss_grid_plot <- tss_grid |>
     breaks = seq(0, 1, by = 0.2),
     expand = c(0, 0)
   ) +
-  scale_y_discrete(
-    breaks = unique(tss_grid$z),
-    labels = function(x) {
-      negative <- which(x < 0)
-      x[negative[seq_along(negative) %% 2 == 1]] <- ""
-      x
-    },
-    expand = c(0, 0)
+  scale_y_continuous(
+    expand = c(0, 0),
+    breaks = c(0.2, 0, -0.05, -0.1, -0.2),
+    labels = c("1.8", "0", "-0.05", "-0.1", "-0.2")
   ) +
   facet_wrap(
     ~thresh,
@@ -855,7 +1158,7 @@ tss_grid_plot <- tss_grid |>
     )
   ) +
   labs(
-    x = "Vegetation Cover",
+    x = "Forest Cover",
     y = "Distance from surface above or below leaf litter (m)"
   ) +
   theme_minimal() +
@@ -865,14 +1168,16 @@ tss_grid_plot <- tss_grid |>
     panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
     axis.ticks = element_line(color = "black", linewidth = 0.25),
     axis.title = element_text(size = 14, lineheight = 1.25),
-    legend.title = element_text(size = 14, hjust = 0.5, vjust = 1)
+    legend.title = element_text(size = 14, hjust = 0.5, vjust = 1),
+    axis.text.y = element_text(size = 10)
   )
 
 ggarrange(
   thresh_plot,
   tss_grid_plot,
   ncol = 1,
-  heights = c(1.5, 3),
+  heights = c(1, 2),
+  widths = c(1, 0.5),
   labels = c("A", "B")
 )
 ```

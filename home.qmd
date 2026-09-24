@@ -6,6 +6,24 @@ format:
     fig-dpi: 300
 ---
 
+## Vignettes and analysis
+
+- [**Green anoles live beyond their physiological cold tolerance**](live-beyond-ctmin.qmd): 
+
+- [**Green anoles retreat to the leaf litter to avoid extreme cold**](leaf-litter-retreat.qmd):
+
+- [**Leaf litter temperatures predict the green anole's poleward range limit**](leaf-litter-temps-range.qmd): 
+
+## Datasets
+
+The following datasets are used in this analysis and included in the `data` folder:
+
+- `caro_inat_data.rds` - Raw iNaturalist occurrence data for the green anole (*Anolis carolinensis*).
+
+- `caro_occ_data.rds` - Curated occurrence data for the green anole (*Anolis carolinensis*), with indicators for outlier locations.
+
+- `caro_range.rds` - Polygon defining the native range of the green anole (*Anolis carolinensis*).
+
 ```{r r-setup, warning = FALSE, message = FALSE}
 # packages
 library(tidyverse)

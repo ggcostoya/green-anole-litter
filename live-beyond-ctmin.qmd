@@ -571,7 +571,7 @@ lat_temps <- ggplot() +
   ) +
   labs(
     x = "Absolute Latitude (°)",
-    y = "Temperature (°C)"
+    y = "Physiological cold tolerance (°C)"
   )
 
 # plot range proportions/areas

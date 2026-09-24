@@ -330,12 +330,29 @@ tret <- survey_sum |>
     color = "gray", size = 4, alpha = 0.75,
     width = 0, height = 0.02
   ) +
+  annotate(
+    "label",
+    x = c(0, 6.8, 8.8),
+    y = c(0.5, 0.75, 0.9),
+    label = c(
+      expression(bold(0 * degree * C)),
+      expression(bold(CT[min])),
+      expression(bold(T[ret]))
+    ),
+    color = c("darkblue", "steelblue", "lightblue"),
+    fill = "white",
+    alpha = 1,
+    linewidth = 0,
+    hjust = c(-0.01, 0.5, 0.5),
+    size = 5
+  ) +
   geom_smooth(
     method = "glm",
     formula = y ~ x,
     method.args = list(family = binomial(link = "logit")),
     color = "black", fill = "gray80",
-    se = TRUE, linewidth = 1, alpha = 0.5
+    se = TRUE, linewidth = 1, alpha = 0.5,
+    fullrange = TRUE
   ) +
   theme_minimal() +
   theme(
@@ -401,12 +418,26 @@ buffering_plot <- otms_data_sum |>
     se = FALSE,
   ) +
   stat_summary(
-    aes(color = microhabitat, fill = location),
-    position = position_dodge(width = 0.5),
+    aes(color = microhabitat),
+    position = position_dodge(width = 0.75),
     fun.data = mean_sdl,
     fun.args = list(mult = 1),
-    shape = 21,
     size = 1
+  ) +
+  geom_text(
+    data = otms_data_sum |>
+      group_by(location) |>
+      summarise(
+        lat = mean(lat),
+        min_temp_mean = mean(min_temp[microhabitat == "leaflitter"]),
+        min_temp_sd = sd(min_temp[microhabitat == "leaflitter"]),
+        .groups = "drop"
+      ),
+    aes(x = lat, y = min_temp_mean + min_temp_sd + 0.5, label = location),
+    inherit.aes = FALSE,
+    vjust = -0.75,
+    color = "darkgray",
+    fontface = "bold"
   ) +
   scale_color_manual(
     values = c(
@@ -419,15 +450,6 @@ buffering_plot <- otms_data_sum |>
     breaks = c("branch", "leaflitter", "CTmin", "Tret"),
     labels = c(
       "Canopy", "Leaf litter", expression(CT[min]), expression(T[ret])
-    )
-  ) +
-  scale_fill_manual(
-    values = c(
-      "ATL" = "lightblue2",
-      "GNV" = "darkseagreen2",
-      "ORL" = "lightgoldenrod1",
-      "PSL" = "tan1",
-      "MIA" = "indianred1"
     )
   ) +
   scale_x_continuous(
@@ -443,6 +465,8 @@ buffering_plot <- otms_data_sum |>
     axis.ticks = element_line(color = "black"),
     panel.grid = element_blank(),
     legend.title = element_blank(),
+    legend.position = c(0.98, 0.98),
+    legend.justification = c("right", "top"),
     legend.text = element_text(size = 14),
     legend.key.spacing.y = unit(0.5, "lines")
   ) +
@@ -519,7 +543,7 @@ ggarrange(
   buffering_plot,
   ncol = 2,
   nrow = 1,
-  widths = c(1, 1.25),
+  widths = c(1, 1),
   labels = c("A", "B"),
   font.label = list(size = 16, face = "bold")
 )
