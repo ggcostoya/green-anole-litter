@@ -1,18 +1,26 @@
 ---
-title: "Behavioral buffering facilitates the poleward range expansion of a tropical lizard beyond its physiological limits"
+title: "A major behavioral innovation enabled the poleward range expansion of a tropical ectotherm beyond its physiological limits"
 format:
   html:
     code-fold: true
     fig-dpi: 300
 ---
 
+## Overview
+
+This website contains the supplementary code and data for our manuscript on how the American green anole (*Anolis carolinensis*) managed to expand its range from the tropics into temperate North America.
+
+The green anole descends from a tropical Cuban clade of arboreal lizards and is the only one of the >400 species in the *Anolis* genus to have colonized temperate environments. Yet, its physiological cold tolerance (i.e., its critical thermal minimum, CT<sub>min</sub>) barely changes across its range, and most of its range regularly experiences temperatures below its CT<sub>min</sub>, and even below freezing. Here, we show that the green anole resolves this paradox through behavior rather than physiology. In winter, northern populations abandon their arboreal niche and retreat into the leaf litter of the forest floor, which buffers them from lethal cold. Accounting for this behavior, rather than above-ground temperatures alone, predicts the green anole's poleward range limit.
+
+The analyses are organized into three vignettes that follow the structure of the results in the manuscript. In each vignette, code is folded by default (click on "Code" to expand a code chunk), and chunks that take a long time to run or require large raw files that are not included in this repository are not evaluated (`eval = FALSE`). For these, we save the output as an RDS file in the `data` folder, so every figure and table can be reproduced from the data included here.
+
 ## Vignettes and analysis
 
-- [**Green anoles live beyond their physiological cold tolerance**](live-beyond-ctmin.qmd): 
+- [**Green anoles live beyond their physiological cold tolerance**](live-beyond-ctmin.qmd): We compare the critical thermal minimum (CT<sub>min</sub>) of green anoles across a latitudinal gradient with minimum annual temperatures and show that cold tolerance does not track climate. We then compare the green anole with 180 other lizard species and show that it is an exceptional case of a species living beyond its physiological cold tolerance limits (Fig. 2, S2, S3; Table S1-S4).
 
-- [**Green anoles retreat to the leaf litter to avoid extreme cold**](leaf-litter-retreat.qmd):
+- [**Green anoles retreat to the leaf litter to avoid extreme cold**](leaf-litter-retreat.qmd): We combine standardized night surveys with operative temperature models (OTMs) to identify the temperature at which green anoles retreat from the canopy into the leaf litter (T<sub>ret</sub>), and quantify how much the leaf litter buffers the minimum temperatures lizards experience across latitudes (Fig. 3, S6; Table S5-S7).
 
-- [**Leaf litter temperatures predict the green anole's poleward range limit**](leaf-litter-temps-range.qmd): 
+- [**Leaf litter temperatures predict the green anole's poleward range limit**](leaf-litter-temps-range.qmd): We define the green anole's range using iNaturalist observations, use biophysical models to estimate the minimum annual body temperatures a green anole would experience in the canopy and at different depths in the leaf litter, and use mechanistic envelope models to test which microclimate best predicts the species' range (Fig. 4, S7, S8; Table S8).
 
 ## Datasets
 
@@ -24,7 +32,33 @@ The following datasets are used in this analysis and included in the `data` fold
 
 - `caro_range.rds` - Polygon defining the native range of the green anole (*Anolis carolinensis*).
 
+- `ctmin_gradient.rds` - Individual CT<sub>min</sub> estimates (°C) and body mass of 95 green anoles from 7 locations across the species' latitudinal range.
+
+- `ctmin_lizards.rds` - CT<sub>min</sub>, elevational limits, substrate type (arboreal, semi-arboreal, other) and GARD range identifiers for 181 lizard species. Compiled from GlobTherm, SquamBase, Bodensteiner et al. (2024) and Salazar et al. (2025).
+
+- `lizard_climatic_overfilling.rds` - Latitudinal limits, total range area, and the area and proportion of the range below CT<sub>min</sub> and below 0 °C for each of the 181 lizard species.
+
+- `bio6_global.rds` - Global mean (± SD) minimum temperature of the coldest month (BIO6) for every degree of absolute latitude.
+
+- `sleepy-lizard-survey-data.rds` - Night survey data from Atlanta, GA. Each row is either a lizard observation or, for surveys where no lizards were found, a placeholder row for the survey itself.
+
+- `otms-data.rds` - Operative temperatures (°C) recorded by operative temperature models (OTMs) deployed in the canopy (`branch`) and leaf litter (`leaflitter`) at five locations: Miami (MIA), Port Saint Lucie (PSL), Orlando (ORL), Gainesville (GNV) and Atlanta (ATL).
+
+- `eco_df.rds` - Forest cover, elevation, minimum and maximum temperature of the coldest month, and green anole presence for every 2.5' cell across southeastern North America.
+
+- `micro_df.rds` - Output of the biophysical models: minimum annual ambient and operative (body) temperatures for every 2.5' cell and microclimate (i.e., height above or depth below the leaf-litter surface).
+
+- `tss_grid.rds` - Output of the mechanistic envelope models: true skill statistic (TSS) for every combination of spatial extent, microclimate and forest cover threshold.
+
+The raw data used to build these datasets (e.g., WorldClim and land cover rasters, GARD range maps, raw iButton files) are large and are not included in this repository. The scripts used to process them are stored in the `raw_data` folder alongside the raw files.
+
+## Figure 1
+
+Below we reproduce the panels of Figure 1 of the manuscript. We first load the packages needed on this page.
+
 ```{r r-setup, warning = FALSE, message = FALSE}
+#| code-summary: "R setup"
+
 # packages
 library(tidyverse)
 library(kableExtra)
@@ -39,7 +73,10 @@ options(
 )
 ```
 
+We map the minimum annual body temperatures (i.e., operative temperatures) that a green anole would experience when sleeping in the canopy (at 1.8 m) or buried 4 cm deep in the leaf litter, estimated with the biophysical models described in [Leaf litter temperatures predict the green anole's poleward range limit](leaf-litter-temps-range.qmd). If we only consider canopy temperatures, the green anole's range (green line) extends well into areas where body temperatures would fall below CT<sub>min</sub> and even below 0 °C. In contrast, the poleward edge of the range closely matches the 0 °C isotherm of body temperatures in the leaf litter.
+
 ```{r plot-maps}
+#| code-summary: "Plot minimum annual body temperatures in the canopy and leaf litter"
 #| fig-align: "center"
 #| fig-height: 7.5
 
@@ -81,7 +118,7 @@ micro_df |>
   ) +
   geom_contour(
     aes(x = lon, y = lat, z = min_annual_body_temp, color = "CTmin"),
-    breaks = c(7),
+    breaks = c(6.8),
     linewidth = 1
   ) +
   scale_color_manual(
@@ -148,7 +185,10 @@ micro_df |>
   )
 ```
 
+Forest cover also shapes where green anoles occur, as it provides both the arboreal habitat lizards use during the active season and the leaf litter they retreat to in winter. Below we map forest cover across the same region.
+
 ```{r plot-veg-map}
+#| code-summary: "Plot forest cover"
 #| fig-align: "center"
 #| fig-height: 5
 
@@ -216,7 +256,10 @@ micro_df |>
   )
 ```
 
+Lastly, we compare the daily dynamics of operative temperatures in the canopy and the leaf litter on a winter day (January 19, 2026) at the southern (Miami) and northern (Atlanta) ends of our OTM network. Shaded areas represent the mean ± SD of hourly temperatures across all OTMs deployed in each microhabitat. In Miami, canopy temperatures stay above CT<sub>min</sub> overnight, so lizards can keep sleeping on branches. In Atlanta, canopy temperatures fall below 0 °C overnight, while the leaf litter remains several degrees warmer and above freezing.
+
 ```{r plot-example-otm-dynamic}
+#| code-summary: "Plot daily operative temperatures in Miami and Atlanta"
 #| fig-align: "center"
 #| fig-width: 7
 #| fig-height: 4
@@ -254,7 +297,7 @@ otm_data |>
   annotate(
     "text",
     x = 18,
-    y = 9.5,
+    y = 7.3,
     label = expression(bold(CT[min])),
     color = "skyblue",
     hjust = 0,
@@ -265,8 +308,8 @@ otm_data |>
     "segment",
     x = -Inf,
     xend = Inf,
-    y = 9,
-    yend = 9,
+    y = 6.8,
+    yend = 6.8,
     linetype = 2,
     color = "skyblue"
   ) +

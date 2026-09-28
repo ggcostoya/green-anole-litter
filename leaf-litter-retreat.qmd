@@ -7,6 +7,8 @@ format:
 ---
 
 ```{r r-setup, warning = FALSE, message = FALSE}
+#| code-summary: "R setup"
+
 # packages
 library(tidyverse)
 library(kableExtra)
@@ -24,9 +26,18 @@ options(
 
 ## Overview
 
+Past studies, our own observations and many community-science reports on iNaturalist (Fig. S1 in the manuscript) suggest that green anoles retreat into the leaf litter during cold weather. Below we test whether cold temperatures trigger this behavioral shift and quantify how much the leaf litter buffers green anoles from cold. To do this, we combine standardized night surveys in Atlanta, GA, with temperatures recorded by operative temperature models (OTMs) deployed in the canopy and the leaf litter at five locations across the species' range.
+
+Each OTM consisted of an iButton suspended within a 2 x 7 cm painted copper pipe, secured with corks. OTMs with these characteristics match the thermal properties of similarly sized *Anolis* lizards and thus closely approximate the body temperatures lizards would experience in a given microhabitat. We affixed OTMs to branches at ~2 m height (i.e., "canopy") or buried them 5-10 cm deep in the leaf litter, and programmed them to record temperature hourly between September 2025 and May 2026. The script used to process the raw iButton files (`process-ibutton-data.R`) is stored in the `raw_data` folder.
+
 ## Green anoles retreat to the leaf litter
 
+We conducted 27 standardized night surveys between September 2025 and January 2026 in a semi-natural area on the Georgia Institute of Technology campus in Atlanta, GA (33.75°N, -84.4°W), where green anoles are locally abundant. The site has small trees and bushes, interrupted by natural and artificial paths, and offers no other microhabitats for lizards to retreat to (i.e., no rock crevices or cavities in large trees) besides the leaf litter. In each survey, teams of 2-13 researchers walked a standardized 720 m transect for 1 hour, starting 1 hour after sunset, scanning vegetation for lizards and recording the time of each observation.
+
+Below we summarise the survey data into the presence and number of green anoles observed per survey, and the operative temperatures recorded by the OTMs in the canopy and leaf litter during the survey period (i.e., between 1 and 2 hours after sunset, which we calculate with the `suncalc` package). We then plot how the probability of observing lizards (A) and the number of lizards observed (B) changed through time alongside canopy and leaf litter temperatures (Fig. S6 in the manuscript). Black lines represent the best-fit lines of Bernoulli (A) and Poisson (B) generalized linear models of observation probability and count, respectively, as a function of time.
+
 ```{r plot-survey-data}
+#| code-summary: "Process survey and OTM data and plot them through time"
 #| fig-align: center
 #| fig-width: 8
 #| fig-height: 7
@@ -95,7 +106,8 @@ otm_data_ATL <- otms_data |>
   arrange(id, year, doy, mod) |>
   filter(microhabitat %in% c("branch", "leaflitter")) |>
   left_join(sunset_times, by = "doy") |>
-  filter(mod > mod_sunset & mod < mod_sunset + 60) |>
+  # keep temperatures recorded during surveys (1 to 2 hours after sunset)
+  filter(mod > mod_sunset + 60 & mod < mod_sunset + 120) |>
   mutate(
     year = year + 2000
   ) |>
@@ -270,7 +282,27 @@ ggarrange(
 
 ```
 
+Next, we determine the temperature that triggers green anoles to retreat into the leaf litter. We focus on the presence of lizards rather than their abundance to account for the variation in the number of observers between surveys. We fit a generalized linear model with the formula:
+
+$$
+P \sim Bernoulli(p)
+$$
+
+$$
+logit(p) = \alpha + \beta \cdot T
+$$
+
+where the observed presence of lizards ($P$) follows a Bernoulli distribution with an observation probability ($p$) that depends on the average operative temperature recorded across all canopy OTMs during each survey period, between 1 and 2 hours after sunset ($T$). The results of this model are presented in Table S5 of the manuscript.
+
+From the fitted model, we then invert the logit function to obtain the temperature at which the observation probability equals a series of values of interest:
+
+$$
+T = \frac{logit(p) - \alpha}{\beta}
+$$
+
 ```{r model-retreating-temp}
+#| code-summary: "Model observation probability as a function of canopy temperature"
+
 survey_sum_model <- survey_sum |>
   left_join(
     filter(otm_data_ATL, microhabitat == "branch"),
@@ -295,6 +327,11 @@ thresholds <- tibble(
   mutate(
     temperature = round(temperature, 2)
   )
+
+# define retreating temperature (Tret) as the temperature at which
+# observation probability falls below 20%
+tret_temp <- thresholds$temperature[thresholds$probability == 0.2]
+
 thresholds |>
   kbl(
     col.names = c(
@@ -309,7 +346,10 @@ thresholds |>
   )
 ```
 
+We define the behavioral retreating threshold temperature (T<sub>ret</sub>) as the temperature at which the observation probability falls below 20% (`{r} tret_temp` °C). This value is just below the lowest canopy temperature at which we observed at least one lizard (`{r} round(min(survey_sum_model$mean_temp[survey_sum_model$presence == 1], na.rm = TRUE), 2)` °C). Below we plot the relationship between canopy temperature and observation probability, marking T<sub>ret</sub>, CT<sub>min</sub> and 0 °C (Fig. 3A in the manuscript).
+
 ```{r plot-threshold-temperature}
+#| code-summary: "Plot observation probability as a function of canopy temperature"
 #| fig-align: center
 #| fig-width: 5
 #| fig-height: 5
@@ -322,7 +362,7 @@ tret <- survey_sum |>
   ) |>
   ggplot(aes(x = mean_temp, y = presence)) +
   geom_vline(
-    xintercept = c(0, 6.8, 8.8),
+    xintercept = c(0, 6.8, tret_temp),
     linetype = "dashed",
     color = c("darkblue", "steelblue", "lightblue")
   ) +
@@ -332,7 +372,7 @@ tret <- survey_sum |>
   ) +
   annotate(
     "label",
-    x = c(0, 6.8, 8.8),
+    x = c(0, 6.8, tret_temp),
     y = c(0.5, 0.75, 0.9),
     label = c(
       expression(bold(0 * degree * C)),
@@ -371,7 +411,10 @@ tret
 
 ## The leaf litter buffers environmental temperatures
 
+To quantify the thermal buffering green anoles experience in the leaf litter, we compare the minimum temperatures recorded by OTMs in the canopy and in the leaf litter across the five locations where we deployed them: Miami (MIA), Port Saint Lucie (PSL), Orlando (ORL), Gainesville (GNV) and Atlanta (ATL). We focus on January, the coldest month of the year, and obtain the minimum temperature recorded by each OTM on each day. Below we plot the average (± SD) of these daily minimum temperatures by location and microhabitat, with best-fit lines from a microhabitat-specific linear model (Fig. 3B in the manuscript).
+
 ```{r plot-leaf-litter-buffering}
+#| code-summary: "Plot minimum temperatures in the canopy and leaf litter across latitudes"
 #| fig-align: center
 #| fig-width: 5
 #| fig-height: 5
@@ -409,7 +452,7 @@ buffering_plot <- otms_data_sum |>
   ) +
   geom_hline(
     linetype = "dashed",
-    aes(yintercept = 8.8, color = "Tret"),
+    aes(yintercept = tret_temp, color = "Tret"),
     show.legend = TRUE
   ) +
   geom_smooth(
@@ -478,14 +521,31 @@ buffering_plot
 
 ```
 
+We then test whether minimum temperatures differ between microhabitats and across latitudes using a linear model with the formula:
+
+$$
+T \sim Normal(t_i, \sigma)
+$$
+
+$$
+t_i = \alpha + \beta_L \cdot L_i + \beta_M \cdot M_i + \beta_{L \cdot M} \cdot L_i \cdot M_i
+$$
+
+where the minimum operative temperature ($T$) depends on latitude ($L$), an indicator variable ($M$) identifying the microhabitat ($M = 0$ for canopy and $M = 1$ for leaf litter), and their interaction. The results of this model are presented in Table S7 of the manuscript.
+
 ```{r stats-leaf-litter-buffering}
+#| code-summary: "Linear model of minimum temperatures by latitude and microhabitat"
+
 # model
 mod <- lm(min_temp ~ lat * microhabitat, data = otms_data_sum)
 broom::tidy(mod)
 broom::glance(mod)
 ```
 
+Lastly, we table the average (± SD) and absolute minimum temperatures recorded by OTMs in each location and microhabitat, and the average buffering provided by the leaf litter (i.e., the difference in average minimum temperature between the leaf litter and the canopy; Table S6 in the manuscript). Across locations, the leaf litter is, on average, `{r} otms_data_sum |> group_by(location, microhabitat) |> summarise(m = mean(min_temp)) |> summarise(b = m[microhabitat == "leaflitter"] - m[microhabitat == "branch"]) |> pull(b) |> mean() |> round(1)` °C warmer than the canopy. At higher latitudes, leaf litter temperatures remain, on average, above 0 °C, while canopy temperatures regularly drop below freezing.
+
 ```{r table-leaf-litter-buffering}
+#| code-summary: "Table minimum temperatures by location and microhabitat"
 otms_data_sum |>
   group_by(location, lat, microhabitat, id) |>
   summarise(
@@ -532,7 +592,10 @@ otms_data_sum |>
 
 ## Manuscript Figure
 
+Below we combine the plots above into Figure 3 of the manuscript. (A) Green anoles retreat into the leaf litter when canopy temperatures fall below T<sub>ret</sub>, just above their CT<sub>min</sub>. (B) By retreating into the leaf litter, green anoles experience minimum body temperatures warmer than in the canopy and, in the northernmost areas of their range, avoid sub-zero temperatures.
+
 ```{r plot-manuscript-figure}
+#| code-summary: "Plot manuscript figure"
 #| fig-align: center
 #| fig-width: 9
 #| fig-height: 4.5

@@ -7,14 +7,14 @@ website:
   announcement:
     dismissable: false
     position: above-navbar
-    content: "Behavioral buffering enabled the poleward range expansion of a tropical ectotherm beyond its physiological limits"
+    content: "A major behavioral innovation enabled the poleward range expansion of a tropical ectotherm beyond its physiological limits"
   navbar:
     title: false
     background: "#d8f3dc"
     foreground: "#1b4332"
     left:
     - text: "Start Here"
-      href: home.qmd
+      href: index.qmd
     - text: "Living Below CT<sub>min</sub>"
       href: live-beyond-ctmin.qmd
     - text: "Leaf Litter Retreat"

@@ -8,6 +8,16 @@ format:
 
 ## Overview
 
+We hypothesize that the green anole's poleward range edge is set not by the cold air temperatures in the canopy, but by the thermal conditions within the leaf litter where lizards overwinter. To test this, we combine biophysical models with mechanistic envelope models in four steps:
+
+1. We define the green anole's range using curated iNaturalist observations.
+
+2. We obtain spatially explicit data on forest cover, elevation, and minimum and maximum temperatures across southeastern North America.
+
+3. We use biophysical models to transform these macroclimatic data into the minimum annual body (i.e., operative) temperatures a green anole would experience in the canopy and at different depths in the leaf litter, and validate these estimates with data from our operative temperature models (OTMs).
+
+4. We use mechanistic envelope models to evaluate which microclimate and forest cover threshold best predict the green anole's range, both across its entire range and near its poleward range edge.
+
 ```{r r-setup, warning = FALSE, message = FALSE}
 #| code-summary: "R setup"
 
@@ -46,11 +56,11 @@ We use the occurence data to define the green anole's range. To do this, we firs
 
 1. Rounding coordinates to one decimal place.
 
-2. Removing observations with low positional accuracy (< 1 km<sup>2</sup>).
+2. Removing observations with low positional accuracy (positional uncertainty > 1 km).
 
 3. Filtering to the native range of the green anole defined by the following bounding box: longitude between -110 and -70 W, latitude between 22.5 and 37.5 N.
 
-4. Adding up all observations within every 0.1 x 0.1 degree grid cell and keeping only cells with at least 2 observations. The goal of this step is to eliminate stand-alone observations caused by potential errors or rare occurrences.
+4. Adding up all observations within every 0.1 x 0.1 degree grid cell and keeping only cells with at least 3 observations. The goal of this step is to eliminate stand-alone observations caused by potential errors or rare occurrences.
 
 5. Removing outliers based on distance to other observations. Any observation is considered an outlier if there are fewer than 3 observations within 50 km.
 
@@ -384,7 +394,7 @@ $$
 a(h) = \sin(lat)\cdot \sin(\delta) + \cos(lat)\cdot\cos(\delta) \cdot \cos\left(0.2618 \cdot (h - S_n)\right)
 $$
 
-Where $0.2618 \text{ rad h}^{-1}$ represents the Earth’s rotational speed ($15^\circ h^{-1}$). To obtain the time of solar noon at a given location in a given day of the year we used the `get_solar_noon` function from the `R` package `TrenchR` ([[Buckely et al. 2023]]).
+Where $0.2618 \text{ rad h}^{-1}$ represents the Earth’s rotational speed ($15^\circ h^{-1}$). To obtain the time of solar noon at a given location in a given day of the year we used the `solar_noon` function from the `R` package `TrenchR` (Buckley et al. 2023).
 To account for the effects of elevation when computing the degree to which the atmosphere absorbs incoming solar radiation, we modeled barometric pressure ($p_a$) using an exponential attitudinal decay function.
 
 $$
@@ -767,10 +777,13 @@ get_body_temp <- function(ambient_t, mass, in_litter) {
 
 ### Run biophysical models
 
-Below we implement all the biophyscial modeling functions described above to estimate the minimum annual operative temperature of a green anole across 22 microclimates in a typical year for every 2.5' latitude and longitude spatial cell. Because minimum annual temperatures in the northern hemisphere typically occur in January, we use January 15 (`doy = 15`) as the representative day for our calculations. 
+Below we implement all the biophyscial modeling functions described above to estimate the minimum annual operative temperature of a green anole across 23 microclimates (20 leaf-litter depths from 1 to 20 cm, the surface, and heights of 1.8 and 2 m) in a typical year for every 2.5' latitude and longitude spatial cell. Because minimum annual temperatures in the northern hemisphere typically occur in January, we use January 15 (`doy = 15`) as the representative day for our calculations. 
 
 ```{r run-biophys-models, eval = FALSE}
 #| code-summary: "Run biophysical models"
+
+## Note: This code chunk is not evaluated as it takes a long time to run.
+## The output is saved in the `data/micro_df.rds` file.
 
 eco_df$solar_noon <- mapply(
   TrenchR::solar_noon,
@@ -790,7 +803,7 @@ solar_rad_prof <- get_solar_rad_profile(
 air_temp_prof_corrected <- correct_air_temp_profile(
   air_temp_profile = air_temp_prof,
   solar_rad_profile = solar_rad_prof,
-  veg_cover = eco_df$veg
+  forest_cover = eco_df$veg
 )
 surf_temp_prof <- get_surf_temp_profile(
   air_temp_profile = air_temp_prof_corrected,
@@ -800,8 +813,7 @@ surf_temp_prof <- get_surf_temp_profile(
 zs_temp_profiles <- get_z_temp_profile(
   z_list = zs,
   surf_temp_profile = surf_temp_prof,
-  air_temp_profile = air_temp_prof_corrected,
-  damping_depth = damping_depth
+  air_temp_profile = air_temp_prof_corrected
 )
 # summarize zs temperature profiles into a data frame
 micro_df <- Map(
@@ -953,6 +965,28 @@ validation_df |>
 
 ## Mechanistic envelope models
 
+Envelope models compare the capacity of a set of threshold values across environmental variables to predict a species' range. These models assign a binary suitability score to each spatial cell based on where the values of the environmental variables fall relative to the thresholds of interest. By comparing the inferred suitability map against the observed range cell-by-cell, we can obtain the True Skill Statistic (TSS), which evaluates model performance as a function of both sensitivity and specificity (i.e., its ability to simultaneously predict presence and absence):
+
+$$
+TSS = \frac{TP}{TP + FN} + \frac{TN}{TN + FP} - 1
+$$
+
+where $TP$, $FN$, $TN$ and $FP$ are the number of true positives, false negatives, true negatives and false positives, respectively. TSS ≤ 0 indicates a predictive ability no better than random, while a value of 1 indicates a perfect match. Thus, if a set of thresholds A yields a greater TSS than a set B, we can infer that the species' range is more likely determined by A than by B.
+
+Traditionally, envelope models rely on macroclimatic layers (e.g., air temperatures) and statistically identified thresholds. Instead, our mechanistic approach uses the minimum annual body temperatures estimated with our biophysical models for each microclimate and sets the threshold based on the green anole's physiology. Specifically, we deem a cell unsuitable if the minimum annual body temperature in a given microclimate falls below 0 °C, which we assume is the lethal cold threshold for the green anole. Because the green anole is arboreal during its active season, we also include forest cover as a second variable, but we do not set its threshold *a priori*. Instead, we evaluate every forest cover threshold between 0 and 100% at 5% intervals. The combination of microclimate and forest cover threshold that yields the highest TSS is the most probable determinant of the green anole's range.
+
+What limits a species' range at its poleward edge might differ from what limits it within its core. For this reason, we repeat the analysis across four spatial extents defined by the minimum annual temperatures in the canopy (1.8 m):
+
+1. **Entire range**: all spatial cells for which we obtained estimates from our biophysical models.
+
+2. **Behavioral threshold**: only cells where canopy temperatures fall below the retreating temperature we inferred from our surveys (T<sub>ret</sub> = 8.01 °C; see [Green anoles retreat to the leaf litter to avoid extreme cold](leaf-litter-retreat.qmd)).
+
+3. **Soft physiological threshold**: only cells where canopy temperatures fall below the lowest population-average CT<sub>min</sub> of the species (6.8 °C).
+
+4. **Hard physiological threshold**: only cells where canopy temperatures fall below 0 °C.
+
+Below we classify every cell according to these thresholds and plot them.
+
 ```{r define-thresholds}
 #| code-summary: "Define thresholds for mechanistic envelope models"
 #| fig-align: "center"
@@ -966,7 +1000,7 @@ thresh <- micro_df |>
     thresh = case_when(
       min_annual_temp < 0 ~ "below_zero",
       min_annual_temp < 6.8 ~ "below_ctmin",
-      min_annual_temp < 8.8 ~ "below_tret",
+      min_annual_temp < 8.01 ~ "below_tret", # Tret from leaf-litter-retreat.qmd
       TRUE ~ "rest_of_range"
     )
   ) |>
@@ -1020,7 +1054,14 @@ thresh_plot <- thresh |>
   )
 ```
 
+Next, we run the mechanistic envelope models for every combination of spatial extent, microclimate and forest cover threshold, and store the resulting TSS values in a grid (`tss_grid`).
+
 ```{r run-memo, eval = FALSE}
+#| code-summary: "Run mechanistic envelope models"
+#| code-fold: false
+
+## Note: This code chunk is not evaluated as it takes a long time to run.
+## The output is saved in the `data/tss_grid.rds` file.
 
 # define TSS grid
 thresh_names <- unique(micro_df$thresh)
@@ -1074,7 +1115,12 @@ saveRDS(tss_grid, "data/tss_grid.rds")
 
 ```
 
+Lastly, we identify the combination of microclimate and forest cover threshold that maximizes TSS for each spatial extent (Table S8 in the manuscript) and plot the results (Fig. 4 in the manuscript). Panel A shows the areas below each threshold. Panel B shows the TSS values of every combination of microclimate (y-axis) and forest cover threshold (x-axis) for each spatial extent, with red circles marking the combination that maximizes TSS.
+
+Across all spatial extents, leaf-litter microclimates predict the green anole's range better than the canopy, with depths of 3-4 cm performing best. This effect is strongest in areas where canopy temperatures fall below 0 °C, where the poleward range edge is located: here, canopy microclimates have no predictive capacity (TSS = 0), whereas leaf-litter microclimates yield the highest predictive accuracy of all conditions tested.
+
 ```{r plot-memo-results}
+#| code-summary: "Plot mechanistic envelope model results"
 #| fig-align: "center"
 #| fig-height: 10
 #| fig-width: 6

@@ -111,6 +111,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="site_libs/kePrint-0.0.1/kePrint.js"></script>
 <link href="site_libs/lightable-0.0.1/lightable.css" rel="stylesheet">
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script defer="" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -119,8 +148,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
-    <div id="quarto-announcement" data-announcement-id="0a72d6052de27d2dffcf088c8720555e" class="alert alert-primary hidden"><div class="quarto-announcement-content">
-<p>Behavioral buffering enabled the poleward range expansion of a tropical ectotherm beyond its physiological limits</p>
+    <div id="quarto-announcement" data-announcement-id="214e9a2081347742bbefe733b802e434" class="alert alert-primary hidden"><div class="quarto-announcement-content">
+<p>A major behavioral innovation enabled the poleward range expansion of a tropical ectotherm beyond its physiological limits</p>
 </div></div>
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
@@ -131,7 +160,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="./home.html"> 
+    <a class="nav-link" href="./index.html"> 
 <span class="menu-text">Start Here</span></a>
   </li>  
   <li class="nav-item">
@@ -198,7 +227,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <div class="cell">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>R setup</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># packages</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(NicheMapR)</span>
@@ -219,15 +248,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <section id="overview" class="level2">
 <h2 class="anchored" data-anchor-id="overview">Overview</h2>
+<p>Ectotherms are often assumed to need physiological adaptation to expand their ranges poleward. If that were the case for the green anole, its cold tolerance should track the colder climates it encounters at higher latitudes. Below we test this assumption in two steps. First, we compare how the critical thermal minimum (CT<sub>min</sub>) of green anoles and minimum annual temperatures change across the species’ latitudinal range. Second, we combine CT<sub>min</sub> data with the geographic ranges of 181 lizard species to quantify how much of each species’ range falls below its CT<sub>min</sub> and below 0 °C, and assess whether the green anole is an exceptional case.</p>
 </section>
 <section id="ctmin-does-not-scale-with-climate" class="level2">
 <h2 class="anchored" data-anchor-id="ctmin-does-not-scale-with-climate">CT<sub>min</sub> does not scale with climate</h2>
 <p>Below we demonstrate how the critical thermal minimum (CT<sub>min</sub>) of green anoles does not scale with climatic cooling. We do this by comparing empirical CT<sub>min</sub> data with the minimum annual temperatures across a latitudinal gradient spanning the range of the green anole.</p>
-<p>We collected the CT<sub>min</sub> data from 7 locations across the range of <em>A. carolinensis</em>. We measured CT<sub>min</sub> by {Insert protocol details}. We also extracted the minimum temperature of the coldest month (BIO6) from WorldClim and obtained the average, minimum and maximum BIO6 values for each 0.1° latitude band across the range of the green anole.</p>
-<p>The figure below shows that while BIO6 decreases with latitude, CT<sub>min</sub> does not follow this trend, indicating that green anoles are living in climates colder than their physiological cold tolerance.</p>
+<p>We collected the CT<sub>min</sub> data from 7 locations across the range of <em>A. carolinensis</em>. To measure CT<sub>min</sub>, we fitted lizards with a cloacal thermocouple probe, secured it to the base of the tail with surgical tape, and placed them in an experimental chamber submerged in an ice-water bath. Once internal body temperature stabilized after handling, we gradually cooled lizards and, starting at ~15 °C, evaluated the righting reflex at 0.2 °C intervals by placing the lizard on its dorsum and applying gentle pressure to the hind limbs. We recorded CT<sub>min</sub> as the core body temperature at which an individual completely lost the capacity to right itself. We also extracted the minimum temperature of the coldest month (BIO6) from WorldClim and obtained the average, minimum and maximum BIO6 values for each 0.1° latitude band within a bounding box defined by the locations where we measured CT<sub>min</sub> (+1° in each cardinal direction; +0.5° to the north).</p>
+<p>The figure below (Fig. S2 in the manuscript) shows that while BIO6 decreases with latitude, CT<sub>min</sub> does not follow this trend, indicating that green anoles are living in climates colder than their physiological cold tolerance.</p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Process BIO6 data and plot CTmin and BIO6 across latitudes</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># read CTmin data</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>ctmin_gradient <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"data/ctmin_gradient.rds"</span>)</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -333,10 +363,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<p>Below, we perform a linear regression to test whether CT<sub>min</sub> and BIO6 scale with latitude. We find that while BIO6 decreases with latitude, CT<sub>min</sub> does not, indicating that green anoles are living in climates colder than their physiological cold tolerance.</p>
+<p>Below, we perform a linear regression to test whether CT<sub>min</sub> and BIO6 scale with latitude at the same rate. We combine both types of temperature values into a single dataset and fit the following model:</p>
+<p><span class="math display">\[
+T \sim Normal(t_i, \sigma)
+\]</span></p>
+<p><span class="math display">\[
+t_i = \alpha + \beta_L \cdot L_i + \beta_C \cdot C_i + \beta_{L \cdot C} \cdot L_i \cdot C_i
+\]</span></p>
+<p>where temperature (<span class="math inline">\(T\)</span>) depends on latitude (<span class="math inline">\(L\)</span>), an indicator variable (<span class="math inline">\(C\)</span>) identifying the nature of the temperature values (<span class="math inline">\(C = 0\)</span> for BIO6 and <span class="math inline">\(C = 1\)</span> for CT<sub>min</sub>), and their interaction. If the interaction term (<span class="math inline">\(\beta_{L \cdot C}\)</span>) is positive and significant, CT<sub>min</sub> scales with latitude at a significantly shallower rate than BIO6. The results of this model are presented in Table S2 of the manuscript.</p>
 <div class="cell">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Linear model of CTmin and BIO6 across latitudes</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># prepare data</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>bio6_df_model <span class="ot">&lt;-</span> bio6_df <span class="sc">|&gt;</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(lat, mean_bio6) <span class="sc">|&gt;</span></span>
@@ -375,7 +412,7 @@ Multiple R-squared:  0.9431,    Adjusted R-squared:  0.9423
 F-statistic:  1150 on 3 and 208 DF,  p-value: &lt; 2.2e-16</code></pre>
 </div>
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Linear model of CTmin and BIO6 across latitudes</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>broom<span class="sc">::</span><span class="fu">tidy</span>(lat_temp_model)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output cell-output-stdout">
@@ -388,7 +425,7 @@ F-statistic:  1150 on 3 and 208 DF,  p-value: &lt; 2.2e-16</code></pre>
 4 lat:typectmin     1.49    0.0465      31.9 3.70e- 82</code></pre>
 </div>
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Linear model of CTmin and BIO6 across latitudes</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>broom<span class="sc">::</span><span class="fu">glance</span>(lat_temp_model) <span class="sc">|&gt;</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">cols =</span> <span class="fu">everything</span>(),</span>
@@ -414,10 +451,11 @@ F-statistic:  1150 on 3 and 208 DF,  p-value: &lt; 2.2e-16</code></pre>
 12 nobs           2.12e+  2</code></pre>
 </div>
 </div>
-<p>The interaction between latitude and type is positive (1.4853171), and significant (3.6975953^{-82}) indicating that CT<sub>min</sub> does not decrease with latitude as BIO6 does. This suggests that green anoles are living in climates colder than their physiological cold tolerance.</p>
+<p>The interaction between latitude and type is positive (<span class="math inline">\(\beta_{L \cdot C}\)</span> = 1.485) and significant (p &lt; 0.0001), indicating that CT<sub>min</sub> does not decrease with latitude as BIO6 does. This suggests that green anoles are living in climates colder than their physiological cold tolerance.</p>
+<p>Below we table the CT<sub>min</sub> estimates (mean and standard deviation) and BIO6 values (mean, minimum and maximum across the 0.1° latitude band) for each location where we measured CT<sub>min</sub> (Table S1 in the manuscript).</p>
 <div class="cell">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Table CTmin and BIO6 by location</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># get average temps by location</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>bio6_df_table <span class="ot">&lt;-</span> bio6_df <span class="sc">|&gt;</span></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(lat <span class="sc">%in%</span> <span class="fu">round</span>(<span class="fu">unique</span>(ctmin_gradient<span class="sc">$</span>lat), <span class="dv">1</span>)) <span class="sc">|&gt;</span></span>
@@ -571,13 +609,11 @@ F-statistic:  1150 on 3 and 208 DF,  p-value: &lt; 2.2e-16</code></pre>
 <h2 class="anchored" data-anchor-id="the-green-anole-is-an-exceptional-case-of-climatic-overfilling">The green anole is an exceptional case of climatic overfilling</h2>
 <section id="data-processing" class="level3">
 <h3 class="anchored" data-anchor-id="data-processing">Data processing</h3>
-<p>We compiled a dataset of CT<sub>min</sub> and elevational limits for 181 lizard species</p>
+<p>We compiled a dataset of CT<sub>min</sub> and elevational limits for 181 lizard species, representing 17 families and 46 genera. We obtained CT<sub>min</sub> estimates from the GlobTherm database and complemented them with two datasets focused specifically on <em>Anolis</em> lizards (Bodensteiner et al.&nbsp;2024; Salazar et al.&nbsp;2025). We then obtained elevational range limits, substrate use (arboreal, semi-arboreal or other) and the identifiers linking each species to its range map in the GARD database from SquamBase. The script used to compile this dataset (<code>process-ctmin-lizards-data.R</code>) is stored in the <code>raw_data</code> folder. For <em>A. carolinensis</em>, we set CT<sub>min</sub> to 6.8 °C, the lowest population-average CT<sub>min</sub> we measured (Knoxville, TN).</p>
+<p>Below we present the structure of the resulting dataset, which is stored in the <code>data</code> folder:</p>
 <div class="cell">
-<details class="code-fold">
-<summary>Code</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>ctmin_lizards <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"data/ctmin_lizards.rds"</span>)</span>
 <span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>ctmin_lizards</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 181 × 9
    family    genus species ctmin min_elev max_elev source gard_id substrate_type
@@ -596,9 +632,17 @@ F-statistic:  1150 on 3 and 208 DF,  p-value: &lt; 2.2e-16</code></pre>
 </div>
 </div>
 <p>Below we combine data on the CT<sub>min</sub> and elevational limits of globally distributed lizards to find the total area and proportion of each species’ range that is below their CT<sub>min</sub> and below 0°C. We also calculate the maximum latitude at which each species can occur above their CT<sub>min</sub> and above 0°C.</p>
+<p>For each species, we:</p>
+<ol type="1">
+<li><p>Crop and mask global BIO6 and elevation rasters (2.5’ resolution, WorldClim) to the species’ range polygon from the GARD database.</p></li>
+<li><p>Keep only cells whose elevation falls within the species’ elevational limits.</p></li>
+<li><p>Convert each cell to its area in km<sup>2</sup> (<code>deg_to_area()</code>), accounting for the fact that cells shrink with latitude because the Earth is an ellipsoid.</p></li>
+<li><p>Sum the area of all cells, of cells where BIO6 &lt; CT<sub>min</sub> and of cells where BIO6 &lt; 0 °C, and divide the latter two by the total area to obtain proportions.</p></li>
+</ol>
+<p>Lastly, we calculate the global mean (± SD) BIO6 for every degree of absolute latitude, which we use as a reference in the plots below.</p>
 <div class="cell">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Calculate the area and proportion of each species’ range below CTmin and 0 °C</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Note: This code chunk is not evaluated as it takes a long time to run.</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="do">## The same code can be run locally to reproduce the results and the output</span></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="do">## is stored in the `data/lizard_climatic_overfilling.rds` file.</span></span>
@@ -748,10 +792,10 @@ F-statistic:  1150 on 3 and 208 DF,  p-value: &lt; 2.2e-16</code></pre>
 </section>
 <section id="statistical-analysis" class="level3">
 <h3 class="anchored" data-anchor-id="statistical-analysis">Statistical analysis</h3>
-<p>Below we estimate the Z-score of <em>Anolis carolinensis</em> range proportion below CT<sub>min</sub> and below 0 °C relative to the distribution of Z-scores for all lizard species in our dataset.</p>
+<p>To assess whether <em>A. carolinensis</em> is a unique case, we conducted an outlier analysis. Below we calculate Z-scores (i.e., the number of standard deviations above or below the mean of a group) for the area and proportion of the green anole’s range below CT<sub>min</sub> and below 0 °C, relative to three groups: other <em>Anolis</em>, exclusively arboreal lizards, and all lizards in our dataset (Table S4 in the manuscript).</p>
 <div class="cell">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Z-scores of A. carolinensis relative to other lizards</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load datasets</span></span>
 <span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>lizard_climatic_overfilling <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"data/lizard_climatic_overfilling.rds"</span>)</span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -855,14 +899,14 @@ F-statistic:  1150 on 3 and 208 DF,  p-value: &lt; 2.2e-16</code></pre>
 </table>
 </div>
 </div>
-<p>We find that <em>A. carolinensis</em> has a significantly higher proportion of its range below CT<sub>min</sub> and below 0°C than other lizard species, indicating that it is an exceptional case of climatic overfilling.</p>
+<p>We find that <em>A. carolinensis</em> has a much greater proportion and area of its range below CT<sub>min</sub> and below 0°C than other <em>Anolis</em> and other arboreal lizards, indicating that it is an exceptional case of climatic overfilling. Relative to all lizards, the green anole’s Z-scores are close to 0, as its overfilling resembles that of terrestrial, fossorial or saxicolous species living in colder climates, which can shelter from the cold in underground refuges.</p>
 </section>
 <section id="plots" class="level3">
 <h3 class="anchored" data-anchor-id="plots">Plots</h3>
-<p>First, we plot the latitudinal distribution of CT<sub>min</sub> and BIO6 for all lizard species in our dataset. We also highlight the latitudinal distribution of CT<sub>min</sub> for <em>A. carolinensis</em> and compare it to the latitudinal distribution of BIO6 across the globe.</p>
+<p>First, we plot the latitudinal distribution of CT<sub>min</sub> and BIO6 for all lizard species in our dataset (Fig. 2 in the manuscript). In panel A, each segment represents the latitudinal range of a species, placed at the height of its CT<sub>min</sub>, and the blue line and area represent the global mean (± SD) BIO6 at each latitude. Panels B and C show the proportion and area (in log scale) of each species’ range below CT<sub>min</sub> and below 0 °C. We highlight <em>A. carolinensis</em> and other <em>Anolis</em> species.</p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Plot climatic overfilling by taxonomic group</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load datasets</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>bio6_global <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"data/bio6_global.rds"</span>)</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>caro_ctmin_gradient <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"data/ctmin_gradient.rds"</span>)</span>
@@ -1115,7 +1159,7 @@ F-statistic:  1150 on 3 and 208 DF,  p-value: &lt; 2.2e-16</code></pre>
 (`geom_point()`).</code></pre>
 </div>
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Plot climatic overfilling by taxonomic group</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>combined_plot</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
@@ -1126,10 +1170,11 @@ F-statistic:  1150 on 3 and 208 DF,  p-value: &lt; 2.2e-16</code></pre>
 </div>
 </div>
 </div>
-<p>Next we plot by substrate type to see if there are any differences in the latitudinal distribution of CT<sub>min</sub> and BIO6 across different ecological groups of lizards. We also highlight the latitudinal distribution of CT<sub>min</sub> for <em>A. carolinensis</em> and compare it to the latitudinal distribution of BIO6 across the globe.</p>
+<p>Next we plot by substrate type to see if there are any differences in the latitudinal distribution of CT<sub>min</sub> and BIO6 across different ecological groups of lizards (Fig. S3 in the manuscript). We also highlight the latitudinal distribution of CT<sub>min</sub> for <em>A. carolinensis</em> and compare it to the latitudinal distribution of BIO6 across the globe. In panels B and C, points with error bars represent the mean (± SE) of each substrate group, and the large dark green point represents <em>A. carolinensis</em>.</p>
+<p>Only a few other arboreal species have ranges that extend into areas below their CT<sub>min</sub> (<em>Liolaemus tenuis</em>, four <em>Chamaeleo</em> and four <em>Anolis</em> species), and only three extend into areas below 0 °C (<em>L. tenuis</em>, <em>Chamaeleo hoehnelii</em> and <em>C. schubotzi</em>). In all cases, the area affected is orders of magnitude smaller than for the green anole. Further, although SquamBase classifies <em>L. tenuis</em> as exclusively arboreal, this species adopts a saxicolous/terrestrial strategy in many parts of its range.</p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Plot climatic overfilling by substrate type</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># get substrate data and colors</span></span>
 <span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>substrate_data <span class="ot">&lt;-</span> lizard_climatic_overfilling <span class="sc">|&gt;</span></span>
 <span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
@@ -1378,11 +1423,11 @@ F-statistic:  1150 on 3 and 208 DF,  p-value: &lt; 2.2e-16</code></pre>
 </section>
 <section id="tables" class="level2">
 <h2 class="anchored" data-anchor-id="tables">Tables</h2>
-<p>We table the average, minimum and maximum CT<sub>min</sub> and BIO6 values for each 0.1° latitude band across the range of the green anole.</p>
-<p>Table “overfilling” results by family and genus</p>
+<p>Below we table the “overfilling” results of all 181 lizard species. All areas are expressed in millions of km<sup>2</sup>.</p>
+<p>First, we table the average “overfilling” results by family and genus.</p>
 <div class="cell">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Table overfilling results by family and genus</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>lizard_climatic_overfilling <span class="sc">|&gt;</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">genus =</span> <span class="fu">gsub</span>(<span class="st">" .*"</span>, <span class="st">""</span>, species),</span>
@@ -1857,10 +1902,10 @@ F-statistic:  1150 on 3 and 208 DF,  p-value: &lt; 2.2e-16</code></pre>
 </table>
 </div>
 </div>
-<p>Last we table to “overfilling” results for all species</p>
+<p>Lastly, we table the “overfilling” results for every species (Table S3 in the manuscript).</p>
 <div class="cell">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Table overfilling results by species</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>lizard_climatic_overfilling <span class="sc">|&gt;</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
 <span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="at">genus =</span> <span class="fu">gsub</span>(<span class="st">" .*"</span>, <span class="st">""</span>, species),</span>

@@ -146,8 +146,8 @@ window.Quarto = {
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
-    <div id="quarto-announcement" data-announcement-id="0a72d6052de27d2dffcf088c8720555e" class="alert alert-primary hidden"><div class="quarto-announcement-content">
-<p>Behavioral buffering enabled the poleward range expansion of a tropical ectotherm beyond its physiological limits</p>
+    <div id="quarto-announcement" data-announcement-id="214e9a2081347742bbefe733b802e434" class="alert alert-primary hidden"><div class="quarto-announcement-content">
+<p>A major behavioral innovation enabled the poleward range expansion of a tropical ectotherm beyond its physiological limits</p>
 </div></div>
     <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
       <div class="navbar-container container-fluid">
@@ -158,7 +158,7 @@ window.Quarto = {
           <div class="collapse navbar-collapse" id="navbarCollapse">
             <ul class="navbar-nav navbar-nav-scroll me-auto">
   <li class="nav-item">
-    <a class="nav-link" href="./home.html"> 
+    <a class="nav-link" href="./index.html"> 
 <span class="menu-text">Start Here</span></a>
   </li>  
   <li class="nav-item">
@@ -226,6 +226,13 @@ window.Quarto = {
 
 <section id="overview" class="level2">
 <h2 class="anchored" data-anchor-id="overview">Overview</h2>
+<p>We hypothesize that the green anole’s poleward range edge is set not by the cold air temperatures in the canopy, but by the thermal conditions within the leaf litter where lizards overwinter. To test this, we combine biophysical models with mechanistic envelope models in four steps:</p>
+<ol type="1">
+<li><p>We define the green anole’s range using curated iNaturalist observations.</p></li>
+<li><p>We obtain spatially explicit data on forest cover, elevation, and minimum and maximum temperatures across southeastern North America.</p></li>
+<li><p>We use biophysical models to transform these macroclimatic data into the minimum annual body (i.e., operative) temperatures a green anole would experience in the canopy and at different depths in the leaf litter, and validate these estimates with data from our operative temperature models (OTMs).</p></li>
+<li><p>We use mechanistic envelope models to evaluate which microclimate and forest cover threshold best predict the green anole’s range, both across its entire range and near its poleward range edge.</p></li>
+</ol>
 <div class="cell">
 <details class="code-fold">
 <summary>R setup</summary>
@@ -285,9 +292,9 @@ window.Quarto = {
 <p>We use the occurence data to define the green anole’s range. To do this, we first curate the original dataset by:</p>
 <ol type="1">
 <li><p>Rounding coordinates to one decimal place.</p></li>
-<li><p>Removing observations with low positional accuracy (&lt; 1 km<sup>2</sup>).</p></li>
+<li><p>Removing observations with low positional accuracy (positional uncertainty &gt; 1 km).</p></li>
 <li><p>Filtering to the native range of the green anole defined by the following bounding box: longitude between -110 and -70 W, latitude between 22.5 and 37.5 N.</p></li>
-<li><p>Adding up all observations within every 0.1 x 0.1 degree grid cell and keeping only cells with at least 2 observations. The goal of this step is to eliminate stand-alone observations caused by potential errors or rare occurrences.</p></li>
+<li><p>Adding up all observations within every 0.1 x 0.1 degree grid cell and keeping only cells with at least 3 observations. The goal of this step is to eliminate stand-alone observations caused by potential errors or rare occurrences.</p></li>
 <li><p>Removing outliers based on distance to other observations. Any observation is considered an outlier if there are fewer than 3 observations within 50 km.</p></li>
 </ol>
 <p>Lastly, we use the curated occurrence data to manually define the green anole’s range using the <code>mapedit</code> package.</p>
@@ -616,7 +623,7 @@ window.Quarto = {
 <p><span class="math display">\[
 a(h) = \sin(lat)\cdot \sin(\delta) + \cos(lat)\cdot\cos(\delta) \cdot \cos\left(0.2618 \cdot (h - S_n)\right)
 \]</span></p>
-<p>Where <span class="math inline">\(0.2618 \text{ rad h}^{-1}\)</span> represents the Earth’s rotational speed (<span class="math inline">\(15^\circ h^{-1}\)</span>). To obtain the time of solar noon at a given location in a given day of the year we used the <code>get_solar_noon</code> function from the <code>R</code> package <code>TrenchR</code> ([[Buckely et al.&nbsp;2023]]). To account for the effects of elevation when computing the degree to which the atmosphere absorbs incoming solar radiation, we modeled barometric pressure (<span class="math inline">\(p_a\)</span>) using an exponential attitudinal decay function.</p>
+<p>Where <span class="math inline">\(0.2618 \text{ rad h}^{-1}\)</span> represents the Earth’s rotational speed (<span class="math inline">\(15^\circ h^{-1}\)</span>). To obtain the time of solar noon at a given location in a given day of the year we used the <code>solar_noon</code> function from the <code>R</code> package <code>TrenchR</code> (Buckley et al.&nbsp;2023). To account for the effects of elevation when computing the degree to which the atmosphere absorbs incoming solar radiation, we modeled barometric pressure (<span class="math inline">\(p_a\)</span>) using an exponential attitudinal decay function.</p>
 <p><span class="math display">\[
 p_a = 101.3 \cdot e^{-Elev /8200}
 \]</span></p>
@@ -929,74 +936,76 @@ T_{sky,K} = \epsilon_{sky}^{0.25} \cdot T_{air,K} \qquad T_{rad,K} = \left(F_{sk
 </section>
 <section id="run-biophysical-models" class="level3">
 <h3 class="anchored" data-anchor-id="run-biophysical-models">Run biophysical models</h3>
-<p>Below we implement all the biophyscial modeling functions described above to estimate the minimum annual operative temperature of a green anole across 22 microclimates in a typical year for every 2.5’ latitude and longitude spatial cell. Because minimum annual temperatures in the northern hemisphere typically occur in January, we use January 15 (<code>doy = 15</code>) as the representative day for our calculations.</p>
+<p>Below we implement all the biophyscial modeling functions described above to estimate the minimum annual operative temperature of a green anole across 23 microclimates (20 leaf-litter depths from 1 to 20 cm, the surface, and heights of 1.8 and 2 m) in a typical year for every 2.5’ latitude and longitude spatial cell. Because minimum annual temperatures in the northern hemisphere typically occur in January, we use January 15 (<code>doy = 15</code>) as the representative day for our calculations.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Run biophysical models</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>eco_df<span class="sc">$</span>solar_noon <span class="ot">&lt;-</span> <span class="fu">mapply</span>(</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  TrenchR<span class="sc">::</span>solar_noon,</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">lon =</span> eco_df<span class="sc">$</span>lon,</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">doy =</span> <span class="dv">15</span></span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>air_temp_prof <span class="ot">&lt;-</span> <span class="fu">get_air_temp_profile</span>(</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">tmax =</span> eco_df<span class="sc">$</span>tmax,</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">tmin =</span> eco_df<span class="sc">$</span>tmin</span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>solar_rad_prof <span class="ot">&lt;-</span> <span class="fu">get_solar_rad_profile</span>(</span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">lat =</span> eco_df<span class="sc">$</span>lat,</span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>  <span class="at">elev =</span> eco_df<span class="sc">$</span>elev,</span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">doy =</span> <span class="dv">15</span>,</span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">solar_noon =</span> eco_df<span class="sc">$</span>solar_noon</span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>air_temp_prof_corrected <span class="ot">&lt;-</span> <span class="fu">correct_air_temp_profile</span>(</span>
-<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">air_temp_profile =</span> air_temp_prof,</span>
-<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>  <span class="at">solar_rad_profile =</span> solar_rad_prof,</span>
-<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>  <span class="at">veg_cover =</span> eco_df<span class="sc">$</span>veg</span>
-<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>surf_temp_prof <span class="ot">&lt;-</span> <span class="fu">get_surf_temp_profile</span>(</span>
-<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">air_temp_profile =</span> air_temp_prof_corrected,</span>
-<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">solar_rad_profile =</span> solar_rad_prof,</span>
-<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">veg_cover =</span> eco_df<span class="sc">$</span>veg</span>
-<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>zs_temp_profiles <span class="ot">&lt;-</span> <span class="fu">get_z_temp_profile</span>(</span>
-<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>  <span class="at">z_list =</span> zs,</span>
-<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>  <span class="at">surf_temp_profile =</span> surf_temp_prof,</span>
-<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>  <span class="at">air_temp_profile =</span> air_temp_prof_corrected,</span>
-<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>  <span class="at">damping_depth =</span> damping_depth</span>
-<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a><span class="co"># summarize zs temperature profiles into a data frame</span></span>
-<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>micro_df <span class="ot">&lt;-</span> <span class="fu">Map</span>(</span>
-<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>  <span class="cf">function</span>(z_temp, z_val) {</span>
-<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>    <span class="fu">data.frame</span>(</span>
-<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a>      <span class="at">lon =</span> eco_df<span class="sc">$</span>lon,</span>
-<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>      <span class="at">lat =</span> eco_df<span class="sc">$</span>lat,</span>
-<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>      <span class="at">elev =</span> eco_df<span class="sc">$</span>elev,</span>
-<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a>      <span class="at">veg =</span> eco_df<span class="sc">$</span>veg,</span>
-<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a>      <span class="at">presence =</span> eco_df<span class="sc">$</span>presence,</span>
-<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a>      <span class="at">z  =</span> z_val,</span>
-<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a>      <span class="at">min_temp =</span> <span class="fu">do.call</span>(pmin, <span class="fu">as.data.frame</span>(z_temp)),</span>
-<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>      <span class="at">hours_below_0C   =</span> <span class="fu">rowSums</span>(z_temp <span class="sc">&lt;</span> <span class="dv">0</span>),</span>
-<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>      <span class="at">hours_below_6.8C =</span> <span class="fu">rowSums</span>(z_temp <span class="sc">&lt;</span> <span class="fl">6.8</span>)</span>
-<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a>  },</span>
-<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a>  zs_temp_profiles, zs</span>
-<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
-<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>() <span class="sc">|&gt;</span></span>
-<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(lon, lat, elev, veg, presence, z) <span class="sc">|&gt;</span></span>
-<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a>    <span class="at">min_annual_temp   =</span> <span class="fu">min</span>(min_temp),</span>
-<span id="cb16-53"><a href="#cb16-53" aria-hidden="true" tabindex="-1"></a>    <span class="at">hours_below_0C    =</span> <span class="fu">sum</span>(hours_below_0C),</span>
-<span id="cb16-54"><a href="#cb16-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">hours_below_ctmin =</span> <span class="fu">sum</span>(hours_below_6<span class="fl">.8</span>C),</span>
-<span id="cb16-55"><a href="#cb16-55" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
-<span id="cb16-56"><a href="#cb16-56" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a>micro_df<span class="sc">$</span>min_annual_body_temp <span class="ot">&lt;-</span> <span class="fu">get_body_temp</span>(</span>
-<span id="cb16-58"><a href="#cb16-58" aria-hidden="true" tabindex="-1"></a>  <span class="at">in_litter =</span> <span class="fu">ifelse</span>(micro_df<span class="sc">$</span>z <span class="sc">&lt;</span> <span class="dv">0</span>, <span class="cn">TRUE</span>, <span class="cn">FALSE</span>),</span>
-<span id="cb16-59"><a href="#cb16-59" aria-hidden="true" tabindex="-1"></a>  <span class="at">ambient_t =</span> micro_df<span class="sc">$</span>min_annual_temp,</span>
-<span id="cb16-60"><a href="#cb16-60" aria-hidden="true" tabindex="-1"></a>  <span class="at">mass =</span> <span class="fl">3.1</span> <span class="co"># typical mass of a green anole (g)</span></span>
-<span id="cb16-61"><a href="#cb16-61" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb16-62"><a href="#cb16-62" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-63"><a href="#cb16-63" aria-hidden="true" tabindex="-1"></a><span class="co"># save the microclimate data frame</span></span>
-<span id="cb16-64"><a href="#cb16-64" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(micro_df, <span class="st">"data/micro_df.rds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Note: This code chunk is not evaluated as it takes a long time to run.</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="do">## The output is saved in the `data/micro_df.rds` file.</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>eco_df<span class="sc">$</span>solar_noon <span class="ot">&lt;-</span> <span class="fu">mapply</span>(</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  TrenchR<span class="sc">::</span>solar_noon,</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">lon =</span> eco_df<span class="sc">$</span>lon,</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">doy =</span> <span class="dv">15</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>air_temp_prof <span class="ot">&lt;-</span> <span class="fu">get_air_temp_profile</span>(</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">tmax =</span> eco_df<span class="sc">$</span>tmax,</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">tmin =</span> eco_df<span class="sc">$</span>tmin</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>solar_rad_prof <span class="ot">&lt;-</span> <span class="fu">get_solar_rad_profile</span>(</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">lat =</span> eco_df<span class="sc">$</span>lat,</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>  <span class="at">elev =</span> eco_df<span class="sc">$</span>elev,</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>  <span class="at">doy =</span> <span class="dv">15</span>,</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">solar_noon =</span> eco_df<span class="sc">$</span>solar_noon</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>air_temp_prof_corrected <span class="ot">&lt;-</span> <span class="fu">correct_air_temp_profile</span>(</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>  <span class="at">air_temp_profile =</span> air_temp_prof,</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>  <span class="at">solar_rad_profile =</span> solar_rad_prof,</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>  <span class="at">forest_cover =</span> eco_df<span class="sc">$</span>veg</span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>surf_temp_prof <span class="ot">&lt;-</span> <span class="fu">get_surf_temp_profile</span>(</span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>  <span class="at">air_temp_profile =</span> air_temp_prof_corrected,</span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>  <span class="at">solar_rad_profile =</span> solar_rad_prof,</span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>  <span class="at">veg_cover =</span> eco_df<span class="sc">$</span>veg</span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>zs_temp_profiles <span class="ot">&lt;-</span> <span class="fu">get_z_temp_profile</span>(</span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>  <span class="at">z_list =</span> zs,</span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>  <span class="at">surf_temp_profile =</span> surf_temp_prof,</span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a>  <span class="at">air_temp_profile =</span> air_temp_prof_corrected</span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a><span class="co"># summarize zs temperature profiles into a data frame</span></span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>micro_df <span class="ot">&lt;-</span> <span class="fu">Map</span>(</span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a>  <span class="cf">function</span>(z_temp, z_val) {</span>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>    <span class="fu">data.frame</span>(</span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>      <span class="at">lon =</span> eco_df<span class="sc">$</span>lon,</span>
+<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a>      <span class="at">lat =</span> eco_df<span class="sc">$</span>lat,</span>
+<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a>      <span class="at">elev =</span> eco_df<span class="sc">$</span>elev,</span>
+<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a>      <span class="at">veg =</span> eco_df<span class="sc">$</span>veg,</span>
+<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a>      <span class="at">presence =</span> eco_df<span class="sc">$</span>presence,</span>
+<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>      <span class="at">z  =</span> z_val,</span>
+<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>      <span class="at">min_temp =</span> <span class="fu">do.call</span>(pmin, <span class="fu">as.data.frame</span>(z_temp)),</span>
+<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>      <span class="at">hours_below_0C   =</span> <span class="fu">rowSums</span>(z_temp <span class="sc">&lt;</span> <span class="dv">0</span>),</span>
+<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a>      <span class="at">hours_below_6.8C =</span> <span class="fu">rowSums</span>(z_temp <span class="sc">&lt;</span> <span class="fl">6.8</span>)</span>
+<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a>  },</span>
+<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a>  zs_temp_profiles, zs</span>
+<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>() <span class="sc">|&gt;</span></span>
+<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(lon, lat, elev, veg, presence, z) <span class="sc">|&gt;</span></span>
+<span id="cb16-53"><a href="#cb16-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb16-54"><a href="#cb16-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">min_annual_temp   =</span> <span class="fu">min</span>(min_temp),</span>
+<span id="cb16-55"><a href="#cb16-55" aria-hidden="true" tabindex="-1"></a>    <span class="at">hours_below_0C    =</span> <span class="fu">sum</span>(hours_below_0C),</span>
+<span id="cb16-56"><a href="#cb16-56" aria-hidden="true" tabindex="-1"></a>    <span class="at">hours_below_ctmin =</span> <span class="fu">sum</span>(hours_below_6<span class="fl">.8</span>C),</span>
+<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb16-58"><a href="#cb16-58" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb16-59"><a href="#cb16-59" aria-hidden="true" tabindex="-1"></a>micro_df<span class="sc">$</span>min_annual_body_temp <span class="ot">&lt;-</span> <span class="fu">get_body_temp</span>(</span>
+<span id="cb16-60"><a href="#cb16-60" aria-hidden="true" tabindex="-1"></a>  <span class="at">in_litter =</span> <span class="fu">ifelse</span>(micro_df<span class="sc">$</span>z <span class="sc">&lt;</span> <span class="dv">0</span>, <span class="cn">TRUE</span>, <span class="cn">FALSE</span>),</span>
+<span id="cb16-61"><a href="#cb16-61" aria-hidden="true" tabindex="-1"></a>  <span class="at">ambient_t =</span> micro_df<span class="sc">$</span>min_annual_temp,</span>
+<span id="cb16-62"><a href="#cb16-62" aria-hidden="true" tabindex="-1"></a>  <span class="at">mass =</span> <span class="fl">3.1</span> <span class="co"># typical mass of a green anole (g)</span></span>
+<span id="cb16-63"><a href="#cb16-63" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-64"><a href="#cb16-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-65"><a href="#cb16-65" aria-hidden="true" tabindex="-1"></a><span class="co"># save the microclimate data frame</span></span>
+<span id="cb16-66"><a href="#cb16-66" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(micro_df, <span class="st">"data/micro_df.rds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 </section>
@@ -1120,6 +1129,20 @@ T_{sky,K} = \epsilon_{sky}^{0.25} \cdot T_{air,K} \qquad T_{rad,K} = \left(F_{sk
 </section>
 <section id="mechanistic-envelope-models" class="level2">
 <h2 class="anchored" data-anchor-id="mechanistic-envelope-models">Mechanistic envelope models</h2>
+<p>Envelope models compare the capacity of a set of threshold values across environmental variables to predict a species’ range. These models assign a binary suitability score to each spatial cell based on where the values of the environmental variables fall relative to the thresholds of interest. By comparing the inferred suitability map against the observed range cell-by-cell, we can obtain the True Skill Statistic (TSS), which evaluates model performance as a function of both sensitivity and specificity (i.e., its ability to simultaneously predict presence and absence):</p>
+<p><span class="math display">\[
+TSS = \frac{TP}{TP + FN} + \frac{TN}{TN + FP} - 1
+\]</span></p>
+<p>where <span class="math inline">\(TP\)</span>, <span class="math inline">\(FN\)</span>, <span class="math inline">\(TN\)</span> and <span class="math inline">\(FP\)</span> are the number of true positives, false negatives, true negatives and false positives, respectively. TSS ≤ 0 indicates a predictive ability no better than random, while a value of 1 indicates a perfect match. Thus, if a set of thresholds A yields a greater TSS than a set B, we can infer that the species’ range is more likely determined by A than by B.</p>
+<p>Traditionally, envelope models rely on macroclimatic layers (e.g., air temperatures) and statistically identified thresholds. Instead, our mechanistic approach uses the minimum annual body temperatures estimated with our biophysical models for each microclimate and sets the threshold based on the green anole’s physiology. Specifically, we deem a cell unsuitable if the minimum annual body temperature in a given microclimate falls below 0 °C, which we assume is the lethal cold threshold for the green anole. Because the green anole is arboreal during its active season, we also include forest cover as a second variable, but we do not set its threshold <em>a priori</em>. Instead, we evaluate every forest cover threshold between 0 and 100% at 5% intervals. The combination of microclimate and forest cover threshold that yields the highest TSS is the most probable determinant of the green anole’s range.</p>
+<p>What limits a species’ range at its poleward edge might differ from what limits it within its core. For this reason, we repeat the analysis across four spatial extents defined by the minimum annual temperatures in the canopy (1.8 m):</p>
+<ol type="1">
+<li><p><strong>Entire range</strong>: all spatial cells for which we obtained estimates from our biophysical models.</p></li>
+<li><p><strong>Behavioral threshold</strong>: only cells where canopy temperatures fall below the retreating temperature we inferred from our surveys (T<sub>ret</sub> = 8.01 °C; see <a href="./leaf-litter-retreat.html">Green anoles retreat to the leaf litter to avoid extreme cold</a>).</p></li>
+<li><p><strong>Soft physiological threshold</strong>: only cells where canopy temperatures fall below the lowest population-average CT<sub>min</sub> of the species (6.8 °C).</p></li>
+<li><p><strong>Hard physiological threshold</strong>: only cells where canopy temperatures fall below 0 °C.</p></li>
+</ol>
+<p>Below we classify every cell according to these thresholds and plot them.</p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Define thresholds for mechanistic envelope models</summary>
@@ -1130,7 +1153,7 @@ T_{sky,K} = \epsilon_{sky}^{0.25} \cdot T_{air,K} \qquad T_{rad,K} = \left(F_{sk
 <span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">thresh =</span> <span class="fu">case_when</span>(</span>
 <span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>      min_annual_temp <span class="sc">&lt;</span> <span class="dv">0</span> <span class="sc">~</span> <span class="st">"below_zero"</span>,</span>
 <span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>      min_annual_temp <span class="sc">&lt;</span> <span class="fl">6.8</span> <span class="sc">~</span> <span class="st">"below_ctmin"</span>,</span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>      min_annual_temp <span class="sc">&lt;</span> <span class="fl">8.8</span> <span class="sc">~</span> <span class="st">"below_tret"</span>,</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>      min_annual_temp <span class="sc">&lt;</span> <span class="fl">8.01</span> <span class="sc">~</span> <span class="st">"below_tret"</span>, <span class="co"># Tret from leaf-litter-retreat.qmd</span></span>
 <span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"rest_of_range"</span></span>
 <span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>    )</span>
 <span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
@@ -1184,63 +1207,66 @@ T_{sky,K} = \epsilon_{sky}^{0.25} \cdot T_{air,K} \qquad T_{rad,K} = \left(F_{sk
 <span id="cb19-59"><a href="#cb19-59" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
+<p>Next, we run the mechanistic envelope models for every combination of spatial extent, microclimate and forest cover threshold, and store the resulting TSS values in a grid (<code>tss_grid</code>).</p>
 <div class="cell">
-<details class="code-fold">
-<summary>Code</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># define TSS grid</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>thresh_names <span class="ot">&lt;-</span> <span class="fu">unique</span>(micro_df<span class="sc">$</span>thresh)</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>veg <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="at">by =</span> <span class="fl">0.05</span>)</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>zs <span class="ot">&lt;-</span> <span class="fu">unique</span>(micro_df<span class="sc">$</span>z)</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>tss_grid <span class="ot">&lt;-</span> <span class="fu">expand.grid</span>(</span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">thresh =</span> thresh_names,</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">veg =</span> veg,</span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">z =</span> zs</span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>tss_grid<span class="sc">$</span>tss <span class="ot">&lt;-</span> <span class="cn">NA</span></span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a><span class="co"># loop through</span></span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(<span class="fu">nrow</span>(tss_grid))) {</span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Note: This code chunk is not evaluated as it takes a long time to run.</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="do">## The output is saved in the `data/tss_grid.rds` file.</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co"># define TSS grid</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>thresh_names <span class="ot">&lt;-</span> <span class="fu">unique</span>(micro_df<span class="sc">$</span>thresh)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>veg <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="at">by =</span> <span class="fl">0.05</span>)</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>zs <span class="ot">&lt;-</span> <span class="fu">unique</span>(micro_df<span class="sc">$</span>z)</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>tss_grid <span class="ot">&lt;-</span> <span class="fu">expand.grid</span>(</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">thresh =</span> thresh_names,</span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">veg =</span> veg,</span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">z =</span> zs</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>tss_grid<span class="sc">$</span>tss <span class="ot">&lt;-</span> <span class="cn">NA</span></span>
 <span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>  <span class="co"># filter data of interest</span></span>
-<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a>  micro_df_sub <span class="ot">&lt;-</span> micro_df <span class="sc">|&gt;</span> <span class="fu">filter</span>(z <span class="sc">==</span> tss_grid<span class="sc">$</span>z[i])</span>
-<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (tss_grid<span class="sc">$</span>thresh[i] <span class="sc">==</span> <span class="st">"below_zero"</span>) {</span>
-<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>    micro_df_sub <span class="ot">&lt;-</span> micro_df_sub <span class="sc">|&gt;</span> <span class="fu">filter</span>(thresh <span class="sc">==</span> <span class="st">"below_zero"</span>)</span>
-<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> <span class="cf">if</span> (tss_grid<span class="sc">$</span>thresh[i] <span class="sc">==</span> <span class="st">"below_ctmin"</span>) {</span>
-<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>    micro_df_sub <span class="ot">&lt;-</span> micro_df_sub <span class="sc">|&gt;</span> </span>
-<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(thresh <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"below_zero"</span>, <span class="st">"below_ctmin"</span>))</span>
-<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> <span class="cf">if</span> (tss_grid<span class="sc">$</span>thresh[i] <span class="sc">==</span> <span class="st">"below_tret"</span>) {</span>
-<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>    micro_df_sub <span class="ot">&lt;-</span> micro_df_sub <span class="sc">|&gt;</span></span>
-<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(thresh <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"below_zero"</span>, <span class="st">"below_ctmin"</span>, <span class="st">"below_tret"</span>))</span>
-<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>  tss_value <span class="ot">&lt;-</span> micro_df_sub <span class="sc">|&gt;</span></span>
-<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
-<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>      <span class="at">pred =</span> min_annual_body_temp <span class="sc">&gt;</span> <span class="dv">0</span> <span class="sc">&amp;</span> veg <span class="sc">&gt;</span> tss_grid<span class="sc">$</span>veg[i]</span>
-<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">|&gt;</span></span>
-<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(</span>
-<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a>      <span class="at">tp =</span> <span class="fu">sum</span>(pred <span class="sc">&amp;</span> presence),</span>
-<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a>      <span class="at">fp =</span> <span class="fu">sum</span>(pred <span class="sc">&amp;</span> <span class="sc">!</span>presence),</span>
-<span id="cb20-34"><a href="#cb20-34" aria-hidden="true" tabindex="-1"></a>      <span class="at">fn =</span> <span class="fu">sum</span>(<span class="sc">!</span>pred <span class="sc">&amp;</span> presence),</span>
-<span id="cb20-35"><a href="#cb20-35" aria-hidden="true" tabindex="-1"></a>      <span class="at">tn =</span> <span class="fu">sum</span>(<span class="sc">!</span>pred <span class="sc">&amp;</span> <span class="sc">!</span>presence)</span>
-<span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">|&gt;</span></span>
-<span id="cb20-37"><a href="#cb20-37" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">tss =</span> (tp <span class="sc">/</span> (tp <span class="sc">+</span> fn)) <span class="sc">+</span> (tn <span class="sc">/</span> (tn <span class="sc">+</span> fp)) <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
-<span id="cb20-38"><a href="#cb20-38" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pull</span>(tss)</span>
-<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a>  tss_grid<span class="sc">$</span>tss[i] <span class="ot">&lt;-</span> tss_value</span>
-<span id="cb20-40"><a href="#cb20-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-41"><a href="#cb20-41" aria-hidden="true" tabindex="-1"></a>  <span class="co"># track progress</span></span>
-<span id="cb20-42"><a href="#cb20-42" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (i <span class="sc">%%</span> <span class="dv">100</span> <span class="sc">==</span> <span class="dv">0</span>) {</span>
-<span id="cb20-43"><a href="#cb20-43" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="fu">paste</span>(<span class="st">"Processed"</span>, i, <span class="st">"of"</span>, <span class="fu">nrow</span>(tss_grid), <span class="st">"rows"</span>))</span>
-<span id="cb20-44"><a href="#cb20-44" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb20-45"><a href="#cb20-45" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-46"><a href="#cb20-46" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb20-47"><a href="#cb20-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-48"><a href="#cb20-48" aria-hidden="true" tabindex="-1"></a><span class="co"># save tss grid</span></span>
-<span id="cb20-49"><a href="#cb20-49" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(tss_grid, <span class="st">"data/tss_grid.rds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a><span class="co"># loop through</span></span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(<span class="fu">nrow</span>(tss_grid))) {</span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>  <span class="co"># filter data of interest</span></span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>  micro_df_sub <span class="ot">&lt;-</span> micro_df <span class="sc">|&gt;</span> <span class="fu">filter</span>(z <span class="sc">==</span> tss_grid<span class="sc">$</span>z[i])</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (tss_grid<span class="sc">$</span>thresh[i] <span class="sc">==</span> <span class="st">"below_zero"</span>) {</span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>    micro_df_sub <span class="ot">&lt;-</span> micro_df_sub <span class="sc">|&gt;</span> <span class="fu">filter</span>(thresh <span class="sc">==</span> <span class="st">"below_zero"</span>)</span>
+<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> <span class="cf">if</span> (tss_grid<span class="sc">$</span>thresh[i] <span class="sc">==</span> <span class="st">"below_ctmin"</span>) {</span>
+<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>    micro_df_sub <span class="ot">&lt;-</span> micro_df_sub <span class="sc">|&gt;</span> </span>
+<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(thresh <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"below_zero"</span>, <span class="st">"below_ctmin"</span>))</span>
+<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> <span class="cf">if</span> (tss_grid<span class="sc">$</span>thresh[i] <span class="sc">==</span> <span class="st">"below_tret"</span>) {</span>
+<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>    micro_df_sub <span class="ot">&lt;-</span> micro_df_sub <span class="sc">|&gt;</span></span>
+<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(thresh <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"below_zero"</span>, <span class="st">"below_ctmin"</span>, <span class="st">"below_tret"</span>))</span>
+<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a>  tss_value <span class="ot">&lt;-</span> micro_df_sub <span class="sc">|&gt;</span></span>
+<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
+<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a>      <span class="at">pred =</span> min_annual_body_temp <span class="sc">&gt;</span> <span class="dv">0</span> <span class="sc">&amp;</span> veg <span class="sc">&gt;</span> tss_grid<span class="sc">$</span>veg[i]</span>
+<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">|&gt;</span></span>
+<span id="cb20-34"><a href="#cb20-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(</span>
+<span id="cb20-35"><a href="#cb20-35" aria-hidden="true" tabindex="-1"></a>      <span class="at">tp =</span> <span class="fu">sum</span>(pred <span class="sc">&amp;</span> presence),</span>
+<span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a>      <span class="at">fp =</span> <span class="fu">sum</span>(pred <span class="sc">&amp;</span> <span class="sc">!</span>presence),</span>
+<span id="cb20-37"><a href="#cb20-37" aria-hidden="true" tabindex="-1"></a>      <span class="at">fn =</span> <span class="fu">sum</span>(<span class="sc">!</span>pred <span class="sc">&amp;</span> presence),</span>
+<span id="cb20-38"><a href="#cb20-38" aria-hidden="true" tabindex="-1"></a>      <span class="at">tn =</span> <span class="fu">sum</span>(<span class="sc">!</span>pred <span class="sc">&amp;</span> <span class="sc">!</span>presence)</span>
+<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">|&gt;</span></span>
+<span id="cb20-40"><a href="#cb20-40" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">tss =</span> (tp <span class="sc">/</span> (tp <span class="sc">+</span> fn)) <span class="sc">+</span> (tn <span class="sc">/</span> (tn <span class="sc">+</span> fp)) <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
+<span id="cb20-41"><a href="#cb20-41" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pull</span>(tss)</span>
+<span id="cb20-42"><a href="#cb20-42" aria-hidden="true" tabindex="-1"></a>  tss_grid<span class="sc">$</span>tss[i] <span class="ot">&lt;-</span> tss_value</span>
+<span id="cb20-43"><a href="#cb20-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-44"><a href="#cb20-44" aria-hidden="true" tabindex="-1"></a>  <span class="co"># track progress</span></span>
+<span id="cb20-45"><a href="#cb20-45" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (i <span class="sc">%%</span> <span class="dv">100</span> <span class="sc">==</span> <span class="dv">0</span>) {</span>
+<span id="cb20-46"><a href="#cb20-46" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="fu">paste</span>(<span class="st">"Processed"</span>, i, <span class="st">"of"</span>, <span class="fu">nrow</span>(tss_grid), <span class="st">"rows"</span>))</span>
+<span id="cb20-47"><a href="#cb20-47" aria-hidden="true" tabindex="-1"></a>  }</span>
+<span id="cb20-48"><a href="#cb20-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-49"><a href="#cb20-49" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb20-50"><a href="#cb20-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-51"><a href="#cb20-51" aria-hidden="true" tabindex="-1"></a><span class="co"># save tss grid</span></span>
+<span id="cb20-52"><a href="#cb20-52" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(tss_grid, <span class="st">"data/tss_grid.rds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
+<p>Lastly, we identify the combination of microclimate and forest cover threshold that maximizes TSS for each spatial extent (Table S8 in the manuscript) and plot the results (Fig. 4 in the manuscript). Panel A shows the areas below each threshold. Panel B shows the TSS values of every combination of microclimate (y-axis) and forest cover threshold (x-axis) for each spatial extent, with red circles marking the combination that maximizes TSS.</p>
+<p>Across all spatial extents, leaf-litter microclimates predict the green anole’s range better than the canopy, with depths of 3-4 cm performing best. This effect is strongest in areas where canopy temperatures fall below 0 °C, where the poleward range edge is located: here, canopy microclimates have no predictive capacity (TSS = 0), whereas leaf-litter microclimates yield the highest predictive accuracy of all conditions tested.</p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Plot mechanistic envelope model results</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load TSS grid</span></span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>tss_grid <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"data/tss_grid.rds"</span>)</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -1257,11 +1283,11 @@ T_{sky,K} = \epsilon_{sky}^{0.25} \cdot T_{air,K} \qquad T_{rad,K} = \left(F_{sk
   &lt;fct&gt;         &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
 1 below_zero     0.35 -0.04 0.794
 2 below_ctmin    0.2  -0.03 0.768
-3 below_tret     0.2  -0.03 0.754
+3 below_tret     0.2  -0.03 0.759
 4 rest_of_range  0.2  -0.03 0.742</code></pre>
 </div>
 <details class="code-fold">
-<summary>Code</summary>
+<summary>Plot mechanistic envelope model results</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># refactor threshold names for plotting</span></span>
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>tss_grid<span class="sc">$</span>thresh <span class="ot">&lt;-</span> <span class="fu">factor</span>(</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  tss_grid<span class="sc">$</span>thresh,</span>

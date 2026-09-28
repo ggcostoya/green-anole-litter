@@ -7,6 +7,8 @@ format:
 ---
 
 ```{r setup, warning = FALSE, message = FALSE}
+#| code-summary: "R setup"
+
 # packages
 library(tidyverse)
 library(NicheMapR)
@@ -27,15 +29,18 @@ options(
 
 ## Overview
 
+Ectotherms are often assumed to need physiological adaptation to expand their ranges poleward. If that were the case for the green anole, its cold tolerance should track the colder climates it encounters at higher latitudes. Below we test this assumption in two steps. First, we compare how the critical thermal minimum (CT<sub>min</sub>) of green anoles and minimum annual temperatures change across the species' latitudinal range. Second, we combine CT<sub>min</sub> data with the geographic ranges of 181 lizard species to quantify how much of each species' range falls below its CT<sub>min</sub> and below 0 °C, and assess whether the green anole is an exceptional case.
+
 ## CT<sub>min</sub> does not scale with climate
 
 Below we demonstrate how the critical thermal minimum (CT<sub>min</sub>) of green anoles does not scale with climatic cooling. We do this by comparing empirical CT<sub>min</sub> data with the minimum annual temperatures across a latitudinal gradient spanning the range of the green anole. 
 
-We collected the CT<sub>min</sub> data from 7 locations across the range of *A. carolinensis*. We measured CT<sub>min</sub> by {Insert protocol details}. We also extracted the minimum temperature of the coldest month (BIO6) from WorldClim and obtained the average, minimum and maximum BIO6 values for each 0.1° latitude band across the range of the green anole.
+We collected the CT<sub>min</sub> data from 7 locations across the range of *A. carolinensis*. To measure CT<sub>min</sub>, we fitted lizards with a cloacal thermocouple probe, secured it to the base of the tail with surgical tape, and placed them in an experimental chamber submerged in an ice-water bath. Once internal body temperature stabilized after handling, we gradually cooled lizards and, starting at ~15 °C, evaluated the righting reflex at 0.2 °C intervals by placing the lizard on its dorsum and applying gentle pressure to the hind limbs. We recorded CT<sub>min</sub> as the core body temperature at which an individual completely lost the capacity to right itself. We also extracted the minimum temperature of the coldest month (BIO6) from WorldClim and obtained the average, minimum and maximum BIO6 values for each 0.1° latitude band within a bounding box defined by the locations where we measured CT<sub>min</sub> (+1° in each cardinal direction; +0.5° to the north).
 
-The figure below shows that while BIO6 decreases with latitude, CT<sub>min</sub> does not follow this trend, indicating that green anoles are living in climates colder than their physiological cold tolerance.
+The figure below (Fig. S2 in the manuscript) shows that while BIO6 decreases with latitude, CT<sub>min</sub> does not follow this trend, indicating that green anoles are living in climates colder than their physiological cold tolerance.
 
 ```{r ctmin-does-not-scale-with-climate-process-plot}
+#| code-summary: "Process BIO6 data and plot CTmin and BIO6 across latitudes"
 #| fig-align: "center"
 #| fig-width: 5
 #| fig-height: 5
@@ -137,9 +142,21 @@ ggplot() +
 
 ```
 
-Below, we perform a linear regression to test whether CT<sub>min</sub> and BIO6 scale with latitude. We find that while BIO6 decreases with latitude, CT<sub>min</sub> does not, indicating that green anoles are living in climates colder than their physiological cold tolerance.
+Below, we perform a linear regression to test whether CT<sub>min</sub> and BIO6 scale with latitude at the same rate. We combine both types of temperature values into a single dataset and fit the following model:
+
+$$
+T \sim Normal(t_i, \sigma)
+$$
+
+$$
+t_i = \alpha + \beta_L \cdot L_i + \beta_C \cdot C_i + \beta_{L \cdot C} \cdot L_i \cdot C_i
+$$
+
+where temperature ($T$) depends on latitude ($L$), an indicator variable ($C$) identifying the nature of the temperature values ($C = 0$ for BIO6 and $C = 1$ for CT<sub>min</sub>), and their interaction. If the interaction term ($\beta_{L \cdot C}$) is positive and significant, CT<sub>min</sub> scales with latitude at a significantly shallower rate than BIO6. The results of this model are presented in Table S2 of the manuscript.
 
 ```{r ctmin-does-not-scale-with-climate-stats}
+#| code-summary: "Linear model of CTmin and BIO6 across latitudes"
+
 # prepare data
 bio6_df_model <- bio6_df |>
   select(lat, mean_bio6) |>
@@ -165,9 +182,12 @@ broom::glance(lat_temp_model) |>
 
 ```
 
-The interaction between latitude and type is positive (`{r} lat_temp_model$coefficients["lat:typectmin"]`), and significant (`{r} summary(lat_temp_model)$coefficients["lat:typectmin", "Pr(>|t|)"]`) indicating that CT<sub>min</sub> does not decrease with latitude as BIO6 does. This suggests that green anoles are living in climates colder than their physiological cold tolerance.
+The interaction between latitude and type is positive ($\beta_{L \cdot C}$ = `{r} round(lat_temp_model$coefficients["lat:typectmin"], 3)`) and significant (p `{r} ifelse(summary(lat_temp_model)$coefficients["lat:typectmin", "Pr(>|t|)"] < 0.0001, "< 0.0001", paste("=", round(summary(lat_temp_model)$coefficients["lat:typectmin", "Pr(>|t|)"], 4)))`), indicating that CT<sub>min</sub> does not decrease with latitude as BIO6 does. This suggests that green anoles are living in climates colder than their physiological cold tolerance.
+
+Below we table the CT<sub>min</sub> estimates (mean and standard deviation) and BIO6 values (mean, minimum and maximum across the 0.1° latitude band) for each location where we measured CT<sub>min</sub> (Table S1 in the manuscript).
 
 ```{r table-ctmin-by-latitude}
+#| code-summary: "Table CTmin and BIO6 by location"
 
 # get average temps by location
 bio6_df_table <- bio6_df |>
@@ -233,16 +253,34 @@ ctmin_gradient |>
 
 ### Data processing
 
-We compiled a dataset of CT<sub>min</sub> and elevational limits for 181 lizard species
+We compiled a dataset of CT<sub>min</sub> and elevational limits for 181 lizard species, representing 17 families and 46 genera. We obtained CT<sub>min</sub> estimates from the GlobTherm database and complemented them with two datasets focused specifically on *Anolis* lizards (Bodensteiner et al. 2024; Salazar et al. 2025). We then obtained elevational range limits, substrate use (arboreal, semi-arboreal or other) and the identifiers linking each species to its range map in the GARD database from SquamBase. The script used to compile this dataset (`process-ctmin-lizards-data.R`) is stored in the `raw_data` folder. For *A. carolinensis*, we set CT<sub>min</sub> to 6.8 °C, the lowest population-average CT<sub>min</sub> we measured (Knoxville, TN).
+
+Below we present the structure of the resulting dataset, which is stored in the `data` folder:
 
 ```{r load-ctmin-lizards}
+#| code-fold: false
+
 ctmin_lizards <- readRDS("data/ctmin_lizards.rds")
 ctmin_lizards
 ```
 
 Below we combine data on the CT<sub>min</sub> and elevational limits of globally distributed lizards to find the total area and proportion of each species' range that is below their CT<sub>min</sub> and below 0°C. We also calculate the maximum latitude at which each species can occur above their CT<sub>min</sub> and above 0°C.
 
+For each species, we:
+
+1. Crop and mask global BIO6 and elevation rasters (2.5' resolution, WorldClim) to the species' range polygon from the GARD database.
+
+2. Keep only cells whose elevation falls within the species' elevational limits.
+
+3. Convert each cell to its area in km<sup>2</sup> (`deg_to_area()`), accounting for the fact that cells shrink with latitude because the Earth is an ellipsoid.
+
+4. Sum the area of all cells, of cells where BIO6 < CT<sub>min</sub> and of cells where BIO6 < 0 °C, and divide the latter two by the total area to obtain proportions.
+
+Lastly, we calculate the global mean (± SD) BIO6 for every degree of absolute latitude, which we use as a reference in the plots below.
+
 ```{r extract-data, eval = FALSE}
+#| code-summary: "Calculate the area and proportion of each species' range below CTmin and 0 °C"
+
 ## Note: This code chunk is not evaluated as it takes a long time to run.
 ## The same code can be run locally to reproduce the results and the output
 ## is stored in the `data/lizard_climatic_overfilling.rds` file.
@@ -391,9 +429,10 @@ saveRDS(bio6_global, "data/bio6_global.rds")
 
 ### Statistical analysis
 
-Below we estimate the Z-score of *Anolis carolinensis* range proportion below CT<sub>min</sub> and below 0 °C relative to the distribution of Z-scores for all lizard species in our dataset. 
+To assess whether *A. carolinensis* is a unique case, we conducted an outlier analysis. Below we calculate Z-scores (i.e., the number of standard deviations above or below the mean of a group) for the area and proportion of the green anole's range below CT<sub>min</sub> and below 0 °C, relative to three groups: other *Anolis*, exclusively arboreal lizards, and all lizards in our dataset (Table S4 in the manuscript).
 
 ```{r z-score-analysis}
+#| code-summary: "Z-scores of A. carolinensis relative to other lizards"
 
 # load datasets
 lizard_climatic_overfilling <- readRDS("data/lizard_climatic_overfilling.rds")
@@ -461,13 +500,14 @@ caro_z_scores |>
 
 ```
 
-We find that *A. carolinensis* has a significantly higher proportion of its range below CT<sub>min</sub> and below 0°C than other lizard species, indicating that it is an exceptional case of climatic overfilling.
+We find that *A. carolinensis* has a much greater proportion and area of its range below CT<sub>min</sub> and below 0°C than other *Anolis* and other arboreal lizards, indicating that it is an exceptional case of climatic overfilling. Relative to all lizards, the green anole's Z-scores are close to 0, as its overfilling resembles that of terrestrial, fossorial or saxicolous species living in colder climates, which can shelter from the cold in underground refuges.
 
 ### Plots
 
-First, we plot the latitudinal distribution of CT<sub>min</sub> and BIO6 for all lizard species in our dataset. We also highlight the latitudinal distribution of CT<sub>min</sub> for *A. carolinensis* and compare it to the latitudinal distribution of BIO6 across the globe.
+First, we plot the latitudinal distribution of CT<sub>min</sub> and BIO6 for all lizard species in our dataset (Fig. 2 in the manuscript). In panel A, each segment represents the latitudinal range of a species, placed at the height of its CT<sub>min</sub>, and the blue line and area represent the global mean (± SD) BIO6 at each latitude. Panels B and C show the proportion and area (in log scale) of each species' range below CT<sub>min</sub> and below 0 °C. We highlight *A. carolinensis* and other *Anolis* species.
 
 ```{r plot-lizard-climatic-overfilling-taxonomically}
+#| code-summary: "Plot climatic overfilling by taxonomic group"
 #| fig-align: "center"
 #| fig-width: 9
 #| fig-height: 5
@@ -722,9 +762,12 @@ combined_plot
 
 ```
 
-Next we plot by substrate type to see if there are any differences in the latitudinal distribution of CT<sub>min</sub> and BIO6 across different ecological groups of lizards. We also highlight the latitudinal distribution of CT<sub>min</sub> for *A. carolinensis* and compare it to the latitudinal distribution of BIO6 across the globe.
+Next we plot by substrate type to see if there are any differences in the latitudinal distribution of CT<sub>min</sub> and BIO6 across different ecological groups of lizards (Fig. S3 in the manuscript). We also highlight the latitudinal distribution of CT<sub>min</sub> for *A. carolinensis* and compare it to the latitudinal distribution of BIO6 across the globe. In panels B and C, points with error bars represent the mean (± SE) of each substrate group, and the large dark green point represents *A. carolinensis*.
+
+Only a few other arboreal species have ranges that extend into areas below their CT<sub>min</sub> (*Liolaemus tenuis*, four *Chamaeleo* and four *Anolis* species), and only three extend into areas below 0 °C (*L. tenuis*, *Chamaeleo hoehnelii* and *C. schubotzi*). In all cases, the area affected is orders of magnitude smaller than for the green anole. Further, although SquamBase classifies *L. tenuis* as exclusively arboreal, this species adopts a saxicolous/terrestrial strategy in many parts of its range.
 
 ```{r plot-by-substrate}
+#| code-summary: "Plot climatic overfilling by substrate type"
 #| fig-align: "center"
 #| fig-width: 10
 #| fig-height: 5
@@ -954,11 +997,12 @@ ggarrange(
 
 ## Tables
 
-We table the average, minimum and maximum CT<sub>min</sub> and BIO6 values for each 0.1° latitude band across the range of the green anole.
+Below we table the "overfilling" results of all 181 lizard species. All areas are expressed in millions of km<sup>2</sup>.
 
-Table "overfilling" results by family and genus
+First, we table the average "overfilling" results by family and genus.
 
 ```{r lizard-climatic-overfilling-table-family-genus}
+#| code-summary: "Table overfilling results by family and genus"
 
 lizard_climatic_overfilling |>
   mutate(
@@ -1006,9 +1050,10 @@ lizard_climatic_overfilling |>
 
 ```
 
-Last we table to "overfilling" results for all species
+Lastly, we table the "overfilling" results for every species (Table S3 in the manuscript).
 
 ```{r lizard-climatic-overfilling-table}
+#| code-summary: "Table overfilling results by species"
 
 lizard_climatic_overfilling |>
   mutate(
