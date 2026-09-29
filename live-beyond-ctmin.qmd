@@ -145,7 +145,7 @@ ggplot() +
 Below, we perform a linear regression to test whether CT<sub>min</sub> and BIO6 scale with latitude at the same rate. We combine both types of temperature values into a single dataset and fit the following model:
 
 $$
-T \sim Normal(t_i, \sigma)
+T_i \sim Normal(t_i, \sigma)
 $$
 
 $$
@@ -170,16 +170,40 @@ combined_df <- bind_rows(bio6_df_model, ctmin_model)
 
 # fit linear model with interaction between latitude and type
 lat_temp_model <- lm(temp ~ lat * type, data = combined_df)
-summary(lat_temp_model)
+lat_temp_fit <- broom::glance(lat_temp_model)
 
-broom::tidy(lat_temp_model)
-broom::glance(lat_temp_model) |>
-  pivot_longer(
-    cols = everything(),
-    names_to = "stat",
-    values_to = "value"
+# table model coefficients
+broom::tidy(lat_temp_model) |>
+  mutate(
+    term = c(
+      "Intercept (&alpha;)",
+      "Latitude (&beta;<sub>L</sub>)",
+      "CT<sub>min</sub> (&beta;<sub>C</sub>)",
+      "Latitude &times; CT<sub>min</sub> (&beta;<sub>L&middot;C</sub>)"
+    ),
+    across(c(estimate, std.error, statistic), ~ round(.x, 3)),
+    p.value = ifelse(
+      p.value < 0.0001, "< 0.0001", as.character(round(p.value, 4))
+    )
+  ) |>
+  kbl(
+    col.names = c("Term", "Estimate", "SE", "t", "p"),
+    escape = FALSE,
+    align = "lcccc"
+  ) |>
+  kable_styling(
+    full_width = FALSE,
+    position = "center"
+  ) |>
+  footnote(
+    general = paste0(
+      "N = ", lat_temp_fit$nobs,
+      "; R<sup>2</sup> = ", round(lat_temp_fit$r.squared, 3),
+      "; residual SE = ", round(lat_temp_fit$sigma, 3)
+    ),
+    general_title = "",
+    escape = FALSE
   )
-
 ```
 
 The interaction between latitude and type is positive ($\beta_{L \cdot C}$ = `{r} round(lat_temp_model$coefficients["lat:typectmin"], 3)`) and significant (p `{r} ifelse(summary(lat_temp_model)$coefficients["lat:typectmin", "Pr(>|t|)"] < 0.0001, "< 0.0001", paste("=", round(summary(lat_temp_model)$coefficients["lat:typectmin", "Pr(>|t|)"], 4)))`), indicating that CT<sub>min</sub> does not decrease with latitude as BIO6 does. This suggests that green anoles are living in climates colder than their physiological cold tolerance.
@@ -230,15 +254,16 @@ ctmin_gradient |>
     across(
       c(mean_ctmin, sd_ctmin, mean_bio6, min_bio6, max_bio6),
       ~ round(.x, 2)
-    )
+    ),
+    lat = round(lat, 2)
   ) |>
   select(
     site, lat, n, mean_ctmin, sd_ctmin, mean_bio6, min_bio6, max_bio6
   ) |>
   kbl(
     col.names = c(
-      "Site", "Latitude (°N)", "N", "Mean CT[min] (°C)",
-      "SD CT[min] (°C)", "Mean BIO6 (°C)", "Min BIO6 (°C)", "Max BIO6 (°C)"
+      "Site", "Latitude (°N)", "N", "Mean CT<sub>min</sub> (°C)",
+      "SD CT<sub>min</sub> (°C)", "Mean BIO6 (°C)", "Min BIO6 (°C)", "Max BIO6 (°C)"
     ),
     escape = FALSE,
     align = "c"
@@ -261,10 +286,10 @@ Below we present the structure of the resulting dataset, which is stored in the 
 #| code-fold: false
 
 ctmin_lizards <- readRDS("data/ctmin_lizards.rds")
-ctmin_lizards
+glimpse(ctmin_lizards)
 ```
 
-Below we combine data on the CT<sub>min</sub> and elevational limits of globally distributed lizards to find the total area and proportion of each species' range that is below their CT<sub>min</sub> and below 0°C. We also calculate the maximum latitude at which each species can occur above their CT<sub>min</sub> and above 0°C.
+Below we combine data on the CT<sub>min</sub> and elevational limits of globally distributed lizards to find the total area and proportion of each species' range that is below their CT<sub>min</sub> and below 0 °C. We also calculate the maximum latitude at which each species can occur above their CT<sub>min</sub> and above 0 °C.
 
 For each species, we:
 
@@ -293,7 +318,7 @@ ranges <- readRDS("raw_data/ranges_vector.rds")
 # filter ranges to only include lizard species with CTmin data
 ctmin_lizards_ranges <- ranges[ranges$TaxonID %in% ctmin_lizards$gard_id, ]
 
-# define function to conver lat-lon degree cell to km^2
+# define function to convert lat-lon degree cell to km^2
 deg_to_area <- function(lat, delta_lat = 2.5 / 60, delta_lon = 2.5 / 60) {
   
   # unit conversions
@@ -344,7 +369,7 @@ for (i in seq_along(ctmin_lizards$gard_id)) {
       elev_crop[] <= max_elev
   )
 
-  # filter valid cells in BIo6 raster
+  # filter valid cells in BIO6 raster
   bio6_crop_filtered <- bio6_crop[valid_cells]
   bio6_crop_filtered <- bio6_crop_filtered$bio_6
 
@@ -477,30 +502,29 @@ caro_z_scores |>
   ) |>
   mutate(
     metric = case_when(
-      var == "below_ctmin_prop" ~ "Proportion of range below CT[min]",
-      var == "below_0_prop" ~ "Proportion of range below 0°C",
-      var == "below_ctmin_area" ~ "Area of range below CT[min] (km^2)",
-      var == "below_0_area" ~ "Area of range below 0°C (km^2)"
+      var == "below_ctmin_prop" ~ "Proportion of range below CT<sub>min</sub>",
+      var == "below_0_prop" ~ "Proportion of range below 0 °C",
+      var == "below_ctmin_area" ~ "Area of range below CT<sub>min</sub> (km<sup>2</sup>)",
+      var == "below_0_area" ~ "Area of range below 0 °C (km<sup>2</sup>)"
     )
   ) |>
   select(metric, anolis, arboreal, all) |>
   kbl(
     col.names = c(
-      "Metric", "Z-score (relative to Anolis genus)",
+      "Metric", "Z-score (relative to <i>Anolis</i> genus)",
       "Z-score (relative to arboreal lizards)",
       "Z-score (relative to all lizards)"
     ),
     escape = FALSE,
-    align = "c"
+    align = "lccc"
   ) |>
   kable_styling(
     full_width = FALSE,
     position = "center"
   )
-
 ```
 
-We find that *A. carolinensis* has a much greater proportion and area of its range below CT<sub>min</sub> and below 0°C than other *Anolis* and other arboreal lizards, indicating that it is an exceptional case of climatic overfilling. Relative to all lizards, the green anole's Z-scores are close to 0, as its overfilling resembles that of terrestrial, fossorial or saxicolous species living in colder climates, which can shelter from the cold in underground refuges.
+We find that *A. carolinensis* has a much greater proportion and area of its range below CT<sub>min</sub> and below 0 °C than other *Anolis* and other arboreal lizards, indicating that it is an exceptional case of climatic overfilling. Relative to all lizards, the green anole's Z-scores are close to 0, as its overfilling resembles that of terrestrial, fossorial or saxicolous species living in colder climates, which can shelter from the cold in underground refuges.
 
 ### Plots
 
@@ -712,7 +736,8 @@ areas <- range_data |>
   ) +
   scale_y_continuous(
     trans = "log10", 
-    breaks = c(1, 10, 100, 1000, 10000, 100000, 1000000, 10000000)
+    breaks = c(1, 10, 100, 1000, 10000, 100000, 1000000, 10000000),
+    labels = scales::label_log()
   ) +
   scale_color_manual(
     values = c(
@@ -769,7 +794,7 @@ Only a few other arboreal species have ranges that extend into areas below their
 ```{r plot-by-substrate}
 #| code-summary: "Plot climatic overfilling by substrate type"
 #| fig-align: "center"
-#| fig-width: 10
+#| fig-width: 9
 #| fig-height: 5
 
 # get substrate data and colors
@@ -832,11 +857,11 @@ lat_temps_substrate <- ggplot() +
     )
   ) +
   scale_y_continuous(
-    breaks = seq(-10, 20, 5), labels = paste0(seq(-10, 20, 5), " °C"),
+    breaks = seq(-10, 20, 5),
     expand = c(0, 0)
   ) +
   scale_x_continuous(
-    breaks = seq(0, 70, 10), labels = paste0(seq(0, 70, 10), "°"),
+    breaks = seq(0, 70, 10),
     expand = c(0, 0)
   ) +
   coord_cartesian(
@@ -850,11 +875,14 @@ lat_temps_substrate <- ggplot() +
     legend.background = element_rect(
       fill = "white", color = "gray", linewidth = 0.5
     ),
-    axis.title.y = element_blank(), axis.text = element_text(size = 10),
-    legend.text = element_text(size = 10),
+    axis.text = element_text(size = 10),
+    legend.text = element_text(size = 12),
     legend.title = element_blank()
   ) +
-  labs(x = "Absolute Latitude")
+  labs(
+    x = "Absolute Latitude (°)",
+    y = "Physiological cold tolerance (°C)"
+  )
 
 make_substrate_plot <- function(data, metric_type, y_label) {
   data |>
@@ -979,10 +1007,11 @@ areas_substrate <- substrate_data |>
       metric %in% c("below_0_prop", "below_0_area") ~ "0°C"
     )
   ) |>
-  make_substrate_plot("Area", "Area of range (km^2)") +
+  make_substrate_plot("Area", expression("Area of range (km"^2*")")) +
   scale_y_continuous(
     trans = "log10",
-    breaks = c(1, 10, 100, 1000, 10000, 100000, 1000000, 10000000)
+    breaks = c(1, 10, 100, 1000, 10000, 100000, 1000000, 10000000),
+    labels = scales::label_log()
   )
 
 ggarrange(
@@ -999,7 +1028,11 @@ ggarrange(
 
 Below we table the "overfilling" results of all 181 lizard species. All areas are expressed in millions of km<sup>2</sup>.
 
-First, we table the average "overfilling" results by family and genus.
+::: {.panel-tabset}
+
+### By family and genus
+
+We table the average "overfilling" results by family and genus.
 
 ```{r lizard-climatic-overfilling-table-family-genus}
 #| code-summary: "Table overfilling results by family and genus"
@@ -1010,11 +1043,9 @@ lizard_climatic_overfilling |>
     species = gsub(".* ", "", species)
   ) |>
   mutate(
-    below_ctmin_prop = round(below_ctmin_prop, 2),
-    below_0_prop = round(below_0_prop, 2),
-    below_ctmin_area = round(below_ctmin_area / 1e6, 4),
-    below_0_area = round(below_0_area / 1e6, 4),
-    total_area = round(total_area / 1e6, 4)
+    below_ctmin_area = below_ctmin_area / 1e6,
+    below_0_area = below_0_area / 1e6,
+    total_area = total_area / 1e6
   ) |>
   group_by(family, genus) |>
   summarise(
@@ -1033,24 +1064,26 @@ lizard_climatic_overfilling |>
     )
   ) |>
   arrange(family, genus) |>
-  kable(
+  mutate(genus = paste0("<i>", genus, "</i>")) |>
+  kbl(
     col.names = c(
       "Family", "Genus",
-      "Proportion < CTmin",
-      "Proportion < 0°C", "Area < CTmin (10⁶ km²)",
-      "Area < 0°C (10⁶ km²)", "Total area (10⁶ km²)"
-    )
+      "Proportion < CT<sub>min</sub>",
+      "Proportion < 0 °C", "Area < CT<sub>min</sub> (10<sup>6</sup> km<sup>2</sup>)",
+      "Area < 0 °C (10<sup>6</sup> km<sup>2</sup>)", "Total area (10<sup>6</sup> km<sup>2</sup>)"
+    ),
+    escape = FALSE
   ) |>
   kable_styling(
     full_width = FALSE,
     position = "center"
-  )
-  
-
-
+  ) |>
+  scroll_box(height = "500px")
 ```
 
-Lastly, we table the "overfilling" results for every species (Table S3 in the manuscript).
+### By species
+
+We table the "overfilling" results for every species (Table S3 in the manuscript).
 
 ```{r lizard-climatic-overfilling-table}
 #| code-summary: "Table overfilling results by species"
@@ -1073,16 +1106,24 @@ lizard_climatic_overfilling |>
     below_ctmin_area, below_0_area, total_area
   ) |>
   arrange(genus, species) |>
-  kable(
+  mutate(
+    genus = paste0("<i>", genus, "</i>"),
+    species = paste0("<i>", species, "</i>")
+  ) |>
+  kbl(
     col.names = c(
       "Family", "Genus", "Species",
-      "Proportion < CTmin",
-      "Proportion < 0°C", "Area < CTmin (10⁶ km²)",
-      "Area < 0°C (10⁶ km²)", "Total area (10⁶ km²)"
-    )
+      "Proportion < CT<sub>min</sub>",
+      "Proportion < 0 °C", "Area < CT<sub>min</sub> (10<sup>6</sup> km<sup>2</sup>)",
+      "Area < 0 °C (10<sup>6</sup> km<sup>2</sup>)", "Total area (10<sup>6</sup> km<sup>2</sup>)"
+    ),
+    escape = FALSE
   ) |>
   kable_styling(
     full_width = FALSE,
     position = "center"
-  )
+  ) |>
+  scroll_box(height = "500px")
 ```
+
+:::

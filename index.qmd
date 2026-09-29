@@ -8,6 +8,47 @@ format:
 
 ## Overview
 
+![**Figure 1.** Accounting for the American green anole's (*Anolis carolinensis*) capacity to behaviorally exploit leaf-litter microclimates reconciles the apparent mismatch between its realized and fundamental cold-tolerance niche. (A) If we only consider estimates of lizard body temperatures (i.e., operative temperatures) in the above-ground canopy where anoles typically perch, the species' range limit (solid green line) inexplicably extends into areas where minimum annual body temperatures would fall below its critical thermal minimum (CT<sub>min</sub>; light blue) and even below freezing (dark blue). (B) However, accounting for behavioral thermoregulation resolves this paradox: mapping lizard body temperatures within the leaf litter shows that the species' poleward range edge aligns cleanly with areas where subsurface temperatures fall below zero. (D) At lower latitudes within the green anole's range (e.g., Miami), canopy temperatures rarely drop below CT<sub>min</sub>, allowing lizards to retain their ancestral behavior of sleeping in branches (E) without physiological stress. In contrast, at higher latitudes (e.g., Atlanta), canopy temperatures regularly drop below zero during winter, forcing lizards to retreat into the thermally buffered leaf litter (F) to avoid lethal cold. Notably, tree cover (C) also acts as a crucial spatial determinant of this distribution, providing both active-season structural habitat and the leaf litter needed for thermal winter refuge. Credit to Jon Suh (E) and Flown Kimmerling (F). The code used to plot panels A-D is in `raw_data/plot-figure-1.R`.](images/figure_1.jpg){fig-align="center"}
+
+:::: {.columns}
+
+::: {.column width="49%"}
+```{=html}
+<div id="carousel-canopy" class="carousel slide" data-bs-ride="carousel">
+  <div class="carousel-inner">
+    <div class="carousel-item active"><img src="images/sleepy_anole_jon_suh.jpg" class="d-block w-100 anole-img" alt="Green anole sleeping on a leaf"></div>
+    <div class="carousel-item"><img src="images/sleepy_anole_jon_suh_2.jpg" class="d-block w-100 anole-img" alt="Green anole sleeping on a leaf"></div>
+    <div class="carousel-item"><img src="images/sleepy_anole_jon_suh_3.jpg" class="d-block w-100 anole-img" alt="Green anole sleeping on a branch"></div>
+  </div>
+  <button class="carousel-control-prev" type="button" data-bs-target="#carousel-canopy" data-bs-slide="prev"><span class="carousel-control-prev-icon"></span></button>
+  <button class="carousel-control-next" type="button" data-bs-target="#carousel-canopy" data-bs-slide="next"><span class="carousel-control-next-icon"></span></button>
+</div>
+```
+<p class="text-center small">Sleeping in the canopy (photos: Jon Suh)</p>
+:::
+
+::: {.column width="2%"}
+:::
+
+::: {.column width="49%"}
+```{=html}
+<div id="carousel-litter" class="carousel slide" data-bs-ride="carousel">
+  <div class="carousel-inner">
+    <div class="carousel-item active"><img src="images/inat_obs_flown_kimmerling.jpg" class="d-block w-100 anole-img" alt="Green anole in the leaf litter"></div>
+    <div class="carousel-item"><img src="images/inat_obs_flown_kimmerling_2.jpg" class="d-block w-100 anole-img" alt="Green anole in the leaf litter"></div>
+    <div class="carousel-item"><img src="images/inat_obs_sharon_watson.jpg" class="d-block w-100 anole-img" alt="Green anole in the leaf litter"></div>
+    <div class="carousel-item"><img src="images/inat_obs_sharon_watson_2.jpg" class="d-block w-100 anole-img" alt="Green anole in the leaf litter"></div>
+    <div class="carousel-item"><img src="images/inat_obs_3.jpeg" class="d-block w-100 anole-img" alt="Green anoles on the ground"></div>
+  </div>
+  <button class="carousel-control-prev" type="button" data-bs-target="#carousel-litter" data-bs-slide="prev"><span class="carousel-control-prev-icon"></span></button>
+  <button class="carousel-control-next" type="button" data-bs-target="#carousel-litter" data-bs-slide="next"><span class="carousel-control-next-icon"></span></button>
+</div>
+```
+<p class="text-center small">In the leaf litter (photos from iNaturalist: <a href="https://www.inaturalist.org/observations/11361735">Flown Kimmerling</a>, <a href="https://www.inaturalist.org/observations/71590310">Sharon Watson</a>, <a href="https://www.inaturalist.org/observations/261977666">Grant Foster</a>)</p>
+:::
+
+::::
+
 This website contains the supplementary code and data for our manuscript on how the American green anole (*Anolis carolinensis*) managed to expand its range from the tropics into temperate North America.
 
 The green anole descends from a tropical Cuban clade of arboreal lizards and is the only one of the >400 species in the *Anolis* genus to have colonized temperate environments. Yet, its physiological cold tolerance (i.e., its critical thermal minimum, CT<sub>min</sub>) barely changes across its range, and most of its range regularly experiences temperatures below its CT<sub>min</sub>, and even below freezing. Here, we show that the green anole resolves this paradox through behavior rather than physiology. In winter, northern populations abandon their arboreal niche and retreat into the leaf litter of the forest floor, which buffers them from lethal cold. Accounting for this behavior, rather than above-ground temperatures alone, predicts the green anole's poleward range limit.
@@ -51,311 +92,3 @@ The following datasets are used in this analysis and included in the `data` fold
 - `tss_grid.rds` - Output of the mechanistic envelope models: true skill statistic (TSS) for every combination of spatial extent, microclimate and forest cover threshold.
 
 The raw data used to build these datasets (e.g., WorldClim and land cover rasters, GARD range maps, raw iButton files) are large and are not included in this repository. The scripts used to process them are stored in the `raw_data` folder alongside the raw files.
-
-## Figure 1
-
-Below we reproduce the panels of Figure 1 of the manuscript. We first load the packages needed on this page.
-
-```{r r-setup, warning = FALSE, message = FALSE}
-#| code-summary: "R setup"
-
-# packages
-library(tidyverse)
-library(kableExtra)
-library(viridis)
-library(ggpubr)
-library(ggtext)
-
-# options
-options(
-  dplyr.summarise.inform = FALSE,
-  knitr.table.html.attr = "quarto-disable-processing=true"
-)
-```
-
-We map the minimum annual body temperatures (i.e., operative temperatures) that a green anole would experience when sleeping in the canopy (at 1.8 m) or buried 4 cm deep in the leaf litter, estimated with the biophysical models described in [Leaf litter temperatures predict the green anole's poleward range limit](leaf-litter-temps-range.qmd). If we only consider canopy temperatures, the green anole's range (green line) extends well into areas where body temperatures would fall below CT<sub>min</sub> and even below 0 °C. In contrast, the poleward edge of the range closely matches the 0 °C isotherm of body temperatures in the leaf litter.
-
-```{r plot-maps}
-#| code-summary: "Plot minimum annual body temperatures in the canopy and leaf litter"
-#| fig-align: "center"
-#| fig-height: 7.5
-
-# load data
-micro_df <- readRDS("data/micro_df.rds")
-
-# plot temperature maps
-micro_df |>
-  filter(as.character(z) %in% c("-0.04", "1.8")) |>
-  mutate(
-    z = factor(
-      z,
-      levels = c("1.8", "-0.04"),
-      labels = c(
-        "Lizard Body Temperature in <span style='color: forestgreen;'><b>Canopy</b></span>",
-        "Lizard Body Temperature in <span style='color: darkorange;'><b>Leaf Litter</b></span>"
-      )
-    )
-  ) |>
-  ggplot(aes(x = lon, y = lat)) +
-  geom_tile(aes(fill = min_annual_body_temp)) +
-  geom_tile(
-    data = micro_df |>
-      select(lon, lat, presence) |>
-      distinct() |> 
-      filter(presence == 1),
-    aes(x = lon, y = lat),
-    fill = "forestgreen",
-    alpha = 0.2
-  ) +
-  geom_contour(
-    aes(x = lon, y = lat, z = presence, color = "Range"),
-    linewidth = 0.5
-  ) +
-  geom_contour(
-    aes(x = lon, y = lat, z = min_annual_body_temp, color = "0 °C"),
-    breaks = c(0),
-    linewidth = 1
-  ) +
-  geom_contour(
-    aes(x = lon, y = lat, z = min_annual_body_temp, color = "CTmin"),
-    breaks = c(6.8),
-    linewidth = 1
-  ) +
-  scale_color_manual(
-    name = NULL,
-    values = c(
-      "0 °C" = "steelblue4",
-      "CTmin" = "skyblue",
-      "Range" = "forestgreen"
-    ),
-    breaks = c("0 °C", "CTmin", "Range"),
-    labels = expression(bold("0 °C"), bold(CT[min]), bold("Range"))
-  ) +
-  scale_fill_viridis(
-    option = "magma",
-    guide = guide_colorbar(
-      title.position = "top",
-      label.position = "left",
-      barheight = unit(5, "cm")
-    ),
-    breaks = seq(-10, 25, 10),
-    labels = paste0(seq(-10, 25, 10), " °C"),
-  ) +
-  scale_x_continuous(
-    breaks = seq(-100, -70, 5),
-    labels = paste0(seq(100, 70, -5), "°W"),
-    expand = c(0, 0)
-  ) +
-  scale_y_continuous(
-    breaks = seq(0, 45, 2.5),
-    labels = paste0(seq(0, 45, 2.5), "°N"),
-    expand = c(0, 0)
-  ) +
-  facet_wrap(
-    ~ z,
-    ncol = 1,
-    axes = "all"
-  ) +
-  coord_quickmap(xlim = c(-101, -75), ylim = c(24, 38)) +
-  theme_minimal() +
-  guides(
-    color = guide_legend(
-      label.position = "left",
-      override.aes = list(linewidth = 2),
-      theme = theme(
-        legend.text = element_text(size = 18, face = "bold"),
-        legend.key.spacing.y = unit(0.5, "cm")
-      )
-    )
-  ) +
-  theme(
-    legend.position = "left",
-    legend.box = "vertical",
-    legend.box.just = "left",
-    legend.box.spacing = unit(0.1, "cm"),
-    legend.key.width = unit(0.5, "cm"),
-    legend.text = element_text(size = 10),
-    legend.title = element_blank(),
-    panel.grid = element_blank(),
-    axis.title = element_blank(),
-    panel.border = element_rect(fill = NA, color = "black", linewidth = 0.5),
-    axis.ticks = element_line(color = "black", linewidth = 0.25),
-    strip.text = ggtext::element_markdown(size = 16, hjust = 0.5),
-    plot.margin = margin(r = 10, t = -100, b = -100, l = 10)
-  )
-```
-
-Forest cover also shapes where green anoles occur, as it provides both the arboreal habitat lizards use during the active season and the leaf litter they retreat to in winter. Below we map forest cover across the same region.
-
-```{r plot-veg-map}
-#| code-summary: "Plot forest cover"
-#| fig-align: "center"
-#| fig-height: 5
-
-# plot vegetation map
-micro_df |>
-  filter(z == 0) |>
-  ggplot(aes(x = lon, y = lat)) +
-  geom_tile(aes(fill = veg)) +
-  geom_contour(
-    aes(x = lon, y = lat, z = presence),
-    color = "black",
-    linewidth = 0.5
-  ) +
-  scale_fill_gradient(
-    low = "lightgoldenrod1",
-    high = "darkgreen",
-    guide = guide_colorbar(
-      title.position = "top",
-      label.position = "left",
-      barheight = unit(5, "cm")
-    ),
-    breaks = seq(0, 1, 0.2),
-    labels = paste0(seq(0, 1, 0.2) * 100, "%"),
-  ) +
-  scale_x_continuous(
-    breaks = seq(-100, -70, 5),
-    labels = paste0(seq(100, 70, -5), "°W"),
-    expand = c(0, 0)
-  ) +
-  scale_y_continuous(
-    breaks = seq(0, 45, 2.5),
-    labels = paste0(seq(0, 45, 2.5), "°N"),
-    expand = c(0, 0)
-  ) +
-  coord_quickmap(xlim = c(-101, -75), ylim = c(24, 38)) +
-  theme_minimal() +
-  guides(
-    color = guide_legend(
-      label.position = "left",
-      override.aes = list(linewidth = 2),
-      theme = theme(
-        legend.text = element_text(size = 14),
-        legend.key.spacing.y = unit(0.5, "cm")
-      )
-    )
-  ) +
-  theme(
-    legend.position = "left",
-    legend.box = "vertical",
-    legend.box.just = "left",
-    legend.box.spacing = unit(0.1, "cm"),
-    legend.key.width = unit(0.5, "cm"),
-    legend.text = element_text(size = 10),
-    legend.title = element_blank(),
-    panel.grid = element_blank(),
-    axis.title = element_blank(),
-    panel.border = element_rect(fill = NA, color = "black", linewidth = 0.5),
-    axis.ticks = element_line(color = "black", linewidth = 0.25),
-    strip.text = ggtext::element_markdown(size = 16, hjust = 0.5),
-    plot.title = element_text(size = 17, hjust = 0.5),
-    plot.margin = margin(r = 10, t = -10, b = -10, l = 10)
-  ) +
-  labs(
-    title = "Tree Cover"
-  )
-```
-
-Lastly, we compare the daily dynamics of operative temperatures in the canopy and the leaf litter on a winter day (January 19, 2026) at the southern (Miami) and northern (Atlanta) ends of our OTM network. Shaded areas represent the mean ± SD of hourly temperatures across all OTMs deployed in each microhabitat. In Miami, canopy temperatures stay above CT<sub>min</sub> overnight, so lizards can keep sleeping on branches. In Atlanta, canopy temperatures fall below 0 °C overnight, while the leaf litter remains several degrees warmer and above freezing.
-
-```{r plot-example-otm-dynamic}
-#| code-summary: "Plot daily operative temperatures in Miami and Atlanta"
-#| fig-align: "center"
-#| fig-width: 7
-#| fig-height: 4
-
-# read data
-otm_data <- readRDS("data/otms-data.rds")
-
-# plot example OTM dynamic
-otm_data |>
-  filter(location %in% c("ATL", "MIA")) |>
-  mutate(
-    location = factor(
-      location,
-      levels = c("MIA", "ATL"),
-      labels = c("Miami (25.7 °N)", "Atlanta (33.7 °N)")
-    )
-  ) |>
-  filter(doy == 19) |>
-  mutate(hour = round(mod / 60)) |>
-  group_by(location, microhabitat, hour) |>
-  summarise(
-    mean_temp = mean(temp, na.rm = TRUE),
-    sd_temp = sd(temp, na.rm = TRUE),
-  ) |>
-  ggplot(aes(x = hour, y = mean_temp, color = microhabitat)) +
-  annotate(
-    "segment",
-    x = -Inf,
-    xend = Inf,
-    y = 0,
-    yend = 0,
-    linetype = 2,
-    color = "steelblue4"
-  ) +
-  annotate(
-    "text",
-    x = 18,
-    y = 7.3,
-    label = expression(bold(CT[min])),
-    color = "skyblue",
-    hjust = 0,
-    vjust = 0,
-    size = 5
-  ) +
-  annotate(
-    "segment",
-    x = -Inf,
-    xend = Inf,
-    y = 6.8,
-    yend = 6.8,
-    linetype = 2,
-    color = "skyblue"
-  ) +
-  geom_ribbon(
-    aes(
-      ymin = mean_temp - sd_temp,
-      ymax = mean_temp + sd_temp,
-      fill = microhabitat
-    ),
-    alpha = 0.2
-  ) +
-  scale_fill_manual(
-    values = c("forestgreen", "darkorange"),
-    labels = c("Canopy", "Leaf Litter"),
-    name = NULL
-  ) +
-  scale_color_manual(
-    values = c("forestgreen", "darkorange"),
-    labels = c("Canopy", "Leaf Litter"),
-    name = NULL
-  ) +
-  facet_wrap(~location, axes = "all", ncol = 2, as.table = TRUE) +
-  theme_minimal() +
-  scale_x_continuous(
-    breaks = seq(0, 24, 6),
-    labels = paste0(seq(0, 24, 6), ":00"),
-    expand = c(0, 0)
-  ) +
-  theme(
-    panel.border = element_rect(fill = NA, color = "black", linewidth = 0.5),
-    axis.ticks = element_line(color = "black", linewidth = 0.25),
-    strip.text = element_text(size = 12, hjust = 0.5, face = "bold"),
-    legend.position = "inside",
-    legend.position.inside = c(1, 1),
-    legend.justification = c(1, 1),
-    legend.background = element_blank(),
-    legend.text = element_text(size = 14),
-    panel.grid = element_blank(),
-    axis.text = element_text(size = 10),
-    axis.title.x = element_blank(),
-    axis.title.y = element_text(size = 14),
-    panel.spacing = unit(1, "lines"),
-    plot.margin = margin(r = 15, l = 10, b = 5)
-  ) +
-  labs(
-    y = "Lizard Body Temperature (°C)"
-  )
-
-```

@@ -35,3 +35,6 @@ knitr:
   opts_chunk:
     dev: png
     dpi: 350
+execute:
+  warning: false
+  message: false

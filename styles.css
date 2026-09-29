@@ -36,3 +36,8 @@
   margin: 0 auto !important;
 }
 
+
+.anole-img {
+  height: 300px;
+  object-fit: cover;
+}
