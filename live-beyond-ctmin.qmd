@@ -37,14 +37,8 @@ Below we demonstrate how the critical thermal minimum (CT<sub>min</sub>) of gree
 
 We collected the CT<sub>min</sub> data from 7 locations across the range of *A. carolinensis*. To measure CT<sub>min</sub>, we fitted lizards with a cloacal thermocouple probe, secured it to the base of the tail with surgical tape, and placed them in an experimental chamber submerged in an ice-water bath. Once internal body temperature stabilized after handling, we gradually cooled lizards and, starting at ~15 °C, evaluated the righting reflex at 0.2 °C intervals by placing the lizard on its dorsum and applying gentle pressure to the hind limbs. We recorded CT<sub>min</sub> as the core body temperature at which an individual completely lost the capacity to right itself. We also extracted the minimum temperature of the coldest month (BIO6) from WorldClim and obtained the average, minimum and maximum BIO6 values for each 0.1° latitude band within a bounding box defined by the locations where we measured CT<sub>min</sub> (+1° in each cardinal direction; +0.5° to the north).
 
-The figure below (Fig. S2 in the manuscript) shows that while BIO6 decreases with latitude, CT<sub>min</sub> does not follow this trend, indicating that green anoles are living in climates colder than their physiological cold tolerance.
-
-```{r ctmin-does-not-scale-with-climate-process-plot}
-#| code-summary: "Process BIO6 data and plot CTmin and BIO6 across latitudes"
-#| fig-align: "center"
-#| fig-width: 5
-#| fig-height: 5
-#| out-width: "50%"
+```{r ctmin-does-not-scale-with-climate-process}
+#| code-summary: "Process CTmin and BIO6 data"
 
 # read CTmin data
 ctmin_gradient <- readRDS("data/ctmin_gradient.rds")
@@ -74,6 +68,197 @@ bio6_df <- bio6_df |>
     min_bio6 = min(bio6, na.rm = TRUE),
     .groups = "drop"
   )
+```
+
+Below, we fit a linear mixed model to test whether CT<sub>min</sub> and BIO6 scale with latitude at the same rate. Because CT<sub>min</sub> was measured on several individuals per location, we treat individuals from the same population as not independent observations, and include a random intercept for population that applies only to the CT<sub>min</sub> observations, so that the effect of latitude on CT<sub>min</sub> is evaluated against among-population variation. We also allow the residual variance to differ between BIO6 and CT<sub>min</sub>, as BIO6 values are latitude-band averages while CT<sub>min</sub> values are individual measurements. We combine both types of temperature values into a single dataset and fit the following model:
+
+$$
+T_i \sim Normal(t_i, \sigma_{C[i]})
+$$
+
+$$
+t_i = \alpha + \beta_L \cdot L_i + \beta_C \cdot C_i + \beta_{L \cdot C} \cdot L_i \cdot C_i + \gamma_{P[i]} \cdot C_i
+$$
+
+$$
+\gamma_P \sim Normal(0, \sigma_P)
+$$
+
+where temperature ($T$) depends on latitude ($L$), an indicator variable ($C$) identifying the nature of the temperature values ($C = 0$ for BIO6 and $C = 1$ for CT<sub>min</sub>), and their interaction. $\gamma_P$ is the random intercept of population $P$ (CT<sub>min</sub> observations only), with among-population standard deviation $\sigma_P$, and $\sigma_C$ is the residual standard deviation, estimated separately for BIO6 and CT<sub>min</sub>. If the interaction term ($\beta_{L \cdot C}$) is positive and significant, CT<sub>min</sub> scales with latitude at a significantly shallower rate than BIO6. We fit the model by restricted maximum likelihood with the `nlme` package; denominator degrees of freedom for terms involving CT<sub>min</sub> are based on the number of populations. The results of this model are presented in Table S2 of the manuscript.
+
+```{r ctmin-does-not-scale-with-climate-stats}
+#| code-summary: "Linear mixed model of CTmin and BIO6 across latitudes"
+#| results: asis
+
+# prepare data
+bio6_df_model <- bio6_df |>
+  select(lat, mean_bio6) |>
+  rename(temp = mean_bio6) |>
+  mutate(type = "bio6", site = "bio6")
+ctmin_model <- ctmin_gradient |>
+  select(lat, ctmin, site) |>
+  rename(temp = ctmin) |>
+  mutate(type = "ctmin", site = as.character(site))
+combined_df <- bind_rows(bio6_df_model, ctmin_model) |>
+  mutate(
+    type = factor(type, levels = c("bio6", "ctmin")),
+    is_ctmin = as.numeric(type == "ctmin")
+  )
+
+# fit linear mixed model with interaction between latitude and type, a
+# population random intercept for CTmin only and type-specific residual SDs
+lat_temp_model <- nlme::lme(
+  temp ~ lat * type,
+  random = ~ 0 + is_ctmin | site,
+  weights = nlme::varIdent(form = ~ 1 | type),
+  data = combined_df
+)
+lat_temp_coefs <- summary(lat_temp_model)$tTable
+
+# refit the same model with a separate intercept and latitude slope per type to
+# get the latitudinal slope of each type (BIO6 = beta_L; CTmin = beta_L +
+# beta_LC) with its SE, test and 95% CI
+lat_slopes_model <- nlme::lme(
+  temp ~ 0 + type + type:lat,
+  random = ~ 0 + is_ctmin | site,
+  weights = nlme::varIdent(form = ~ 1 | type),
+  data = combined_df
+)
+lat_slopes <- summary(lat_slopes_model)$tTable
+lat_slopes_ci <- nlme::intervals(lat_slopes_model, which = "fixed")$fixed
+
+# extract random effect and residual SDs
+sd_pop <- as.numeric(nlme::VarCorr(lat_temp_model)["is_ctmin", "StdDev"])
+sd_resid <- lat_temp_model$sigma *
+  coef(
+    lat_temp_model$modelStruct$varStruct,
+    unconstrained = FALSE, allCoef = TRUE
+  )
+
+# helpers to format p-values and build each table section
+format_p <- function(p) {
+  ifelse(p < 0.0001, "< 0.0001", sprintf("%.4f", p))
+}
+make_section <- function(df, caption, col_names, align) {
+  df |>
+    kbl(
+      caption = caption,
+      col.names = col_names,
+      escape = FALSE,
+      align = align
+    ) |>
+    kable_styling(full_width = FALSE, position = "center")
+}
+
+# table parameter estimates
+table_params <- as_tibble(lat_temp_coefs, rownames = "term") |>
+  mutate(
+    term = c("Intercept", "Latitude", "C", "Latitude &times; C"),
+    symbol = c(
+      "&alpha;", "&beta;<sub>L</sub>", "&beta;<sub>C</sub>",
+      "&beta;<sub>L&middot;C</sub>"
+    ),
+    across(c(Value, Std.Error), ~ sprintf("%.3f", .x)),
+    `t-value` = sprintf("%.2f", `t-value`),
+    `p-value` = format_p(`p-value`)
+  ) |>
+  select(term, symbol, Value, Std.Error, DF, `t-value`, `p-value`) |>
+  make_section(
+    "Parameter estimates",
+    c("Parameter", "Symbol", "Estimate", "Std. Error", "df", "t", "p-value"),
+    "llccccc"
+  )
+
+# table latitudinal slopes by temperature type
+table_slopes <- tibble(
+  type = c(
+    "BIO6 (&beta;<sub>L</sub>)",
+    "CT<sub>min</sub> (&beta;<sub>L</sub> + &beta;<sub>L&middot;C</sub>)"
+  ),
+  slope = sprintf("%.3f", lat_slopes[c("typebio6:lat", "typectmin:lat"), "Value"]),
+  se = sprintf(
+    "%.3f", lat_slopes[c("typebio6:lat", "typectmin:lat"), "Std.Error"]
+  ),
+  ci = paste(
+    sprintf("%.3f", lat_slopes_ci[c("typebio6:lat", "typectmin:lat"), "lower"]),
+    "to",
+    sprintf("%.3f", lat_slopes_ci[c("typebio6:lat", "typectmin:lat"), "upper"])
+  ),
+  df = lat_slopes[c("typebio6:lat", "typectmin:lat"), "DF"],
+  t = sprintf("%.2f", lat_slopes[c("typebio6:lat", "typectmin:lat"), "t-value"]),
+  p = format_p(lat_slopes[c("typebio6:lat", "typectmin:lat"), "p-value"])
+) |>
+  make_section(
+    "Latitudinal slopes by temperature type",
+    c(
+      "Temperature type", "Slope (°C per ° latitude)", "Std. Error",
+      "95% CI", "df", "t", "p-value"
+    ),
+    "lcccccc"
+  )
+
+# table random effects and variance components
+table_variance <- tibble(
+  component = c(
+    "Population (CT<sub>min</sub> only)",
+    "Residual, CT<sub>min</sub>",
+    "Residual, BIO6"
+  ),
+  symbol = c(
+    "&sigma;<sub>P</sub>", "&sigma;<sub>C=1</sub>", "&sigma;<sub>C=0</sub>"
+  ),
+  sd = sprintf("%.3f", c(sd_pop, sd_resid["ctmin"], sd_resid["bio6"]))
+) |>
+  make_section(
+    "Random effects and variance components",
+    c("Component", "Symbol", "SD"),
+    "llc"
+  )
+
+# table model information
+table_info <- tibble(
+  item = c("Observations", "Log-likelihood (REML)", "AIC (REML)"),
+  value = c(
+    paste0(
+      nrow(combined_df), " (", sum(combined_df$type == "ctmin"),
+      " CT<sub>min</sub> from ", n_distinct(ctmin_model$site),
+      " populations; ", sum(combined_df$type == "bio6"),
+      " BIO6 latitude bands)"
+    ),
+    sprintf("%.2f", as.numeric(logLik(lat_temp_model))),
+    sprintf("%.1f", AIC(lat_temp_model))
+  )
+) |>
+  make_section("Model information", c("", ""), "ll")
+
+# print all table sections together
+cat(table_params, table_slopes, table_variance, table_info, sep = "\n")
+```
+
+The interaction between latitude and type is positive ($\beta_{L \cdot C}$ = `{r} round(lat_temp_coefs["lat:typectmin", "Value"], 3)`) and significant (t<sub>`{r} lat_temp_coefs["lat:typectmin", "DF"]`</sub> = `{r} round(lat_temp_coefs["lat:typectmin", "t-value"], 2)`, p `{r} ifelse(lat_temp_coefs["lat:typectmin", "p-value"] < 0.0001, "< 0.0001", paste("=", sprintf("%.4f", lat_temp_coefs["lat:typectmin", "p-value"])))`), indicating that CT<sub>min</sub> does not decrease with latitude as BIO6 does, even after accounting for non-independence among individuals from the same population. Testing each slope directly, BIO6 declines steeply with latitude (`{r} round(lat_slopes["typebio6:lat", "Value"], 2)` °C per degree of latitude; t<sub>`{r} lat_slopes["typebio6:lat", "DF"]`</sub> = `{r} round(lat_slopes["typebio6:lat", "t-value"], 2)`, p `{r} ifelse(lat_slopes["typebio6:lat", "p-value"] < 0.0001, "< 0.0001", paste("=", format_p(lat_slopes["typebio6:lat", "p-value"])))`), whereas CT<sub>min</sub> does not change significantly with latitude (`{r} round(lat_slopes["typectmin:lat", "Value"], 2)` °C per degree of latitude; 95% CI: `{r} round(lat_slopes_ci["typectmin:lat", "lower"], 2)` to `{r} round(lat_slopes_ci["typectmin:lat", "upper"], 2)`; t<sub>`{r} lat_slopes["typectmin:lat", "DF"]`</sub> = `{r} round(lat_slopes["typectmin:lat", "t-value"], 2)`, p `{r} ifelse(lat_slopes["typectmin:lat", "p-value"] < 0.0001, "< 0.0001", paste("=", format_p(lat_slopes["typectmin:lat", "p-value"])))`). This suggests that green anoles are living in climates colder than their physiological cold tolerance.
+
+The figure below (Fig. S2 in the manuscript) shows that while BIO6 decreases with latitude, CT<sub>min</sub> does not follow this trend, indicating that green anoles are living in climates colder than their physiological cold tolerance.
+
+```{r ctmin-does-not-scale-with-climate-plot}
+#| code-summary: "Plot CTmin and BIO6 across latitudes"
+#| fig-align: "center"
+#| fig-width: 5
+#| fig-height: 5
+#| out-width: "50%"
+#| fig-cap: "Latitudinal variation in the minimum temperature of the coldest month (BIO6, shown as Min. Temp.; blue) and the critical thermal minimum (CT<sub>min</sub>; green) of American green anoles (*Anolis carolinensis*). For BIO6, the solid line and shaded area show the mean and range (minimum to maximum) of values within each 0.1° latitude band of a bounding box defined by the locations where we measured CT<sub>min</sub> (extended by 1° to the east, west and south, and 0.5° to the north). For CT<sub>min</sub>, points show individual estimates (jittered horizontally for visibility), and the solid line and shaded area show the predicted latitudinal trend and its 95% confidence interval from a linear mixed model with population as a random effect (Table S2). The dashed line marks 0 °C."
+
+# predict the CTmin latitudinal trend (fixed effects only) and its 95% CI from
+# the mixed model, using the CTmin denominator df for the t quantile
+ctmin_pred <- tibble(lat = seq(min(bio6_df$lat), max(bio6_df$lat), 0.1))
+ctmin_x <- cbind(1, ctmin_pred$lat, 1, ctmin_pred$lat)
+ctmin_se <- sqrt(rowSums((ctmin_x %*% vcov(lat_temp_model)) * ctmin_x))
+ctmin_t <- qt(0.975, lat_temp_coefs["lat:typectmin", "DF"])
+ctmin_pred <- ctmin_pred |>
+  mutate(
+    fit = as.numeric(ctmin_x %*% nlme::fixef(lat_temp_model)),
+    lower = fit - ctmin_t * ctmin_se,
+    upper = fit + ctmin_t * ctmin_se
+  )
 
 # plot CTmin and BIO6 data
 ggplot() +
@@ -85,12 +270,15 @@ ggplot() +
     size = 3, alpha = 0.5,
     show.legend = FALSE
   ) +
-  geom_smooth(
-    data = ctmin_gradient,
-    aes(x = lat, y = ctmin, color = "CTmin"),
-    method = "lm", fill = "forestgreen", alpha = 0.2,
-    show.legend = TRUE,
-    fullrange = TRUE
+  geom_ribbon(
+    data = ctmin_pred,
+    aes(x = lat, ymin = lower, ymax = upper),
+    fill = "forestgreen", alpha = 0.2, show.legend = FALSE
+  ) +
+  geom_line(
+    data = ctmin_pred,
+    aes(x = lat, y = fit, color = "CTmin"),
+    linewidth = 1
   ) +
   geom_line(
     data = bio6_df,
@@ -141,72 +329,6 @@ ggplot() +
   )
 
 ```
-
-Below, we perform a linear regression to test whether CT<sub>min</sub> and BIO6 scale with latitude at the same rate. We combine both types of temperature values into a single dataset and fit the following model:
-
-$$
-T_i \sim Normal(t_i, \sigma)
-$$
-
-$$
-t_i = \alpha + \beta_L \cdot L_i + \beta_C \cdot C_i + \beta_{L \cdot C} \cdot L_i \cdot C_i
-$$
-
-where temperature ($T$) depends on latitude ($L$), an indicator variable ($C$) identifying the nature of the temperature values ($C = 0$ for BIO6 and $C = 1$ for CT<sub>min</sub>), and their interaction. If the interaction term ($\beta_{L \cdot C}$) is positive and significant, CT<sub>min</sub> scales with latitude at a significantly shallower rate than BIO6. The results of this model are presented in Table S2 of the manuscript.
-
-```{r ctmin-does-not-scale-with-climate-stats}
-#| code-summary: "Linear model of CTmin and BIO6 across latitudes"
-
-# prepare data
-bio6_df_model <- bio6_df |>
-  select(lat, mean_bio6) |>
-  rename(temp = mean_bio6) |>
-  mutate(type = "bio6")
-ctmin_model <- ctmin_gradient |>
-  select(lat, ctmin) |>
-  rename(temp = ctmin) |>
-  mutate(type = "ctmin")
-combined_df <- bind_rows(bio6_df_model, ctmin_model)
-
-# fit linear model with interaction between latitude and type
-lat_temp_model <- lm(temp ~ lat * type, data = combined_df)
-lat_temp_fit <- broom::glance(lat_temp_model)
-
-# table model coefficients
-broom::tidy(lat_temp_model) |>
-  mutate(
-    term = c(
-      "Intercept (&alpha;)",
-      "Latitude (&beta;<sub>L</sub>)",
-      "CT<sub>min</sub> (&beta;<sub>C</sub>)",
-      "Latitude &times; CT<sub>min</sub> (&beta;<sub>L&middot;C</sub>)"
-    ),
-    across(c(estimate, std.error, statistic), ~ round(.x, 3)),
-    p.value = ifelse(
-      p.value < 0.0001, "< 0.0001", as.character(round(p.value, 4))
-    )
-  ) |>
-  kbl(
-    col.names = c("Term", "Estimate", "SE", "t", "p"),
-    escape = FALSE,
-    align = "lcccc"
-  ) |>
-  kable_styling(
-    full_width = FALSE,
-    position = "center"
-  ) |>
-  footnote(
-    general = paste0(
-      "N = ", lat_temp_fit$nobs,
-      "; R<sup>2</sup> = ", round(lat_temp_fit$r.squared, 3),
-      "; residual SE = ", round(lat_temp_fit$sigma, 3)
-    ),
-    general_title = "",
-    escape = FALSE
-  )
-```
-
-The interaction between latitude and type is positive ($\beta_{L \cdot C}$ = `{r} round(lat_temp_model$coefficients["lat:typectmin"], 3)`) and significant (p `{r} ifelse(summary(lat_temp_model)$coefficients["lat:typectmin", "Pr(>|t|)"] < 0.0001, "< 0.0001", paste("=", round(summary(lat_temp_model)$coefficients["lat:typectmin", "Pr(>|t|)"], 4)))`), indicating that CT<sub>min</sub> does not decrease with latitude as BIO6 does. This suggests that green anoles are living in climates colder than their physiological cold tolerance.
 
 Below we table the CT<sub>min</sub> estimates (mean and standard deviation) and BIO6 values (mean, minimum and maximum across the 0.1° latitude band) for each location where we measured CT<sub>min</sub> (Table S1 in the manuscript).
 

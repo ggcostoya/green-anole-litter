@@ -28,13 +28,13 @@ options(
 
 Past studies, our own observations and many community-science reports on iNaturalist (Fig. S1 in the manuscript) suggest that green anoles retreat into the leaf litter during cold weather. Below we test whether cold temperatures trigger this behavioral shift and quantify how much the leaf litter buffers green anoles from cold. To do this, we combine standardized night surveys in Atlanta, GA, with temperatures recorded by operative temperature models (OTMs) deployed in the canopy and the leaf litter at five locations across the species' range.
 
-Each OTM consisted of an iButton suspended within a 2 x 7 cm painted copper pipe, secured with corks. OTMs with these characteristics match the thermal properties of similarly sized *Anolis* lizards and thus closely approximate the body temperatures lizards would experience in a given microhabitat. We affixed OTMs to branches at ~2 m height (i.e., "canopy") or buried them 5-10 cm deep in the leaf litter, and programmed them to record temperature hourly between September 2025 and May 2026. The script used to process the raw iButton files (`process-ibutton-data.R`) is stored in the `raw_data` folder.
+Each OTM consisted of an iButton suspended within a 2 x 7 cm painted copper pipe, secured with corks. OTMs with these characteristics match the thermal properties of similarly sized *Anolis* lizards and thus closely approximate the body temperatures lizards would experience in a given microhabitat. We affixed OTMs to branches at ~2 m height (i.e., "canopy") or buried them 5-10 cm deep in the leaf litter, and programmed them to record temperature hourly between September 2025 and May 2026. Before analysis, we excluded leaf-litter OTMs that became exposed during deployment (i.e., when wind or animals displaced the litter covering them). Because the litter dampens daily temperature fluctuations, we identified these OTMs as those whose average daily temperature range in January exceeded 50% of that of canopy OTMs at the same location. This criterion flagged two leaf-litter OTMs in Atlanta, whose daily temperature range increased progressively over the deployment, consistent with the gradual loss of their litter cover. The processed data are stored in `data/otms-data.rds`.
 
 ## Green anoles retreat to the leaf litter
 
-We conducted 27 standardized night surveys between September 2025 and January 2026 in a semi-natural area on the Georgia Institute of Technology campus in Atlanta, GA (33.75°N, -84.4°W), where green anoles are locally abundant. The site has small trees and bushes, interrupted by natural and artificial paths, and offers no other microhabitats for lizards to retreat to (i.e., no rock crevices or cavities in large trees) besides the leaf litter. In each survey, teams of 2-13 researchers walked a standardized 720 m transect for 1 hour, starting 1 hour after sunset, scanning vegetation for lizards and recording the time of each observation.
+We conducted `{r} nrow(dplyr::distinct(readRDS("data/sleepy-lizard-survey-data.rds"), year, doy))` standardized night surveys between September 2025 and April 2026 in a semi-natural area on the Georgia Institute of Technology campus in Atlanta, GA (33.75°N, -84.4°W), where green anoles are locally abundant. The site has small trees and bushes, interrupted by natural and artificial paths, and offers no other microhabitats for lizards to retreat to (i.e., no rock crevices or cavities in large trees) besides the leaf litter. In each survey, teams of 2-13 researchers walked a standardized 720 m transect for 1 hour, starting 1 hour after sunset, scanning vegetation for lizards and recording the time of each observation.
 
-Below we summarise the survey data into the presence and number of green anoles observed per survey, and the operative temperatures recorded by the OTMs in the canopy and leaf litter during the survey period (i.e., between 1 and 2 hours after sunset, which we calculate with the `suncalc` package). We then plot how the probability of observing lizards (A) and the number of lizards observed (B) changed through time alongside canopy and leaf litter temperatures (Fig. S6 in the manuscript). Black lines represent the best-fit lines of Bernoulli (A) and Poisson (B) generalized linear models of observation probability and count, respectively, as a function of time.
+Below we summarise the survey data into the presence and number of green anoles observed per survey, and the operative temperatures recorded by the OTMs in the canopy and leaf litter during the survey period (i.e., between 1 and 2 hours after sunset, which we calculate with the `suncalc` package). We then plot how the probability of observing lizards (A) and the number of lizards observed (B) changed through time alongside canopy and leaf litter temperatures (Fig. S6 in the manuscript). Throughout this section, CT<sub>min</sub> refers to the lowest population-average CT<sub>min</sub> we measured across the species' range (6.8 °C, in Knoxville, TN; see [Green anoles live beyond their physiological cold tolerance](live-beyond-ctmin.qmd)). We use this value because it represents the cold tolerance of the most cold-tolerant population, so any temperatures below it are below the physiological limit of every population we measured, including the one in Atlanta.
 
 ```{r plot-survey-data}
 #| code-summary: "Process survey and OTM data and plot them through time"
@@ -57,16 +57,15 @@ otms_data <- otms_data |>
     )
   )
 
-# predict CTmin by latitude
-pred_ctmin <- tibble(
-  lat = seq(25, 35, by = 0.1),
-  ctmin = 57 - 1.68 * lat - 41.67 + 1.48 * lat
-)
+# CTmin: we use the lowest population-average CTmin across the species' range
+# (6.8 °C, Knoxville, TN; see live-beyond-ctmin.qmd), i.e., the cold tolerance
+# of the most cold-tolerant population
+ctmin_min <- 6.8
 
 # read and summarize survey data
 survey <- readRDS("data/sleepy-lizard-survey-data.rds")
 survey_sum <- survey |>
-  group_by(year, doy) |>
+  group_by(year, doy, n_participants) |>
   summarise(
     count = n() - 1,
     presence = ifelse(count > 0, 1, 0)
@@ -74,7 +73,6 @@ survey_sum <- survey |>
   mutate(
     continuous_doy = ifelse(year == 2026, doy + 365, doy)
   ) |>
-  filter(continuous_doy < (365 + 30)) |>
   mutate(
     date = as.Date(paste(year, doy), format = "%Y %j")
   ) |>
@@ -113,7 +111,6 @@ otm_data_ATL <- otms_data |>
   ) |>
   mutate(
     temp = ifelse(year == 2025 & doy < 200, NA, temp),
-    temp = ifelse(year == 2026 & doy > 30, NA, temp),
   ) |>
   filter(!is.na(temp)) |>
   group_by(year, doy, microhabitat) |>
@@ -127,13 +124,10 @@ otm_data_ATL <- otms_data |>
     date = as.Date(paste(year, doy), format = "%Y %j")
   )
 
-# predict CTmin at ATL latitude
-ctmin_atl <- 57 - 1.68 * my_lat - 41.67 + 1.48 * my_lat
-
 # plot observation probability and OTM data
 obs_plot <- ggplot() +
   geom_hline(
-    yintercept = c(1, 0, 6.8 / max(otm_data_ATL$mean_temp, na.rm = TRUE)),
+    yintercept = c(1, 0, ctmin_min / max(otm_data_ATL$mean_temp, na.rm = TRUE)),
     linetype = "dashed",
     color = c("gray80", "darkblue", "steelblue"),
     alpha = 0.5
@@ -141,7 +135,7 @@ obs_plot <- ggplot() +
   annotate(
     "label",
     x = as.Date("2025-10-01"),
-    y = ctmin_atl / max(otm_data_ATL$mean_temp, na.rm = TRUE) + 0.05,
+    y = ctmin_min / max(otm_data_ATL$mean_temp, na.rm = TRUE) + 0.05,
     label = expression(CT[min]),
     color = "steelblue",
     size = 5,
@@ -161,15 +155,7 @@ obs_plot <- ggplot() +
   geom_point(
     data = survey_sum,
     aes(x = date, y = presence),
-    color = "darkgray", size = 3, alpha = 0.75
-  ) +
-  geom_smooth(
-    data = survey_sum,
-    aes(x = date, y = presence),
-    method = "glm",
-    formula = y ~ x,
-    method.args = list(family = binomial(link = "logit")),
-    color = "black", se = FALSE, linewidth = 1.25
+    color = "black", size = 3, alpha = 0.75
   ) +
   scale_y_continuous(
     name = "Observation Probability",
@@ -200,7 +186,7 @@ obs_plot <- ggplot() +
 # plot survey counts and OTM data
 count_plot <- ggplot() +
   geom_hline(
-    yintercept = c(0, ctmin_atl),
+    yintercept = c(0, ctmin_min),
     linetype = "dashed",
     color = c("darkblue", "steelblue"),
     alpha = 0.5
@@ -208,7 +194,7 @@ count_plot <- ggplot() +
   annotate(
     "label",
     x = as.Date("2025-10-01"),
-    y = ctmin_atl  + 0.05,
+    y = ctmin_min + 0.05,
     label = expression(CT[min]),
     color = "steelblue",
     size = 5,
@@ -227,15 +213,7 @@ count_plot <- ggplot() +
   geom_point(
     data = survey_sum,
     aes(x = date, y = count),
-    color = "darkgray", size = 3, alpha = 0.75
-  ) +
-  geom_smooth(
-    data = survey_sum,
-    aes(x = date, y = count),
-    method = "glm",
-    formula = y ~ x,
-    method.args = list(family = poisson(link = "log")),
-    color = "black", se = FALSE, linewidth = 1.25
+    color = "black", size = 3, alpha = 0.75
   ) +
   scale_y_continuous(
     name = "Green Anole Count",
@@ -282,71 +260,172 @@ ggarrange(
 
 ```
 
-Next, we determine the temperature that triggers green anoles to retreat into the leaf litter. We focus on the presence of lizards rather than their abundance to account for the variation in the number of observers between surveys. We fit a generalized linear model with the formula:
+Next, we determine the temperature that triggers green anoles to retreat into the leaf litter. We focus on the presence of lizards rather than their abundance to account for the variation in the number of observers between surveys. Because our surveys span fall, winter and spring, canopy temperatures are partly confounded with season, and lizards could respond to seasonal cues such as photoperiod rather than to temperature itself. To disentangle these effects, we model the presence of lizards as a function of both canopy operative temperature and photoperiod. Photoperiod declines from September to the winter solstice and increases again towards April, so surveys with similar photoperiods occurred both in fall and in spring, under a wide range of temperatures. We fit a generalized linear model with the formula:
 
 $$
-P \sim Bernoulli(p)
+P_i \sim Bernoulli(p_i)
 $$
 
 $$
-logit(p) = \alpha + \beta \cdot T
+logit(p_i) = \alpha + \beta_T \cdot T_i + \beta_D \cdot (D_i - \bar{D})
 $$
 
-where the observed presence of lizards ($P$) follows a Bernoulli distribution with an observation probability ($p$) that depends on the average operative temperature recorded across all canopy OTMs during each survey period, between 1 and 2 hours after sunset ($T$). The results of this model are presented in Table S5 of the manuscript.
+where the observed presence of lizards in survey $i$ ($P_i$) follows a Bernoulli distribution with an observation probability ($p_i$) that depends on the average operative temperature recorded across all canopy OTMs during the survey period, between 1 and 2 hours after sunset ($T_i$), and on photoperiod ($D_i$; hours between sunrise and sunset in Atlanta on the day of the survey, calculated with the `suncalc` package). We center photoperiod on its mean across surveys ($\bar{D}$), so that $\alpha$ and $\beta_T$ describe the effect of temperature at an average photoperiod. We test the contribution of each predictor with likelihood-ratio tests. The results of this model are presented in Table S5 of the manuscript.
 
-From the fitted model, we then invert the logit function to obtain the temperature at which the observation probability equals a series of values of interest:
+From the fitted model, we then invert the logit function to obtain the temperature at which the observation probability equals a series of values of interest, at the average photoperiod:
 
 $$
-T = \frac{logit(p) - \alpha}{\beta}
+T = \frac{logit(p) - \alpha}{\beta_T}
 $$
+
+We obtain 95% confidence intervals for these temperatures with the delta method, using the variance-covariance matrix of $\alpha$ and $\beta_T$.
 
 ```{r model-retreating-temp}
-#| code-summary: "Model observation probability as a function of canopy temperature"
+#| code-summary: "Model observation probability as a function of canopy temperature and photoperiod"
+#| results: asis
 
+# calculate photoperiod (hours between sunrise and sunset) on each survey date
+survey_photoperiod <- getSunlightTimes(
+  date = survey_sum$date,
+  lat = my_lat,
+  lon = my_lon,
+  keep = c("sunrise", "sunset"),
+  tz = "America/New_York"
+) |>
+  transmute(
+    date,
+    photoperiod = as.numeric(difftime(sunset, sunrise, units = "hours"))
+  )
+
+# combine survey data with canopy temperatures and photoperiod
 survey_sum_model <- survey_sum |>
   left_join(
     filter(otm_data_ATL, microhabitat == "branch"),
     by = c("year", "doy", "date")
+  ) |>
+  left_join(survey_photoperiod, by = "date") |>
+  mutate(
+    photoperiod_c = photoperiod - mean(photoperiod)
   )
+mean_photoperiod <- mean(survey_sum_model$photoperiod)
 
-# model
+# main model: canopy temperature and photoperiod
 mod <- glm(
-  presence ~ mean_temp,
+  presence ~ mean_temp + photoperiod_c,
   data = survey_sum_model,
   family = binomial(link = "logit")
 )
-broom::tidy(mod)
-broom::glance(mod)
+mod_lrt <- drop1(mod, test = "LRT")
 
-# get temperature thresholds for probabilities
+# get temperature thresholds (and delta-method 95% CIs) for probabilities at
+# the average photoperiod
 probabilities <- c(0.01, 0.05, 0.1, 0.2, 0.25, 0.5)
-thresholds <- tibble(
-  probability = probabilities,
-  temperature = (log(probabilities / (1 - probabilities)) - coef(mod)[1]) / coef(mod)[2] # nolint
-) |>
+mod_vcov <- vcov(mod)[1:2, 1:2]
+thresholds <- tibble(probability = probabilities) |>
   mutate(
-    temperature = round(temperature, 2)
+    temperature = (qlogis(probability) - coef(mod)[1]) / coef(mod)[2],
+    se = sqrt(purrr::map_dbl(probability, \(p) {
+      grad <- c(-1, -(qlogis(p) - coef(mod)[1]) / coef(mod)[2]) / coef(mod)[2]
+      as.numeric(t(grad) %*% mod_vcov %*% grad)
+    })),
+    lower = temperature - qnorm(0.975) * se,
+    upper = temperature + qnorm(0.975) * se
   )
 
 # define retreating temperature (Tret) as the temperature at which
 # observation probability falls below 20%
-tret_temp <- thresholds$temperature[thresholds$probability == 0.2]
+tret_temp <- round(thresholds$temperature[thresholds$probability == 0.2], 2)
+tret_ci <- round(
+  unlist(thresholds[thresholds$probability == 0.2, c("lower", "upper")]), 2
+)
 
-thresholds |>
-  kbl(
-    col.names = c(
-      "Observation Probability",
-      "Predicted Lizard Body Temperature (°C)"
+# helpers to format p-values and build each table section
+format_p <- function(p) {
+  ifelse(p < 0.0001, "< 0.0001", sprintf("%.4f", p))
+}
+make_section <- function(df, caption, col_names, align) {
+  df |>
+    kbl(
+      caption = caption,
+      col.names = col_names,
+      escape = FALSE,
+      align = align
+    ) |>
+    kable_styling(full_width = FALSE, position = "center")
+}
+
+# table parameter estimates
+table_params <- broom::tidy(mod) |>
+  mutate(
+    parameter = c(
+      "Intercept", "Operative temperature (°C)", "Photoperiod (h, centered)"
     ),
-    align = "c"
+    symbol = c("&alpha;", "&beta;<sub>T</sub>", "&beta;<sub>D</sub>"),
+    lrt = c(NA, mod_lrt$LRT[-1]),
+    lrt_p = c(NA, mod_lrt$`Pr(>Chi)`[-1]),
+    across(c(estimate, std.error), ~ sprintf("%.3f", .x)),
+    statistic = sprintf("%.2f", statistic),
+    p.value = format_p(p.value),
+    lrt = ifelse(is.na(lrt), "&ndash;", sprintf("%.2f", lrt)),
+    lrt_p = ifelse(is.na(lrt_p), "&ndash;", format_p(lrt_p))
   ) |>
-  kable_styling(
-    full_width = FALSE,
-    position = "center"
+  select(parameter, symbol, estimate, std.error, statistic, p.value, lrt, lrt_p) |>
+  make_section(
+    "Parameter estimates",
+    c(
+      "Parameter", "Symbol", "Estimate", "Std. Error", "z", "p-value",
+      "LRT &chi;<sup>2</sup><sub>1</sub>", "LRT p-value"
+    ),
+    "llcccccc"
   )
+
+# table model performance metrics
+table_fit <- tibble(
+  item = c(
+    "Surveys", "Mean photoperiod (h)", "Log-likelihood", "AIC",
+    "Tjur's R<sup>2</sup>"
+  ),
+  value = c(
+    paste0(
+      nrow(survey_sum_model), " (", sum(survey_sum_model$presence),
+      " with lizards; ", sum(survey_sum_model$presence == 0), " without)"
+    ),
+    sprintf("%.2f", mean_photoperiod),
+    sprintf("%.2f", as.numeric(logLik(mod))),
+    sprintf("%.1f", AIC(mod)),
+    sprintf(
+      "%.2f",
+      diff(tapply(fitted(mod), survey_sum_model$presence, mean))
+    )
+  )
+) |>
+  make_section("Model performance metrics", c("", ""), "ll")
+
+# table inferred temperature thresholds
+table_thresholds <- thresholds |>
+  mutate(
+    temperature = sprintf("%.2f", temperature),
+    ci = paste(sprintf("%.2f", lower), "to", sprintf("%.2f", upper))
+  ) |>
+  select(probability, temperature, ci) |>
+  make_section(
+    "Inferred operative temperature thresholds (at the average photoperiod)",
+    c(
+      "Observation probability", "Operative temperature in canopy (°C)",
+      "95% CI (°C)"
+    ),
+    "ccc"
+  )
+
+# print all table sections together
+cat(
+  table_params, table_fit, table_thresholds, sep = "\n"
+)
 ```
 
-We define the behavioral retreating threshold temperature (T<sub>ret</sub>) as the temperature at which the observation probability falls below 20% (`{r} tret_temp` °C). This value is just below the lowest canopy temperature at which we observed at least one lizard (`{r} round(min(survey_sum_model$mean_temp[survey_sum_model$presence == 1], na.rm = TRUE), 2)` °C). Below we plot the relationship between canopy temperature and observation probability, marking T<sub>ret</sub>, CT<sub>min</sub> and 0 °C (Fig. 3A in the manuscript).
+Canopy temperature strongly predicted the presence of lizards after accounting for photoperiod ($\beta_T$ = `{r} round(coef(mod)["mean_temp"], 3)`; likelihood-ratio $\chi^2_1$ = `{r} round(mod_lrt["mean_temp", "LRT"], 2)`, p `{r} ifelse(mod_lrt["mean_temp", "Pr(>Chi)"] < 0.0001, "< 0.0001", paste("=", format_p(mod_lrt["mean_temp", "Pr(>Chi)"])))`), whereas photoperiod had no detectable effect ($\beta_D$ = `{r} round(coef(mod)["photoperiod_c"], 3)`; $\chi^2_1$ = `{r} round(mod_lrt["photoperiod_c", "LRT"], 2)`, p = `{r} format_p(mod_lrt["photoperiod_c", "Pr(>Chi)"])`).
+
+We define the behavioral retreating threshold temperature (T<sub>ret</sub>) as the temperature at which the observation probability falls below 20% at the average photoperiod (`{r} tret_temp` °C; 95% CI: `{r} tret_ci[1]` to `{r} tret_ci[2]` °C). T<sub>ret</sub> is just below the lowest canopy temperature at which we observed at least one lizard (`{r} round(min(survey_sum_model$mean_temp[survey_sum_model$presence == 1], na.rm = TRUE), 2)` °C). Below we plot the predicted observation probability as a function of canopy temperature at the average photoperiod (Fig. 3A in the manuscript), marking T<sub>ret</sub>, CT<sub>min</sub> (lowest population average across the range) and 0 °C. Point shading shows the photoperiod of each survey (darker for shorter days), and the line and shaded area show the model prediction and its 95% confidence interval.
 
 ```{r plot-threshold-temperature}
 #| code-summary: "Plot observation probability as a function of canopy temperature"
@@ -355,24 +434,74 @@ We define the behavioral retreating threshold temperature (T<sub>ret</sub>) as t
 #| fig-height: 5
 #| out.width: 66%
 
-tret <- survey_sum |>
-  left_join(
-    filter(otm_data_ATL, microhabitat == "branch"),
-    by = c("year", "doy", "date")
-  ) |>
-  ggplot(aes(x = mean_temp, y = presence)) +
+# predict observation probability (and 95% CI) from the main model
+predict_presence <- function(newdata) {
+  pred <- predict(mod, newdata = newdata, type = "link", se.fit = TRUE)
+  newdata |>
+    mutate(
+      fit = plogis(pred$fit),
+      lower = plogis(pred$fit - qnorm(0.975) * pred$se.fit),
+      upper = plogis(pred$fit + qnorm(0.975) * pred$se.fit)
+    )
+}
+pred_temp <- predict_presence(
+  tibble(mean_temp = seq(-2, 25, by = 0.1), photoperiod_c = 0)
+)
+pred_photoperiod <- predict_presence(
+  tibble(
+    photoperiod_c = seq(
+      min(survey_sum_model$photoperiod_c),
+      max(survey_sum_model$photoperiod_c),
+      by = 0.01
+    ),
+    mean_temp = mean(survey_sum_model$mean_temp)
+  )
+) |>
+  mutate(photoperiod = photoperiod_c + mean_photoperiod)
+
+# shared theme and photoperiod color scale
+retreat_theme <- theme_minimal() +
+  theme(
+    axis.ticks = element_line(color = "black", linewidth = 0.25),
+    axis.line = element_line(color = "black", linewidth = 0.5),
+    panel.grid = element_blank(),
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 9)
+  )
+# shorter photoperiods are darker and longer photoperiods lighter
+photoperiod_scale <- scale_fill_gradient(
+  name = "Photoperiod (h)",
+  low = "gray20", high = "gray95"
+)
+
+# plot observation probability as a function of canopy temperature
+tret <- ggplot() +
   geom_vline(
-    xintercept = c(0, 6.8, tret_temp),
+    xintercept = c(0, ctmin_min, tret_temp),
     linetype = "dashed",
     color = c("darkblue", "steelblue", "lightblue")
   ) +
-  geom_jitter(
-    color = "gray", size = 4, alpha = 0.75,
-    width = 0, height = 0.02
+  geom_ribbon(
+    data = pred_temp,
+    aes(x = mean_temp, ymin = lower, ymax = upper),
+    fill = "gray80", alpha = 0.5
+  ) +
+  geom_line(
+    data = pred_temp,
+    aes(x = mean_temp, y = fit),
+    color = "black", linewidth = 1
+  ) +
+  geom_point(
+    data = survey_sum_model,
+    aes(x = mean_temp, y = presence, fill = photoperiod),
+    shape = 21, color = "gray40", size = 4, alpha = 0.85,
+    position = position_jitter(width = 0, height = 0.02, seed = 1)
   ) +
   annotate(
     "label",
-    x = c(0, 6.8, tret_temp),
+    x = c(0, ctmin_min, tret_temp),
     y = c(0.5, 0.75, 0.9),
     label = c(
       expression(bold(0 * degree * C)),
@@ -386,21 +515,12 @@ tret <- survey_sum |>
     hjust = c(-0.01, 0.5, 0.5),
     size = 5
   ) +
-  geom_smooth(
-    method = "glm",
-    formula = y ~ x,
-    method.args = list(family = binomial(link = "logit")),
-    color = "black", fill = "gray80",
-    se = TRUE, linewidth = 1, alpha = 0.5,
-    fullrange = TRUE
-  ) +
-  theme_minimal() +
+  photoperiod_scale +
+  retreat_theme +
   theme(
-    axis.ticks = element_line(color = "black", linewidth = 0.25),
-    axis.line = element_line(color = "black", linewidth = 0.5),
-    panel.grid = element_blank(),
-    axis.title = element_text(size = 12),
-    axis.text = element_text(size = 10)
+    legend.position = "inside",
+    legend.position.inside = c(0.98, 0.3),
+    legend.justification = c(1, 0.5)
   ) +
   labs(
     x = "Lizard Body Temperature in Canopy (°C)",
@@ -409,9 +529,302 @@ tret <- survey_sum |>
 tret
 ```
 
+Below we plot the predicted observation probability as a function of photoperiod at the average canopy temperature across surveys (`{r} round(mean(survey_sum_model$mean_temp), 2)` °C), which shows no detectable effect of photoperiod once temperature is accounted for (new supplementary figure in the manuscript). Point shading shows the photoperiod of each survey (darker for shorter days), and the line and shaded area show the model prediction and its 95% confidence interval.
+
+```{r plot-photoperiod}
+#| code-summary: "Plot observation probability as a function of photoperiod"
+#| fig-align: center
+#| fig-width: 5
+#| fig-height: 5
+#| out.width: 66%
+
+# plot observation probability as a function of photoperiod
+photoperiod_plot <- ggplot() +
+  geom_ribbon(
+    data = pred_photoperiod,
+    aes(x = photoperiod, ymin = lower, ymax = upper),
+    fill = "gray80", alpha = 0.5
+  ) +
+  geom_line(
+    data = pred_photoperiod,
+    aes(x = photoperiod, y = fit),
+    color = "black", linewidth = 1
+  ) +
+  geom_point(
+    data = survey_sum_model,
+    aes(x = photoperiod, y = presence, fill = photoperiod),
+    shape = 21, color = "gray40", size = 4, alpha = 0.85,
+    position = position_jitter(width = 0, height = 0.02, seed = 1)
+  ) +
+  photoperiod_scale +
+  guides(fill = "none") +
+  retreat_theme +
+  labs(
+    x = "Photoperiod (h)",
+    y = "Observation Probability"
+  )
+photoperiod_plot
+```
+
 ## The leaf litter buffers environmental temperatures
 
-To quantify the thermal buffering green anoles experience in the leaf litter, we compare the minimum temperatures recorded by OTMs in the canopy and in the leaf litter across the five locations where we deployed them: Miami (MIA), Port Saint Lucie (PSL), Orlando (ORL), Gainesville (GNV) and Atlanta (ATL). We focus on January, the coldest month of the year, and obtain the minimum temperature recorded by each OTM on each day. Below we plot the average (± SD) of these daily minimum temperatures by location and microhabitat, with best-fit lines from a microhabitat-specific linear model (Fig. 3B in the manuscript).
+To quantify the thermal buffering green anoles experience in the leaf litter, we compare the minimum temperatures recorded by OTMs in the canopy and in the leaf litter across the five locations where we deployed them: Miami (MIA), Port Saint Lucie (PSL), Orlando (ORL), Gainesville (GNV) and Atlanta (ATL). We focus on January, the coldest month of the year, and obtain the minimum temperature recorded by each OTM on each night.
+
+### Buffering across latitudes
+
+We test whether minimum temperatures differ between microhabitats and across latitudes using a linear mixed model. Each OTM contributes one minimum temperature per night and all OTMs at a location experience the same weather on a given night, so these observations are not independent. We therefore include random intercepts for each OTM, for each location and for each night at each location:
+
+$$
+T_i \sim Normal(t_i, \sigma)
+$$
+
+$$
+t_i = \alpha + \beta_L \cdot (L_i - \bar{L}) + \beta_M \cdot M_i + \beta_{L \cdot M} \cdot (L_i - \bar{L}) \cdot M_i + a_{O[i]} + b_{S[i]} + c_{N[i]}
+$$
+
+where the nightly minimum operative temperature ($T$) depends on latitude ($L$), an indicator variable ($M$) identifying the microhabitat ($M = 0$ for canopy and $M = 1$ for leaf litter), and their interaction, and $a_O$, $b_S$ and $c_N$ are normally distributed random intercepts for each OTM ($O$), location ($S$) and night at each location ($N$). We center latitude on the average latitude of the five locations ($\bar{L}$), so that $\beta_M$ is the average buffering provided by the leaf litter at an average latitude. A positive $\beta_{L \cdot M}$ would indicate that the buffering provided by the leaf litter increases with latitude. We fit the model with the `lme4` package and test fixed effects with F-tests using the Kenward-Roger approximation for the degrees of freedom (`pbkrtest` and `car` packages). The results of this model are presented in Table S7 of the manuscript.
+
+```{r stats-leaf-litter-buffering}
+#| code-summary: "Linear mixed model of minimum temperatures by latitude and microhabitat"
+#| results: asis
+#| message: false
+
+# nightly minimum temperature recorded by each OTM in January
+otms_data_sum <- otms_data |>
+  mutate(
+    year = year + 2000,
+    date = as.Date(paste(year, doy), format = "%Y %j")
+  ) |>
+  filter(format(date, "%b") == "Jan") |>
+  group_by(location, lat, id, microhabitat, date) |>
+  summarise(min_temp = min(temp, na.rm = TRUE), .groups = "drop")
+
+# center latitude on the mean latitude of the locations
+mean_lat <- mean(unique(otms_data_sum$lat))
+buffer_data <- otms_data_sum |>
+  mutate(
+    lat_c = lat - mean_lat,
+    microhabitat = factor(microhabitat, levels = c("branch", "leaflitter")),
+    otm = paste(location, microhabitat, id),
+    night = paste(location, date)
+  )
+
+# fit model
+buffer_mod <- lme4::lmer(
+  min_temp ~ lat_c * microhabitat + (1 | otm) + (1 | location) + (1 | night),
+  data = buffer_data
+)
+buffer_coefs <- summary(buffer_mod)$coefficients
+buffer_tests <- car::Anova(buffer_mod, test.statistic = "F")
+
+# Kenward-Roger 95% CIs for the fixed effects
+kr_ci <- function(model, coef_name) {
+  l <- as.numeric(names(lme4::fixef(model)) == coef_name)
+  ddf <- pbkrtest::get_Lb_ddf(model, l)
+  se <- sqrt(as.numeric(t(l) %*% as.matrix(vcov(model)) %*% l))
+  lme4::fixef(model)[coef_name] + c(-1, 1) * qt(0.975, ddf) * se
+}
+buffer_ci <- t(sapply(rownames(buffer_coefs), \(x) kr_ci(buffer_mod, x)))
+
+# table parameter estimates
+buffer_vc <- as.data.frame(lme4::VarCorr(buffer_mod))
+table_buffer_params <- tibble(
+  parameter = c(
+    "Intercept", "Latitude (centered)", "Leaf litter",
+    "Latitude &times; Leaf litter"
+  ),
+  symbol = c(
+    "&alpha;", "&beta;<sub>L</sub>", "&beta;<sub>M</sub>",
+    "&beta;<sub>L&middot;M</sub>"
+  ),
+  estimate = sprintf("%.3f", buffer_coefs[, "Estimate"]),
+  se = sprintf("%.3f", buffer_coefs[, "Std. Error"]),
+  ci = paste(
+    sprintf("%.2f", buffer_ci[, 1]), "to", sprintf("%.2f", buffer_ci[, 2])
+  ),
+  f = c("&ndash;", sprintf("%.2f", buffer_tests$F)),
+  df = c(
+    "&ndash;",
+    paste0("1, ", sprintf("%.1f", buffer_tests$Df.res))
+  ),
+  p = c("&ndash;", format_p(buffer_tests$`Pr(>F)`))
+) |>
+  make_section(
+    "Parameter estimates",
+    c(
+      "Parameter", "Symbol", "Estimate", "Std. Error", "95% CI", "F",
+      "df", "p-value"
+    ),
+    "llcccccc"
+  )
+
+# table random effects and model information
+table_buffer_re <- tibble(
+  component = c(
+    "OTM", "Location", "Night (within location)", "Residual",
+    "Observations"
+  ),
+  value = c(
+    sprintf(
+      "SD = %.3f",
+      buffer_vc$sdcor[match(c("otm", "location", "night", "Residual"), buffer_vc$grp)]
+    ),
+    paste0(
+      nrow(buffer_data), " nightly minima from ", n_distinct(buffer_data$otm),
+      " OTMs at ", n_distinct(buffer_data$location), " locations"
+    )
+  )
+) |>
+  make_section("Random effects and model information", c("", ""), "ll")
+
+cat(table_buffer_params, table_buffer_re, sep = "\n")
+```
+
+At an average latitude (`{r} round(mean_lat, 1)`°N), nightly minimum temperatures in the leaf litter were `{r} round(buffer_coefs["microhabitatleaflitter", "Estimate"], 1)` °C warmer than in the canopy (95% CI: `{r} round(buffer_ci["microhabitatleaflitter", 1], 1)` to `{r} round(buffer_ci["microhabitatleaflitter", 2], 1)` °C; F<sub>1, `{r} round(buffer_tests["microhabitat", "Df.res"], 1)`</sub> = `{r} round(buffer_tests["microhabitat", "F"], 1)`, p `{r} ifelse(buffer_tests["microhabitat", "Pr(>F)"] < 0.0001, "< 0.0001", paste("=", format_p(buffer_tests["microhabitat", "Pr(>F)"])))`). Minimum temperatures declined with latitude at a similar rate in both microhabitats (latitude &times; microhabitat: $\beta_{L \cdot M}$ = `{r} round(buffer_coefs["lat_c:microhabitatleaflitter", "Estimate"], 3)` °C per degree; 95% CI: `{r} round(buffer_ci["lat_c:microhabitatleaflitter", 1], 2)` to `{r} round(buffer_ci["lat_c:microhabitatleaflitter", 2], 2)`; p = `{r} format_p(buffer_tests["lat_c:microhabitat", "Pr(>F)"])`), so, on average, the leaf litter acts as a roughly constant thermal offset across latitudes. Averages, however, can hide what happens on the coldest nights, which are the ones that matter for survival. We examine these next.
+
+### Buffering on the coldest nights
+
+To test whether the leaf litter buffers cold nights more strongly than mild ones, we compare the minimum temperature in the leaf litter with the minimum temperature in the canopy at the same location on the same night. To make this comparison robust to any remaining faulty OTMs, we summarise each location, microhabitat and night by the median minimum temperature across OTMs. We then fit the linear mixed model:
+
+$$
+T^{LL}_{s,n} \sim Normal(t_{s,n}, \sigma)
+$$
+
+$$
+t_{s,n} = \alpha + a_s + (\beta_C + b_s) \cdot T^{C}_{s,n}
+$$
+
+where $T^{LL}_{s,n}$ and $T^{C}_{s,n}$ are the minimum temperatures in the leaf litter and the canopy at location $s$ on night $n$, and $a_s$ and $b_s$ are random intercepts and slopes for each location. If the leaf litter simply added a constant offset to canopy temperatures, $\beta_C$ would equal 1. If $\beta_C < 1$, leaf-litter temperatures change less than canopy temperatures, and the buffering provided by the leaf litter ($T^{LL} - T^{C}$) increases by $1 - \beta_C$ °C for every degree that the canopy cools.
+
+```{r stats-cold-night-buffering}
+#| code-summary: "Linear mixed model of leaf-litter vs canopy minimum temperatures on the same night"
+#| message: false
+
+# median nightly minimum per location, microhabitat and night
+nightly_medians <- otms_data_sum |>
+  group_by(location, lat, microhabitat, date) |>
+  summarise(min_temp = median(min_temp), .groups = "drop") |>
+  pivot_wider(names_from = microhabitat, values_from = min_temp) |>
+  filter(!is.na(branch), !is.na(leaflitter)) |>
+  rename(canopy = branch, litter = leaflitter) |>
+  mutate(buffer = litter - canopy)
+
+# fit model
+cold_mod <- lme4::lmer(
+  litter ~ canopy + (1 + canopy | location),
+  data = nightly_medians
+)
+cold_slope <- lme4::fixef(cold_mod)["canopy"]
+cold_slope_ci <- kr_ci(cold_mod, "canopy")
+cold_slope_test <- car::Anova(cold_mod, test.statistic = "F")
+
+# test whether the slope differs from 1 (constant offset)
+cold_l <- c(0, 1)
+cold_ddf <- pbkrtest::get_Lb_ddf(cold_mod, cold_l)
+cold_se <- sqrt(as.numeric(as.matrix(vcov(cold_mod))[2, 2]))
+cold_t1 <- (cold_slope - 1) / cold_se
+cold_p1 <- 2 * pt(-abs(cold_t1), cold_ddf)
+
+# predicted buffering at different canopy temperatures at each location
+# (fixed + random effects)
+cold_coefs <- coef(cold_mod)$location
+buffer_at <- function(canopy_temp, loc = "ATL") {
+  as.numeric(
+    cold_coefs[loc, "(Intercept)"] + (cold_coefs[loc, "canopy"] - 1) * canopy_temp
+  )
+}
+
+tibble(
+  parameter = c("Intercept", "Canopy minimum temperature"),
+  symbol = c("&alpha;", "&beta;<sub>C</sub>"),
+  estimate = sprintf("%.3f", lme4::fixef(cold_mod)),
+  se = sprintf("%.3f", sqrt(diag(as.matrix(vcov(cold_mod))))),
+  ci = c(
+    paste(sprintf("%.2f", kr_ci(cold_mod, "(Intercept)")), collapse = " to "),
+    paste(sprintf("%.2f", cold_slope_ci), collapse = " to ")
+  )
+) |>
+  kbl(
+    col.names = c("Parameter", "Symbol", "Estimate", "Std. Error", "95% CI"),
+    escape = FALSE,
+    align = "llccc"
+  ) |>
+  kable_styling(full_width = FALSE, position = "center") |>
+  footnote(
+    general = paste0(
+      nrow(nightly_medians), " location-nights at ",
+      n_distinct(nightly_medians$location), " locations. Test of ",
+      "&beta;<sub>C</sub> = 1: t<sub>", sprintf("%.1f", cold_ddf), "</sub> = ",
+      sprintf("%.2f", cold_t1), ", p ", ifelse(
+        cold_p1 < 0.0001, "< 0.0001", paste("=", format_p(cold_p1))
+      )
+    ),
+    general_title = "",
+    escape = FALSE
+  )
+```
+
+Leaf-litter minimum temperatures changed by only `{r} round(cold_slope, 2)` °C for every degree of change in canopy minimum temperatures (95% CI: `{r} round(cold_slope_ci[1], 2)` to `{r} round(cold_slope_ci[2], 2)`), significantly less than the 1:1 change expected from a constant offset (t<sub>`{r} round(cold_ddf, 1)`</sub> = `{r} round(cold_t1, 2)`, p `{r} ifelse(cold_p1 < 0.0001, "< 0.0001", paste("=", format_p(cold_p1)))`). As a result, the buffering provided by the leaf litter increases by `{r} round(1 - cold_slope, 2)` °C for every degree that the canopy cools. This pattern was consistent across locations (location-specific slopes: `{r} paste(sprintf("%.2f", range(cold_coefs$canopy)), collapse = " to ")`), although, at a given canopy temperature, the leaf litter was cooler at higher latitudes. In Atlanta, where nights were coldest, the model predicts that the leaf litter buffers canopy temperatures by `{r} round(buffer_at(10), 1)` °C on nights when the canopy reaches 10 °C, `{r} round(buffer_at(0), 1)` °C when it reaches 0 °C, and `{r} round(buffer_at(-10), 1)` °C when it reaches -10 °C. The figure below shows this relationship at each location (new supplementary figure in the manuscript).
+
+```{r plot-cold-night-buffering}
+#| code-summary: "Plot leaf-litter vs canopy minimum temperatures on the same night"
+#| fig-align: center
+#| fig-width: 5
+#| fig-height: 5
+#| out.width: 66%
+
+# predicted leaf-litter temperatures at each location (fixed + random effects)
+# across the range of canopy temperatures observed there
+cold_pred <- nightly_medians |>
+  group_by(location) |>
+  reframe(canopy = seq(min(canopy), max(canopy), by = 0.1))
+cold_pred$litter <- predict(cold_mod, newdata = cold_pred)
+
+nightly_medians |>
+  mutate(
+    location = factor(location, levels = c("MIA", "PSL", "ORL", "GNV", "ATL"))
+  ) |>
+  ggplot(aes(x = canopy, y = litter)) +
+  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "darkblue") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "darkblue") +
+  geom_point(aes(color = location), size = 2.5, alpha = 0.6) +
+  geom_line(
+    data = cold_pred |>
+      mutate(
+        location = factor(
+          location,
+          levels = c("MIA", "PSL", "ORL", "GNV", "ATL")
+        )
+      ),
+    aes(color = location),
+    linewidth = 1
+  ) +
+  scale_color_viridis_d(name = NULL, option = "plasma", end = 0.85) +
+  coord_equal() +
+  theme_minimal() +
+  theme(
+    axis.title = element_text(size = 12),
+    axis.text = element_text(size = 10),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    panel.grid = element_blank(),
+    legend.position = "inside",
+    legend.position.inside = c(0.02, 0.98),
+    legend.justification = c(0, 1),
+    legend.text = element_text(size = 11)
+  ) +
+  labs(
+    x = "Minimum Lizard Body Temperature in Canopy (°C)",
+    y = "Minimum Lizard Body Temperature in Leaf Litter (°C)"
+  )
+```
+
+Points show the median nightly minimum temperature across OTMs at each location in January, colored lines show the predictions of the mixed model for each location, and the dashed black line shows the 1:1 relationship expected if the leaf litter did not buffer canopy temperatures.
+
+### Summary by location
+
+Below we plot the average (± SD across OTMs) of the nightly minimum temperatures by location and microhabitat, with lines showing the fixed-effect predictions of the latitude &times; microhabitat model (Fig. 3B in the manuscript).
 
 ```{r plot-leaf-litter-buffering}
 #| code-summary: "Plot minimum temperatures in the canopy and leaf litter across latitudes"
@@ -420,25 +833,21 @@ To quantify the thermal buffering green anoles experience in the leaf litter, we
 #| fig-height: 5
 #| out.width: 66%
 
-# summarise data
-otms_data_sum <- otms_data |>
-  mutate(
-    year = year + 2000,
-    date = as.Date(paste(year, doy), format = "%Y %j"),
-    month = format(date, "%b")
-  ) |>
-  filter(month %in% c("Jan")) |>
-  group_by(location, lat, id, year, microhabitat, doy) |>
-  summarise(
-    min_temp = min(temp, na.rm = TRUE)
-  ) |>
-  ungroup()
+# average nightly minimum per OTM
+otm_means <- otms_data_sum |>
+  group_by(location, lat, microhabitat, id) |>
+  summarise(min_temp = mean(min_temp), .groups = "drop")
+
+# fixed-effect predictions of the latitude x microhabitat model
+buffer_pred <- expand_grid(
+  lat = seq(min(otm_means$lat), max(otm_means$lat), by = 0.1),
+  microhabitat = factor(c("branch", "leaflitter"))
+) |>
+  mutate(lat_c = lat - mean_lat)
+buffer_pred$min_temp <- predict(buffer_mod, newdata = buffer_pred, re.form = NA)
 
 # plot
-buffering_plot <- otms_data_sum |>
-  mutate(
-    location = factor(location, levels = c("ATL", "GNV", "ORL", "PSL", "MIA"))
-  ) |>
+buffering_plot <- otm_means |>
   ggplot(aes(x = lat, y = min_temp)) +
   geom_hline(
     yintercept = c(0),
@@ -447,7 +856,7 @@ buffering_plot <- otms_data_sum |>
   ) +
   geom_hline(
     linetype = "dashed",
-    aes(yintercept = 6.8, color = "CTmin"),
+    aes(yintercept = ctmin_min, color = "CTmin"),
     show.legend = TRUE
   ) +
   geom_hline(
@@ -455,10 +864,10 @@ buffering_plot <- otms_data_sum |>
     aes(yintercept = tret_temp, color = "Tret"),
     show.legend = TRUE
   ) +
-  geom_smooth(
+  geom_line(
+    data = buffer_pred,
     aes(color = microhabitat),
-    method = "lm",
-    se = FALSE,
+    linewidth = 1
   ) +
   stat_summary(
     aes(color = microhabitat),
@@ -468,12 +877,13 @@ buffering_plot <- otms_data_sum |>
     size = 1
   ) +
   geom_text(
-    data = otms_data_sum |>
+    data = otm_means |>
+      filter(microhabitat == "leaflitter") |>
       group_by(location) |>
       summarise(
         lat = mean(lat),
-        min_temp_mean = mean(min_temp[microhabitat == "leaflitter"]),
-        min_temp_sd = sd(min_temp[microhabitat == "leaflitter"]),
+        min_temp_mean = mean(min_temp),
+        min_temp_sd = sd(min_temp),
         .groups = "drop"
       ),
     aes(x = lat, y = min_temp_mean + min_temp_sd + 0.5, label = location),
@@ -508,7 +918,8 @@ buffering_plot <- otms_data_sum |>
     axis.ticks = element_line(color = "black"),
     panel.grid = element_blank(),
     legend.title = element_blank(),
-    legend.position = c(0.98, 0.98),
+    legend.position = "inside",
+    legend.position.inside = c(0.98, 0.98),
     legend.justification = c("right", "top"),
     legend.text = element_text(size = 14),
     legend.key.spacing.y = unit(0.5, "lines")
@@ -518,81 +929,81 @@ buffering_plot <- otms_data_sum |>
     y = "Minimum Lizard Body Temperature (°C)"
   )
 buffering_plot
-
 ```
 
-We then test whether minimum temperatures differ between microhabitats and across latitudes using a linear model with the formula:
-
-$$
-T \sim Normal(t_i, \sigma)
-$$
-
-$$
-t_i = \alpha + \beta_L \cdot L_i + \beta_M \cdot M_i + \beta_{L \cdot M} \cdot L_i \cdot M_i
-$$
-
-where the minimum operative temperature ($T$) depends on latitude ($L$), an indicator variable ($M$) identifying the microhabitat ($M = 0$ for canopy and $M = 1$ for leaf litter), and their interaction. The results of this model are presented in Table S7 of the manuscript.
-
-```{r stats-leaf-litter-buffering}
-#| code-summary: "Linear model of minimum temperatures by latitude and microhabitat"
-
-# model
-mod <- lm(min_temp ~ lat * microhabitat, data = otms_data_sum)
-broom::tidy(mod)
-broom::glance(mod)
-```
-
-Lastly, we table the average (± SD) and absolute minimum temperatures recorded by OTMs in each location and microhabitat, and the average buffering provided by the leaf litter (i.e., the difference in average minimum temperature between the leaf litter and the canopy; Table S6 in the manuscript). Across locations, the leaf litter is, on average, `{r} otms_data_sum |> group_by(location, microhabitat) |> summarise(m = mean(min_temp)) |> summarise(b = m[microhabitat == "leaflitter"] - m[microhabitat == "branch"]) |> pull(b) |> mean() |> round(1)` °C warmer than the canopy. At higher latitudes, leaf litter temperatures remain, on average, above 0 °C, while canopy temperatures regularly drop below freezing.
+Lastly, we table, for each location and microhabitat, the average (± SD across OTMs) and absolute minimum temperatures recorded by OTMs in January, the average buffering provided by the leaf litter (i.e., the difference in average minimum temperature between the leaf litter and the canopy) and the number of nights on which minimum temperatures fell below 0 °C and below CT<sub>min</sub> (averaged across OTMs; Table S6 in the manuscript). While the average buffering is similar across locations, the leaf litter all but eliminates nights below 0 °C and greatly reduces nights below CT<sub>min</sub>: in Atlanta, canopy OTMs recorded sub-freezing temperatures on `{r} otms_data_sum |> filter(location == "ATL", microhabitat == "branch") |> group_by(id) |> summarise(n = sum(min_temp < 0)) |> pull(n) |> mean() |> round(1)` of `{r} n_distinct(otms_data_sum$date[otms_data_sum$location == "ATL"])` nights in January, on average, compared with `{r} otms_data_sum |> filter(location == "ATL", microhabitat == "leaflitter") |> group_by(id) |> summarise(n = sum(min_temp < 0)) |> pull(n) |> mean() |> round(1)` nights in the leaf litter.
 
 ```{r table-leaf-litter-buffering}
 #| code-summary: "Table minimum temperatures by location and microhabitat"
-otms_data_sum |>
+
+# summarise each OTM, then each location and microhabitat
+location_summary <- otms_data_sum |>
   group_by(location, lat, microhabitat, id) |>
   summarise(
-    mean_min_temp = mean(min_temp, na.rm = TRUE),
-    abs_min_temp = min(min_temp, na.rm = TRUE)
+    mean_min = mean(min_temp),
+    abs_min = min(min_temp),
+    nights_0 = sum(min_temp < 0),
+    nights_ctmin = sum(min_temp < ctmin_min),
+    .groups = "drop"
   ) |>
   group_by(location, lat, microhabitat) |>
   summarise(
-    mean_mt = mean(mean_min_temp, na.rm = TRUE),
-    sd_mt = sd(mean_min_temp, na.rm = TRUE),
-    abs_mt = mean(abs_min_temp, na.rm = TRUE)
+    est = paste0(sprintf("%.1f", mean(mean_min)), " ± ", sprintf("%.1f", sd(mean_min))),
+    mean_min = mean(mean_min),
+    abs_min = sprintf("%.1f", min(abs_min)),
+    nights_0 = sprintf("%.1f", mean(nights_0)),
+    nights_ctmin = sprintf("%.1f", mean(nights_ctmin)),
+    .groups = "drop"
   ) |>
-  mutate(
-    est = paste(
-      round(mean_mt, 1), "±",
-      round(sd_mt, 1), "°C (min =", round(abs_mt, 1), ")"
-    ),
-  ) |>
-  mutate(
-    microhabitat = ifelse(microhabitat == "branch", "Canopy", "Leaf litter")
-  ) |>
-  select(location, lat, microhabitat, est, mean_mt) |>
+  mutate(microhabitat = ifelse(microhabitat == "branch", "canopy", "litter")) |>
   pivot_wider(
     names_from = microhabitat,
-    values_from = c(est, mean_mt)
+    values_from = c(est, mean_min, abs_min, nights_0, nights_ctmin)
   ) |>
   mutate(
-    buffering = round(`mean_mt_Leaf litter` - mean_mt_Canopy, 1)
+    buffering = sprintf("%.1f", mean_min_litter - mean_min_canopy),
+    location = factor(
+      location,
+      levels = c("MIA", "PSL", "ORL", "GNV", "ATL"),
+      labels = c(
+        "Miami, FL (MIA)", "Port Saint Lucie, FL (PSL)", "Orlando, FL (ORL)",
+        "Gainesville, FL (GNV)", "Atlanta, GA (ATL)"
+      )
+    ),
+    lat = sprintf("%.2f", lat)
   ) |>
-  select(location, lat, est_Canopy, `est_Leaf litter`, buffering) |>
+  arrange(location)
+
+location_summary |>
+  select(
+    location, lat,
+    est_canopy, abs_min_canopy, est_litter, abs_min_litter, buffering,
+    nights_0_canopy, nights_0_litter, nights_ctmin_canopy, nights_ctmin_litter
+  ) |>
   kbl(
     col.names = c(
-      "Location", "Latitude (°N)", "Canopy",
-      "Leaf litter", "Average Buffering (°C)"
+      "Location", "Lat. (°N)",
+      "Mean ± SD", "Min.", "Mean ± SD", "Min.", "Buffer (°C)",
+      "Canopy", "Leaf litter", "Canopy", "Leaf litter"
     ),
-    align = "c",
+    align = "lcccccccccc"
   ) |>
-  kable_styling(
-    full_width = FALSE,
-    position = "center",
-    font_size = 12
+  kable_styling(full_width = FALSE, position = "center", font_size = 12) |>
+  add_header_above(
+    c(
+      " " = 2, "Canopy (°C)" = 2, "Leaf litter (°C)" = 2, " " = 1,
+      "Nights &lt; 0 °C" = 2, "Nights &lt; CT<sub>min</sub>" = 2
+    ),
+    escape = FALSE
+  ) |>
+  add_header_above(
+    c(" " = 2, "Minimum operative temperatures" = 5, "Exposure" = 4)
   )
 ```
 
 ## Manuscript Figure
 
-Below we combine the plots above into Figure 3 of the manuscript. (A) Green anoles retreat into the leaf litter when canopy temperatures fall below T<sub>ret</sub>, just above their CT<sub>min</sub>. (B) By retreating into the leaf litter, green anoles experience minimum body temperatures warmer than in the canopy and, in the northernmost areas of their range, avoid sub-zero temperatures.
+Below we combine the plots above into Figure 3 of the manuscript. (A) Green anoles retreat into the leaf litter when canopy temperatures fall below T<sub>ret</sub>, just above the CT<sub>min</sub> of the most cold-tolerant population across the species' range. (B) By retreating into the leaf litter, green anoles experience minimum body temperatures warmer than in the canopy and, in the northernmost areas of their range, avoid sub-zero temperatures.
 
 ```{r plot-manuscript-figure}
 #| code-summary: "Plot manuscript figure"
@@ -612,3 +1023,4 @@ ggarrange(
 )
 
 ```
+
