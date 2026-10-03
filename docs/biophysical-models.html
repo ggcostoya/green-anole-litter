@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Leaf litter temperatures predict the green anole’s poleward range limit – green-anole-litter</title>
+<title>Biophysical models of green anole body temperatures – green-anole-litter</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -172,8 +172,12 @@ window.Quarto = {
 <span class="menu-text">Leaf Litter Retreat</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link active" href="./leaf-litter-temps-range.html" aria-current="page"> 
-<span class="menu-text">Prediciting Poleward Limits</span></a>
+    <a class="nav-link active" href="./biophysical-models.html" aria-current="page"> 
+<span class="menu-text">Biophysical Models</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./envelope-models.html"> 
+<span class="menu-text">Predicting Poleward Limits</span></a>
   </li>  
 </ul>
           </div> <!-- /navcollapse -->
@@ -200,7 +204,6 @@ window.Quarto = {
   <li><a href="#run-biophysical-models" id="toc-run-biophysical-models" class="nav-link" data-scroll-target="#run-biophysical-models">Run biophysical models</a></li>
   <li><a href="#validation" id="toc-validation" class="nav-link" data-scroll-target="#validation">Validation</a></li>
   </ul></li>
-  <li><a href="#mechanistic-envelope-models" id="toc-mechanistic-envelope-models" class="nav-link" data-scroll-target="#mechanistic-envelope-models">Mechanistic envelope models</a></li>
   </ul>
 </nav>
     </div>
@@ -209,7 +212,7 @@ window.Quarto = {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Leaf litter temperatures predict the green anole’s poleward range limit</h1>
+<h1 class="title">Biophysical models of green anole body temperatures</h1>
 </div>
 
 
@@ -228,13 +231,13 @@ window.Quarto = {
 
 <section id="overview" class="level2">
 <h2 class="anchored" data-anchor-id="overview">Overview</h2>
-<p>We hypothesize that the green anole’s poleward range edge is set not by the cold air temperatures in the canopy, but by the thermal conditions within the leaf litter where lizards overwinter. To test this, we combine biophysical models with mechanistic envelope models in four steps:</p>
+<p>We hypothesize that the green anole’s poleward range edge is set not by the cold air temperatures in the canopy, but by the thermal conditions within the leaf litter where lizards overwinter. To test this, we first need to know the body temperatures a green anole would experience in different microclimates across southeastern North America. In this vignette, we:</p>
 <ol type="1">
-<li><p>We define the green anole’s range using curated iNaturalist observations.</p></li>
-<li><p>We obtain spatially explicit data on forest cover, elevation, and minimum and maximum temperatures across southeastern North America.</p></li>
-<li><p>We use biophysical models to transform these macroclimatic data into the minimum annual body (i.e., operative) temperatures a green anole would experience in the canopy and at different depths in the leaf litter, and validate these estimates with data from our operative temperature models (OTMs).</p></li>
-<li><p>We use mechanistic envelope models to evaluate which microclimate and forest cover threshold best predict the green anole’s range, both across its entire range and near its poleward range edge.</p></li>
+<li><p>Define the green anole’s range using curated iNaturalist observations.</p></li>
+<li><p>Obtain spatially explicit data on forest cover, elevation, and minimum and maximum temperatures across southeastern North America.</p></li>
+<li><p>Use biophysical models to transform these macroclimatic data into the minimum annual body (i.e., operative) temperatures a green anole would experience in the canopy and at different depths in the leaf litter, and validate these estimates with data from our operative temperature models (OTMs).</p></li>
 </ol>
+<p>We then use these estimates to evaluate which microclimate best predicts the green anole’s range in the <a href="./envelope-models.html">mechanistic envelope models</a> vignette.</p>
 <div class="cell">
 <details class="code-fold">
 <summary>R setup</summary>
@@ -446,7 +449,7 @@ window.Quarto = {
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><a href="leaf-litter-temps-range_files/figure-html/plot-range-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="leaf-litter-temps-range_files/figure-html/plot-range-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="1750"></a></p>
+<p><a href="biophysical-models_files/figure-html/plot-range-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-1"><img src="biophysical-models_files/figure-html/plot-range-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="1750"></a></p>
 </figure>
 </div>
 </div>
@@ -602,7 +605,7 @@ window.Quarto = {
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><a href="leaf-litter-temps-range_files/figure-html/plot-eco-data-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="leaf-litter-temps-range_files/figure-html/plot-eco-data-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="3500"></a></p>
+<p><a href="biophysical-models_files/figure-html/plot-eco-data-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-2"><img src="biophysical-models_files/figure-html/plot-eco-data-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="3500"></a></p>
 </figure>
 </div>
 </div>
@@ -1119,7 +1122,7 @@ T_{sky,K} = \epsilon_{sky}^{0.25} \cdot T_{air,K} \qquad T_{rad,K} = \left(F_{sk
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><a href="leaf-litter-temps-range_files/figure-html/validate-biophys-model-results-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="leaf-litter-temps-range_files/figure-html/validate-biophys-model-results-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:66.0%"></a></p>
+<p><a href="biophysical-models_files/figure-html/validate-biophys-model-results-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-3"><img src="biophysical-models_files/figure-html/validate-biophys-model-results-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:66.0%"></a></p>
 </figure>
 </div>
 </div>
@@ -1214,276 +1217,9 @@ T_{sky,K} = \epsilon_{sky}^{0.25} \cdot T_{air,K} \qquad T_{rad,K} = \left(F_{sk
 </table>
 </div>
 </div>
-</section>
-</section>
-<section id="mechanistic-envelope-models" class="level2">
-<h2 class="anchored" data-anchor-id="mechanistic-envelope-models">Mechanistic envelope models</h2>
-<p>Envelope models compare the capacity of a set of threshold values across environmental variables to predict a species’ range. These models assign a binary suitability score to each spatial cell based on where the values of the environmental variables fall relative to the thresholds of interest. By comparing the inferred suitability map against the observed range cell-by-cell, we can obtain the True Skill Statistic (TSS), which evaluates model performance as a function of both sensitivity and specificity (i.e., its ability to simultaneously predict presence and absence):</p>
-<p><span class="math display">\[
-TSS = \frac{TP}{TP + FN} + \frac{TN}{TN + FP} - 1
-\]</span></p>
-<p>where <span class="math inline">\(TP\)</span>, <span class="math inline">\(FN\)</span>, <span class="math inline">\(TN\)</span> and <span class="math inline">\(FP\)</span> are the number of true positives, false negatives, true negatives and false positives, respectively. TSS ≤ 0 indicates a predictive ability no better than random, while a value of 1 indicates a perfect match. Thus, if a set of thresholds A yields a greater TSS than a set B, we can infer that the species’ range is more likely determined by A than by B.</p>
-<p>Traditionally, envelope models rely on macroclimatic layers (e.g., air temperatures) and statistically identified thresholds. Instead, our mechanistic approach uses the minimum annual body temperatures estimated with our biophysical models for each microclimate and sets the threshold based on the green anole’s physiology. Specifically, we deem a cell unsuitable if the minimum annual body temperature in a given microclimate falls below 0 °C, which we assume is the lethal cold threshold for the green anole. Because the green anole is arboreal during its active season, we also include forest cover as a second variable, but we do not set its threshold <em>a priori</em>. Instead, we evaluate every forest cover threshold between 0 and 100% at 5% intervals. The combination of microclimate and forest cover threshold that yields the highest TSS is the most probable determinant of the green anole’s range.</p>
-<p>What limits a species’ range at its poleward edge might differ from what limits it within its core. For this reason, we repeat the analysis across four spatial extents defined by the minimum annual temperatures in the canopy (1.8 m):</p>
-<ol type="1">
-<li><p><strong>Entire range</strong>: all spatial cells for which we obtained estimates from our biophysical models.</p></li>
-<li><p><strong>Behavioral threshold</strong>: only cells where canopy temperatures fall below the retreating temperature we inferred from our surveys (T<sub>ret</sub> = 8.06 °C, at the average photoperiod of our surveys; see <a href="./leaf-litter-retreat.html">Green anoles retreat to the leaf litter to avoid extreme cold</a>).</p></li>
-<li><p><strong>Soft physiological threshold</strong>: only cells where canopy temperatures fall below the lowest population-average CT<sub>min</sub> of the species (6.8 °C).</p></li>
-<li><p><strong>Hard physiological threshold</strong>: only cells where canopy temperatures fall below 0 °C.</p></li>
-</ol>
-<p>Below we classify every cell according to these thresholds and plot them.</p>
-<div class="cell" data-layout-align="center">
-<details class="code-fold">
-<summary>Define thresholds for mechanistic envelope models</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># thresholds (°C): Tret from the temperature + photoperiod model in</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="co"># leaf-litter-retreat.qmd and the lowest population-average CTmin across the</span></span>
-<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="co"># range (live-beyond-ctmin.qmd)</span></span>
-<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>tret <span class="ot">&lt;-</span> <span class="fl">8.06</span></span>
-<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>ctmin_min <span class="ot">&lt;-</span> <span class="fl">6.8</span></span>
-<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="co"># estimate thresholds</span></span>
-<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>thresh <span class="ot">&lt;-</span> micro_df <span class="sc">|&gt;</span></span>
-<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(z <span class="sc">==</span> <span class="fl">1.8</span>) <span class="sc">|&gt;</span></span>
-<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">thresh =</span> <span class="fu">case_when</span>(</span>
-<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>      min_annual_temp <span class="sc">&lt;</span> <span class="dv">0</span> <span class="sc">~</span> <span class="st">"below_zero"</span>,</span>
-<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>      min_annual_temp <span class="sc">&lt;</span> ctmin_min <span class="sc">~</span> <span class="st">"below_ctmin"</span>,</span>
-<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a>      min_annual_temp <span class="sc">&lt;</span> tret <span class="sc">~</span> <span class="st">"below_tret"</span>,</span>
-<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"rest_of_range"</span></span>
-<span id="cb19-16"><a href="#cb19-16" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb19-17"><a href="#cb19-17" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb19-18"><a href="#cb19-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(lon, lat, elev, veg, presence, thresh)</span>
-<span id="cb19-19"><a href="#cb19-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-20"><a href="#cb19-20" aria-hidden="true" tabindex="-1"></a><span class="co"># join micro_df with thresholds</span></span>
-<span id="cb19-21"><a href="#cb19-21" aria-hidden="true" tabindex="-1"></a>micro_df <span class="ot">&lt;-</span> micro_df <span class="sc">|&gt;</span></span>
-<span id="cb19-22"><a href="#cb19-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(thresh, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"lon"</span>, <span class="st">"lat"</span>, <span class="st">"elev"</span>, <span class="st">"veg"</span>, <span class="st">"presence"</span>))</span>
-<span id="cb19-23"><a href="#cb19-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb19-24"><a href="#cb19-24" aria-hidden="true" tabindex="-1"></a><span class="co"># plot thresholds</span></span>
-<span id="cb19-25"><a href="#cb19-25" aria-hidden="true" tabindex="-1"></a>thresh_plot <span class="ot">&lt;-</span> thresh <span class="sc">|&gt;</span></span>
-<span id="cb19-26"><a href="#cb19-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> lon, <span class="at">y =</span> lat, <span class="at">fill =</span> thresh)) <span class="sc">+</span></span>
-<span id="cb19-27"><a href="#cb19-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>() <span class="sc">+</span></span>
-<span id="cb19-28"><a href="#cb19-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_contour</span>(<span class="fu">aes</span>(<span class="at">z =</span> presence), <span class="at">color =</span> <span class="st">"white"</span>, <span class="at">breaks =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
-<span id="cb19-29"><a href="#cb19-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(</span>
-<span id="cb19-30"><a href="#cb19-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="sc">-</span><span class="dv">100</span>, <span class="sc">-</span><span class="dv">75</span>, <span class="at">by =</span> <span class="dv">5</span>),</span>
-<span id="cb19-31"><a href="#cb19-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> <span class="cf">function</span>(x) <span class="fu">paste0</span>(<span class="fu">abs</span>(x), <span class="st">"°W"</span>),</span>
-<span id="cb19-32"><a href="#cb19-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">expand =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>)</span>
-<span id="cb19-33"><a href="#cb19-33" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb19-34"><a href="#cb19-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(</span>
-<span id="cb19-35"><a href="#cb19-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">25</span>, <span class="fl">37.5</span>, <span class="at">by =</span> <span class="fl">2.5</span>),</span>
-<span id="cb19-36"><a href="#cb19-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> <span class="cf">function</span>(x) <span class="fu">paste0</span>(x, <span class="st">"°N"</span>),</span>
-<span id="cb19-37"><a href="#cb19-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">expand =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>)</span>
-<span id="cb19-38"><a href="#cb19-38" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb19-39"><a href="#cb19-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(</span>
-<span id="cb19-40"><a href="#cb19-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">values =</span> <span class="fu">c</span>(</span>
-<span id="cb19-41"><a href="#cb19-41" aria-hidden="true" tabindex="-1"></a>      <span class="st">"below_zero"</span> <span class="ot">=</span> <span class="st">"darkblue"</span>,</span>
-<span id="cb19-42"><a href="#cb19-42" aria-hidden="true" tabindex="-1"></a>      <span class="st">"below_ctmin"</span> <span class="ot">=</span> <span class="st">"steelblue"</span>,</span>
-<span id="cb19-43"><a href="#cb19-43" aria-hidden="true" tabindex="-1"></a>      <span class="st">"below_tret"</span> <span class="ot">=</span> <span class="st">"lightblue"</span>,</span>
-<span id="cb19-44"><a href="#cb19-44" aria-hidden="true" tabindex="-1"></a>      <span class="st">"rest_of_range"</span> <span class="ot">=</span> <span class="st">"gray80"</span></span>
-<span id="cb19-45"><a href="#cb19-45" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb19-46"><a href="#cb19-46" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> <span class="fu">c</span>(<span class="st">"below_zero"</span>, <span class="st">"below_ctmin"</span>, <span class="st">"below_tret"</span>),</span>
-<span id="cb19-47"><a href="#cb19-47" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> <span class="fu">c</span>(</span>
-<span id="cb19-48"><a href="#cb19-48" aria-hidden="true" tabindex="-1"></a>      <span class="st">"below_zero"</span> <span class="ot">=</span> <span class="st">"&lt; 0°C"</span>,</span>
-<span id="cb19-49"><a href="#cb19-49" aria-hidden="true" tabindex="-1"></a>      <span class="st">"below_tret"</span> <span class="ot">=</span> <span class="fu">expression</span>(<span class="st">"&lt; "</span> <span class="sc">*</span> T[ret]),</span>
-<span id="cb19-50"><a href="#cb19-50" aria-hidden="true" tabindex="-1"></a>      <span class="st">"below_ctmin"</span> <span class="ot">=</span> <span class="fu">expression</span>(<span class="st">"&lt; "</span> <span class="sc">*</span> CT[min])</span>
-<span id="cb19-51"><a href="#cb19-51" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb19-52"><a href="#cb19-52" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb19-53"><a href="#cb19-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_quickmap</span>(<span class="at">xlim =</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">101</span>, <span class="sc">-</span><span class="dv">75</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">24</span>, <span class="fl">37.5</span>)) <span class="sc">+</span></span>
-<span id="cb19-54"><a href="#cb19-54" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb19-55"><a href="#cb19-55" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
-<span id="cb19-56"><a href="#cb19-56" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.border =</span> <span class="fu">element_rect</span>(<span class="at">fill =</span> <span class="cn">NA</span>),</span>
-<span id="cb19-57"><a href="#cb19-57" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(),</span>
-<span id="cb19-58"><a href="#cb19-58" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid =</span> <span class="fu">element_blank</span>(),</span>
-<span id="cb19-59"><a href="#cb19-59" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title =</span> <span class="fu">element_blank</span>(),</span>
-<span id="cb19-60"><a href="#cb19-60" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">10</span>),</span>
-<span id="cb19-61"><a href="#cb19-61" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">"top"</span>,</span>
-<span id="cb19-62"><a href="#cb19-62" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.title =</span> <span class="fu">element_blank</span>(),</span>
-<span id="cb19-63"><a href="#cb19-63" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">14</span>),</span>
-<span id="cb19-64"><a href="#cb19-64" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.key.spacing.x =</span> <span class="fu">unit</span>(<span class="fl">0.5</span>, <span class="st">"lines"</span>)</span>
-<span id="cb19-65"><a href="#cb19-65" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
-</div>
-<p>Next, we run the mechanistic envelope models for every combination of spatial extent, microclimate and forest cover threshold, and store the resulting TSS values in a grid (<code>tss_grid</code>).</p>
-<div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Note: This code chunk is not evaluated as it takes a long time to run.</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="do">## The output is saved in the `data/tss_grid.rds` file.</span></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="co"># define TSS grid</span></span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>thresh_names <span class="ot">&lt;-</span> <span class="fu">unique</span>(micro_df<span class="sc">$</span>thresh)</span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>veg <span class="ot">&lt;-</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="at">by =</span> <span class="fl">0.05</span>)</span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>zs <span class="ot">&lt;-</span> <span class="fu">unique</span>(micro_df<span class="sc">$</span>z)</span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>tss_grid <span class="ot">&lt;-</span> <span class="fu">expand.grid</span>(</span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">thresh =</span> thresh_names,</span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">veg =</span> veg,</span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">z =</span> zs</span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>tss_grid<span class="sc">$</span>tss <span class="ot">&lt;-</span> <span class="cn">NA</span></span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a><span class="co"># loop through</span></span>
-<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">seq_len</span>(<span class="fu">nrow</span>(tss_grid))) {</span>
-<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>  <span class="co"># filter data of interest</span></span>
-<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>  micro_df_sub <span class="ot">&lt;-</span> micro_df <span class="sc">|&gt;</span> <span class="fu">filter</span>(z <span class="sc">==</span> tss_grid<span class="sc">$</span>z[i])</span>
-<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (tss_grid<span class="sc">$</span>thresh[i] <span class="sc">==</span> <span class="st">"below_zero"</span>) {</span>
-<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>    micro_df_sub <span class="ot">&lt;-</span> micro_df_sub <span class="sc">|&gt;</span> <span class="fu">filter</span>(thresh <span class="sc">==</span> <span class="st">"below_zero"</span>)</span>
-<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> <span class="cf">if</span> (tss_grid<span class="sc">$</span>thresh[i] <span class="sc">==</span> <span class="st">"below_ctmin"</span>) {</span>
-<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>    micro_df_sub <span class="ot">&lt;-</span> micro_df_sub <span class="sc">|&gt;</span> </span>
-<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(thresh <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"below_zero"</span>, <span class="st">"below_ctmin"</span>))</span>
-<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>  } <span class="cf">else</span> <span class="cf">if</span> (tss_grid<span class="sc">$</span>thresh[i] <span class="sc">==</span> <span class="st">"below_tret"</span>) {</span>
-<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>    micro_df_sub <span class="ot">&lt;-</span> micro_df_sub <span class="sc">|&gt;</span></span>
-<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(thresh <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"below_zero"</span>, <span class="st">"below_ctmin"</span>, <span class="st">"below_tret"</span>))</span>
-<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a>  tss_value <span class="ot">&lt;-</span> micro_df_sub <span class="sc">|&gt;</span></span>
-<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(</span>
-<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a>      <span class="at">pred =</span> min_annual_body_temp <span class="sc">&gt;</span> <span class="dv">0</span> <span class="sc">&amp;</span> veg <span class="sc">&gt;</span> tss_grid<span class="sc">$</span>veg[i]</span>
-<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">|&gt;</span></span>
-<span id="cb20-34"><a href="#cb20-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">summarise</span>(</span>
-<span id="cb20-35"><a href="#cb20-35" aria-hidden="true" tabindex="-1"></a>      <span class="at">tp =</span> <span class="fu">sum</span>(pred <span class="sc">&amp;</span> presence),</span>
-<span id="cb20-36"><a href="#cb20-36" aria-hidden="true" tabindex="-1"></a>      <span class="at">fp =</span> <span class="fu">sum</span>(pred <span class="sc">&amp;</span> <span class="sc">!</span>presence),</span>
-<span id="cb20-37"><a href="#cb20-37" aria-hidden="true" tabindex="-1"></a>      <span class="at">fn =</span> <span class="fu">sum</span>(<span class="sc">!</span>pred <span class="sc">&amp;</span> presence),</span>
-<span id="cb20-38"><a href="#cb20-38" aria-hidden="true" tabindex="-1"></a>      <span class="at">tn =</span> <span class="fu">sum</span>(<span class="sc">!</span>pred <span class="sc">&amp;</span> <span class="sc">!</span>presence)</span>
-<span id="cb20-39"><a href="#cb20-39" aria-hidden="true" tabindex="-1"></a>    ) <span class="sc">|&gt;</span></span>
-<span id="cb20-40"><a href="#cb20-40" aria-hidden="true" tabindex="-1"></a>    <span class="fu">mutate</span>(<span class="at">tss =</span> (tp <span class="sc">/</span> (tp <span class="sc">+</span> fn)) <span class="sc">+</span> (tn <span class="sc">/</span> (tn <span class="sc">+</span> fp)) <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">|&gt;</span></span>
-<span id="cb20-41"><a href="#cb20-41" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pull</span>(tss)</span>
-<span id="cb20-42"><a href="#cb20-42" aria-hidden="true" tabindex="-1"></a>  tss_grid<span class="sc">$</span>tss[i] <span class="ot">&lt;-</span> tss_value</span>
-<span id="cb20-43"><a href="#cb20-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-44"><a href="#cb20-44" aria-hidden="true" tabindex="-1"></a>  <span class="co"># track progress</span></span>
-<span id="cb20-45"><a href="#cb20-45" aria-hidden="true" tabindex="-1"></a>  <span class="cf">if</span> (i <span class="sc">%%</span> <span class="dv">100</span> <span class="sc">==</span> <span class="dv">0</span>) {</span>
-<span id="cb20-46"><a href="#cb20-46" aria-hidden="true" tabindex="-1"></a>    <span class="fu">message</span>(<span class="fu">paste</span>(<span class="st">"Processed"</span>, i, <span class="st">"of"</span>, <span class="fu">nrow</span>(tss_grid), <span class="st">"rows"</span>))</span>
-<span id="cb20-47"><a href="#cb20-47" aria-hidden="true" tabindex="-1"></a>  }</span>
-<span id="cb20-48"><a href="#cb20-48" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-49"><a href="#cb20-49" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb20-50"><a href="#cb20-50" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-51"><a href="#cb20-51" aria-hidden="true" tabindex="-1"></a><span class="co"># save tss grid</span></span>
-<span id="cb20-52"><a href="#cb20-52" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(tss_grid, <span class="st">"data/tss_grid.rds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</div>
-<p>Lastly, we identify the combination of microclimate and forest cover threshold that maximizes TSS for each spatial extent (Table S8 in the manuscript) and plot the results (Fig. 4 in the manuscript). Panel A shows the areas below each threshold. Panel B shows the TSS values of every combination of microclimate (y-axis) and forest cover threshold (x-axis) for each spatial extent, with red circles marking the combination that maximizes TSS.</p>
-<p>Across all spatial extents, leaf-litter microclimates predict the green anole’s range better than the canopy, with depths of 3-4 cm performing best. This effect is strongest in areas where canopy temperatures fall below 0 °C, where the poleward range edge is located: here, canopy microclimates have no predictive capacity (TSS = 0), whereas leaf-litter microclimates yield the highest predictive accuracy of all conditions tested.</p>
-<div class="cell" data-layout-align="center">
-<details class="code-fold">
-<summary>Plot mechanistic envelope model results</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># load TSS grid</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>tss_grid <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"data/tss_grid.rds"</span>)</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="co"># get maximum TSS values for each threshold</span></span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>tss_grid_max <span class="ot">&lt;-</span> tss_grid <span class="sc">|&gt;</span></span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(thresh) <span class="sc">|&gt;</span></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(tss <span class="sc">==</span> <span class="fu">max</span>(tss, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">|&gt;</span></span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
-<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>tss_grid_max</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
-<div class="cell-output cell-output-stdout">
-<pre><code># A tibble: 4 × 4
-  thresh          veg     z   tss
-  &lt;fct&gt;         &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
-1 below_zero     0.35 -0.04 0.794
-2 below_ctmin    0.2  -0.03 0.768
-3 below_tret     0.2  -0.03 0.759
-4 rest_of_range  0.2  -0.03 0.742</code></pre>
-</div>
-<details class="code-fold">
-<summary>Plot mechanistic envelope model results</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># refactor threshold names for plotting</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>tss_grid<span class="sc">$</span>thresh <span class="ot">&lt;-</span> <span class="fu">factor</span>(</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  tss_grid<span class="sc">$</span>thresh,</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"below_zero"</span>, <span class="st">"below_ctmin"</span>, <span class="st">"below_tret"</span>, <span class="st">"rest_of_range"</span>),</span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="co"># plot TSS grid</span></span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>tss_grid_plot <span class="ot">&lt;-</span> tss_grid <span class="sc">|&gt;</span></span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(z <span class="sc">&lt;</span> <span class="dv">2</span>) <span class="sc">|&gt;</span></span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">tile_height =</span> <span class="fu">ifelse</span>(z <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="fl">0.2</span>, <span class="fl">0.01</span>)) <span class="sc">|&gt;</span></span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">z_mod =</span> <span class="fu">ifelse</span>(z <span class="sc">&gt;</span> <span class="dv">0</span>, <span class="fl">0.1</span>, z)) <span class="sc">|&gt;</span></span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_tibble</span>() <span class="sc">|&gt;</span></span>
-<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(tile_height)) <span class="sc">|&gt;</span></span>
-<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> veg, <span class="at">fill =</span> tss)) <span class="sc">+</span></span>
-<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>(<span class="fu">aes</span>(<span class="at">y =</span> z_mod, <span class="at">height =</span> tile_height)) <span class="sc">+</span></span>
-<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(</span>
-<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">y =</span> z),</span>
-<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> tss_grid_max,</span>
-<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="st">"red"</span>,</span>
-<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">size =</span> <span class="dv">3</span>,</span>
-<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">shape =</span> <span class="dv">1</span></span>
-<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(</span>
-<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">color =</span> <span class="st">"white"</span>, <span class="at">linetype =</span> <span class="st">"solid"</span></span>
-<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_b</span>(</span>
-<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="st">"TSS"</span>,</span>
-<span id="cb23-28"><a href="#cb23-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">limits =</span> <span class="fu">c</span>(</span>
-<span id="cb23-29"><a href="#cb23-29" aria-hidden="true" tabindex="-1"></a>      <span class="fu">min</span>(tss_grid<span class="sc">$</span>tss, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="fu">max</span>(tss_grid<span class="sc">$</span>tss, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb23-30"><a href="#cb23-30" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb23-31"><a href="#cb23-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> <span class="fu">seq</span>(</span>
-<span id="cb23-32"><a href="#cb23-32" aria-hidden="true" tabindex="-1"></a>      <span class="fu">min</span>(tss_grid<span class="sc">$</span>tss, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="fu">max</span>(tss_grid<span class="sc">$</span>tss, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb23-33"><a href="#cb23-33" aria-hidden="true" tabindex="-1"></a>      <span class="at">by =</span> <span class="fl">0.05</span></span>
-<span id="cb23-34"><a href="#cb23-34" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb23-35"><a href="#cb23-35" aria-hidden="true" tabindex="-1"></a>    <span class="co"># only show labels for every other break</span></span>
-<span id="cb23-36"><a href="#cb23-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> <span class="cf">function</span>(x) <span class="fu">ifelse</span>(<span class="fu">seq_along</span>(x) <span class="sc">%%</span> <span class="dv">2</span> <span class="sc">==</span> <span class="dv">1</span>, x, <span class="st">""</span>),</span>
-<span id="cb23-37"><a href="#cb23-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">guide =</span> <span class="fu">guide_colorsteps</span>(</span>
-<span id="cb23-38"><a href="#cb23-38" aria-hidden="true" tabindex="-1"></a>      <span class="at">barheight =</span> <span class="fu">unit</span>(<span class="dv">8</span>, <span class="st">"cm"</span>),</span>
-<span id="cb23-39"><a href="#cb23-39" aria-hidden="true" tabindex="-1"></a>      <span class="at">barwidth =</span> <span class="fu">unit</span>(<span class="fl">0.5</span>, <span class="st">"cm"</span>)</span>
-<span id="cb23-40"><a href="#cb23-40" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb23-41"><a href="#cb23-41" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb23-42"><a href="#cb23-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(</span>
-<span id="cb23-43"><a href="#cb23-43" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="at">by =</span> <span class="fl">0.2</span>),</span>
-<span id="cb23-44"><a href="#cb23-44" aria-hidden="true" tabindex="-1"></a>    <span class="at">expand =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>)</span>
-<span id="cb23-45"><a href="#cb23-45" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb23-46"><a href="#cb23-46" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(</span>
-<span id="cb23-47"><a href="#cb23-47" aria-hidden="true" tabindex="-1"></a>    <span class="at">expand =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>),</span>
-<span id="cb23-48"><a href="#cb23-48" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> <span class="fu">c</span>(<span class="fl">0.2</span>, <span class="dv">0</span>, <span class="sc">-</span><span class="fl">0.05</span>, <span class="sc">-</span><span class="fl">0.1</span>, <span class="sc">-</span><span class="fl">0.2</span>),</span>
-<span id="cb23-49"><a href="#cb23-49" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"1.8"</span>, <span class="st">"0"</span>, <span class="st">"-0.05"</span>, <span class="st">"-0.1"</span>, <span class="st">"-0.2"</span>)</span>
-<span id="cb23-50"><a href="#cb23-50" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb23-51"><a href="#cb23-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(</span>
-<span id="cb23-52"><a href="#cb23-52" aria-hidden="true" tabindex="-1"></a>    <span class="sc">~</span>thresh,</span>
-<span id="cb23-53"><a href="#cb23-53" aria-hidden="true" tabindex="-1"></a>    <span class="at">ncol =</span> <span class="dv">2</span>,</span>
-<span id="cb23-54"><a href="#cb23-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">nrow =</span> <span class="dv">2</span>,</span>
-<span id="cb23-55"><a href="#cb23-55" aria-hidden="true" tabindex="-1"></a>    <span class="at">axes =</span> <span class="st">"all"</span>,</span>
-<span id="cb23-56"><a href="#cb23-56" aria-hidden="true" tabindex="-1"></a>    <span class="at">labeller =</span> <span class="fu">labeller</span>(</span>
-<span id="cb23-57"><a href="#cb23-57" aria-hidden="true" tabindex="-1"></a>      <span class="at">thresh =</span> <span class="fu">as_labeller</span>(</span>
-<span id="cb23-58"><a href="#cb23-58" aria-hidden="true" tabindex="-1"></a>        <span class="fu">c</span>(</span>
-<span id="cb23-59"><a href="#cb23-59" aria-hidden="true" tabindex="-1"></a>          <span class="at">below_zero =</span> <span class="st">"bold(atop('&lt; Hard Physiological', 'Threshold (' * 0 * degree * C * ')'))"</span>, <span class="co"># nolint</span></span>
-<span id="cb23-60"><a href="#cb23-60" aria-hidden="true" tabindex="-1"></a>          <span class="at">below_ctmin =</span> <span class="st">"bold(atop('&lt; Soft Physiological', 'Threshold (' * CT[min] * ')'))"</span>, <span class="co"># nolint</span></span>
-<span id="cb23-61"><a href="#cb23-61" aria-hidden="true" tabindex="-1"></a>          <span class="at">below_tret =</span> <span class="st">"bold(atop('&lt; Behavior', 'Threshold (' * T[ret] * ')'))"</span>, <span class="co"># nolint</span></span>
-<span id="cb23-62"><a href="#cb23-62" aria-hidden="true" tabindex="-1"></a>          <span class="at">rest_of_range =</span> <span class="st">"bold(atop('Entire', 'range'))"</span></span>
-<span id="cb23-63"><a href="#cb23-63" aria-hidden="true" tabindex="-1"></a>        ),</span>
-<span id="cb23-64"><a href="#cb23-64" aria-hidden="true" tabindex="-1"></a>        label_parsed</span>
-<span id="cb23-65"><a href="#cb23-65" aria-hidden="true" tabindex="-1"></a>      )</span>
-<span id="cb23-66"><a href="#cb23-66" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb23-67"><a href="#cb23-67" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb23-68"><a href="#cb23-68" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
-<span id="cb23-69"><a href="#cb23-69" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Forest Cover"</span>,</span>
-<span id="cb23-70"><a href="#cb23-70" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Distance from surface above or below leaf litter (m)"</span></span>
-<span id="cb23-71"><a href="#cb23-71" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb23-72"><a href="#cb23-72" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb23-73"><a href="#cb23-73" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
-<span id="cb23-74"><a href="#cb23-74" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">"right"</span>,</span>
-<span id="cb23-75"><a href="#cb23-75" aria-hidden="true" tabindex="-1"></a>    <span class="at">strip.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">12</span>),</span>
-<span id="cb23-76"><a href="#cb23-76" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.border =</span> <span class="fu">element_rect</span>(<span class="at">color =</span> <span class="st">"black"</span>, <span class="at">fill =</span> <span class="cn">NA</span>, <span class="at">linewidth =</span> <span class="fl">0.5</span>),</span>
-<span id="cb23-77"><a href="#cb23-77" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>, <span class="at">linewidth =</span> <span class="fl">0.25</span>),</span>
-<span id="cb23-78"><a href="#cb23-78" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">14</span>, <span class="at">lineheight =</span> <span class="fl">1.25</span>),</span>
-<span id="cb23-79"><a href="#cb23-79" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.title =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">14</span>, <span class="at">hjust =</span> <span class="fl">0.5</span>, <span class="at">vjust =</span> <span class="dv">1</span>),</span>
-<span id="cb23-80"><a href="#cb23-80" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">10</span>)</span>
-<span id="cb23-81"><a href="#cb23-81" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb23-82"><a href="#cb23-82" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-83"><a href="#cb23-83" aria-hidden="true" tabindex="-1"></a><span class="fu">ggarrange</span>(</span>
-<span id="cb23-84"><a href="#cb23-84" aria-hidden="true" tabindex="-1"></a>  thresh_plot,</span>
-<span id="cb23-85"><a href="#cb23-85" aria-hidden="true" tabindex="-1"></a>  tss_grid_plot,</span>
-<span id="cb23-86"><a href="#cb23-86" aria-hidden="true" tabindex="-1"></a>  <span class="at">ncol =</span> <span class="dv">1</span>,</span>
-<span id="cb23-87"><a href="#cb23-87" aria-hidden="true" tabindex="-1"></a>  <span class="at">heights =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>),</span>
-<span id="cb23-88"><a href="#cb23-88" aria-hidden="true" tabindex="-1"></a>  <span class="at">widths =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="fl">0.5</span>),</span>
-<span id="cb23-89"><a href="#cb23-89" aria-hidden="true" tabindex="-1"></a>  <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"A"</span>, <span class="st">"B"</span>)</span>
-<span id="cb23-90"><a href="#cb23-90" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
-<div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><a href="leaf-litter-temps-range_files/figure-html/plot-memo-results-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="leaf-litter-temps-range_files/figure-html/plot-memo-results-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" width="2100"></a></p>
-</figure>
-</div>
-</div>
-</div>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

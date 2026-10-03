@@ -172,8 +172,12 @@ window.Quarto = {
 <span class="menu-text">Leaf Litter Retreat</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./leaf-litter-temps-range.html"> 
-<span class="menu-text">Prediciting Poleward Limits</span></a>
+    <a class="nav-link" href="./biophysical-models.html"> 
+<span class="menu-text">Biophysical Models</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./envelope-models.html"> 
+<span class="menu-text">Predicting Poleward Limits</span></a>
   </li>  
 </ul>
           </div> <!-- /navcollapse -->
@@ -248,7 +252,7 @@ window.Quarto = {
 </div>
 <section id="overview" class="level2">
 <h2 class="anchored" data-anchor-id="overview">Overview</h2>
-<p>Ectotherms are often assumed to need physiological adaptation to expand their ranges poleward. If that were the case for the green anole, its cold tolerance should track the colder climates it encounters at higher latitudes. Below we test this assumption in two steps. First, we compare how the critical thermal minimum (CT<sub>min</sub>) of green anoles and minimum annual temperatures change across the species’ latitudinal range. Second, we combine CT<sub>min</sub> data with the geographic ranges of 181 lizard species to quantify how much of each species’ range falls below its CT<sub>min</sub> and below 0 °C, and assess whether the green anole is an exceptional case.</p>
+<p>Ectotherms are often assumed to need physiological adaptation to expand their ranges poleward. If that were the case for the green anole, its cold tolerance should track the colder climates it encounters at higher latitudes. Below we test this assumption in two steps. First, we compare how the critical thermal minimum (CT<sub>min</sub>) of green anoles and minimum annual temperatures change across the species’ latitudinal range. Second, we combine CT<sub>min</sub> data with the geographic ranges of 180 lizard species to quantify how much of each species’ range falls below its CT<sub>min</sub> and below 0 °C, and assess whether the green anole is an exceptional case.</p>
 </section>
 <section id="ctmin-does-not-scale-with-climate" class="level2">
 <h2 class="anchored" data-anchor-id="ctmin-does-not-scale-with-climate">CT<sub>min</sub> does not scale with climate</h2>
@@ -995,13 +999,13 @@ AIC (REML)
 <h2 class="anchored" data-anchor-id="the-green-anole-is-an-exceptional-case-of-climatic-overfilling">The green anole is an exceptional case of climatic overfilling</h2>
 <section id="data-processing" class="level3">
 <h3 class="anchored" data-anchor-id="data-processing">Data processing</h3>
-<p>We compiled a dataset of CT<sub>min</sub> and elevational limits for 181 lizard species, representing 17 families and 46 genera. We obtained CT<sub>min</sub> estimates from the GlobTherm database and complemented them with two datasets focused specifically on <em>Anolis</em> lizards (Bodensteiner et al.&nbsp;2024; Salazar et al.&nbsp;2025). We then obtained elevational range limits, substrate use (arboreal, semi-arboreal or other) and the identifiers linking each species to its range map in the GARD database from SquamBase. The script used to compile this dataset (<code>process-ctmin-lizards-data.R</code>) is stored in the <code>raw_data</code> folder. For <em>A. carolinensis</em>, we set CT<sub>min</sub> to 6.8 °C, the lowest population-average CT<sub>min</sub> we measured (Knoxville, TN).</p>
+<p>We compiled a dataset of CT<sub>min</sub> and elevational limits for 180 lizard species, representing 17 families and 46 genera. We obtained CT<sub>min</sub> estimates from the GlobTherm database and complemented them with two datasets focused specifically on <em>Anolis</em> lizards (Bodensteiner et al.&nbsp;2024; Salazar et al.&nbsp;2025). When a species was present in more than one dataset (only <em>A. barbouri</em>), we kept the GlobTherm record. We then obtained elevational range limits, substrate use (arboreal, semi-arboreal or other) and the identifiers linking each species to its range map in the GARD database from SquamBase. The script used to compile this dataset (<code>process-ctmin-lizards-data.R</code>) is stored in the <code>raw_data</code> folder. For <em>A. carolinensis</em>, we set CT<sub>min</sub> to 6.8 °C, the lowest population-average CT<sub>min</sub> we measured (Knoxville, TN).</p>
 <p>Below we present the structure of the resulting dataset, which is stored in the <code>data</code> folder:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>ctmin_lizards <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"data/ctmin_lizards.rds"</span>)</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(ctmin_lizards)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Rows: 181
+<pre><code>Rows: 180
 Columns: 9
 $ family         &lt;chr&gt; "Teiidae", "Agamidae", "Dactyloidae", "Dactyloidae", "D…
 $ genus          &lt;chr&gt; "Ameiva", "Amphibolurus", "Anolis", "Anolis", "Anolis",…
@@ -1175,7 +1179,7 @@ $ substrate_type &lt;chr&gt; "other", "semi-arboreal", "other", "semi-arboreal",
 </section>
 <section id="statistical-analysis" class="level3">
 <h3 class="anchored" data-anchor-id="statistical-analysis">Statistical analysis</h3>
-<p>To assess whether <em>A. carolinensis</em> is a unique case, we conducted an outlier analysis. Below we calculate Z-scores (i.e., the number of standard deviations above or below the mean of a group) for the area and proportion of the green anole’s range below CT<sub>min</sub> and below 0 °C, relative to three groups: other <em>Anolis</em>, exclusively arboreal lizards, and all lizards in our dataset (Table S4 in the manuscript).</p>
+<p>To assess whether <em>A. carolinensis</em> is a unique case, we conducted an outlier analysis. Below we calculate Z-scores (i.e., the number of standard deviations above or below the mean of a group) for the area and proportion of the green anole’s range below CT<sub>min</sub> and below 0 °C, relative to three groups: other <em>Anolis</em>, exclusively arboreal lizards, and all lizards in our dataset (Table S4 in the manuscript). Because Z-scores assume approximately normal data and the areas below each threshold span several orders of magnitude, we calculate Z-scores for areas on a log scale (log<sub>10</sub>[area + 1], adding 1 km<sup>2</sup> to accommodate species with no area below a threshold). Because Z-scores can still be affected by the many species with no area below a threshold, we also report the rank of <em>A. carolinensis</em> within each group (1 = the largest value in the group; tied species share the highest rank).</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Z-scores of A. carolinensis relative to other lizards</summary>
@@ -1187,102 +1191,144 @@ $ substrate_type &lt;chr&gt; "other", "semi-arboreal", "other", "semi-arboreal",
 <span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  (x <span class="sc">-</span> <span class="fu">mean</span>(group, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">/</span> <span class="fu">sd</span>(group, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
 <span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>}</span>
 <span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="co"># get Z-scores of A. carolinensis with respect to other groups</span></span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>caro_z_scores <span class="ot">&lt;-</span> <span class="fu">expand_grid</span>(</span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">var =</span> <span class="fu">c</span>(</span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">"below_ctmin_prop"</span>,</span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">"below_0_prop"</span>,</span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">"below_ctmin_area"</span>,</span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">"below_0_area"</span></span>
-<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>  ),</span>
-<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>  <span class="at">group =</span> <span class="fu">c</span>(<span class="st">"anolis"</span>, <span class="st">"arboreal"</span>, <span class="st">"all"</span>)</span>
-<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
-<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">z_score =</span> <span class="fu">map2_dbl</span>(var, group, \(v, g) {</span>
-<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>      dat <span class="ot">&lt;-</span> lizard_climatic_overfilling[[v]]</span>
-<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>      comp <span class="ot">&lt;-</span> <span class="cf">switch</span>(</span>
-<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>        g,</span>
-<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>        <span class="at">anolis =</span> dat[lizard_climatic_overfilling<span class="sc">$</span>genus <span class="sc">==</span> <span class="st">"Anolis"</span>],</span>
-<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>        <span class="at">arboreal =</span> dat[lizard_climatic_overfilling<span class="sc">$</span>substrate <span class="sc">==</span> <span class="st">"arboreal"</span>],</span>
-<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>        <span class="at">all =</span> dat</span>
-<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>      )</span>
-<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>      x <span class="ot">&lt;-</span> dat[lizard_climatic_overfilling<span class="sc">$</span>species <span class="sc">==</span> <span class="st">"Anolis carolinensis"</span>]</span>
-<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>      <span class="fu">get_z_score</span>(<span class="at">x =</span> x, <span class="at">group =</span> comp)</span>
-<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>    })</span>
-<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a><span class="co"># tidy up for display as a table</span></span>
-<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>caro_z_scores <span class="sc">|&gt;</span></span>
-<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> group, <span class="at">values_from =</span> z_score) <span class="sc">|&gt;</span></span>
-<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>    <span class="fu">across</span>(</span>
-<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>      <span class="fu">c</span>(anolis, arboreal, all),</span>
-<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>      <span class="sc">~</span> <span class="fu">round</span>(.x, <span class="dv">2</span>)</span>
-<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a>    <span class="at">metric =</span> <span class="fu">case_when</span>(</span>
-<span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a>      var <span class="sc">==</span> <span class="st">"below_ctmin_prop"</span> <span class="sc">~</span> <span class="st">"Proportion of range below CT&lt;sub&gt;min&lt;/sub&gt;"</span>,</span>
-<span id="cb9-45"><a href="#cb9-45" aria-hidden="true" tabindex="-1"></a>      var <span class="sc">==</span> <span class="st">"below_0_prop"</span> <span class="sc">~</span> <span class="st">"Proportion of range below 0 °C"</span>,</span>
-<span id="cb9-46"><a href="#cb9-46" aria-hidden="true" tabindex="-1"></a>      var <span class="sc">==</span> <span class="st">"below_ctmin_area"</span> <span class="sc">~</span> <span class="st">"Area of range below CT&lt;sub&gt;min&lt;/sub&gt; (km&lt;sup&gt;2&lt;/sup&gt;)"</span>,</span>
-<span id="cb9-47"><a href="#cb9-47" aria-hidden="true" tabindex="-1"></a>      var <span class="sc">==</span> <span class="st">"below_0_area"</span> <span class="sc">~</span> <span class="st">"Area of range below 0 °C (km&lt;sup&gt;2&lt;/sup&gt;)"</span></span>
-<span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb9-49"><a href="#cb9-49" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb9-50"><a href="#cb9-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(metric, anolis, arboreal, all) <span class="sc">|&gt;</span></span>
-<span id="cb9-51"><a href="#cb9-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kbl</span>(</span>
-<span id="cb9-52"><a href="#cb9-52" aria-hidden="true" tabindex="-1"></a>    <span class="at">col.names =</span> <span class="fu">c</span>(</span>
-<span id="cb9-53"><a href="#cb9-53" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Metric"</span>, <span class="st">"Z-score (relative to &lt;i&gt;Anolis&lt;/i&gt; genus)"</span>,</span>
-<span id="cb9-54"><a href="#cb9-54" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Z-score (relative to arboreal lizards)"</span>,</span>
-<span id="cb9-55"><a href="#cb9-55" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Z-score (relative to all lizards)"</span></span>
-<span id="cb9-56"><a href="#cb9-56" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb9-57"><a href="#cb9-57" aria-hidden="true" tabindex="-1"></a>    <span class="at">escape =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb9-58"><a href="#cb9-58" aria-hidden="true" tabindex="-1"></a>    <span class="at">align =</span> <span class="st">"lccc"</span></span>
-<span id="cb9-59"><a href="#cb9-59" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb9-60"><a href="#cb9-60" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable_styling</span>(</span>
-<span id="cb9-61"><a href="#cb9-61" aria-hidden="true" tabindex="-1"></a>    <span class="at">full_width =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb9-62"><a href="#cb9-62" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> <span class="st">"center"</span></span>
-<span id="cb9-63"><a href="#cb9-63" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="co"># log-transform areas (adding 1 km2 to accommodate species with no area below</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="co"># a threshold), as they span several orders of magnitude</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>lizard_climatic_overfilling <span class="ot">&lt;-</span> lizard_climatic_overfilling <span class="sc">|&gt;</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">log_below_ctmin_area =</span> <span class="fu">log10</span>(below_ctmin_area <span class="sc">+</span> <span class="dv">1</span>),</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">log_below_0_area =</span> <span class="fu">log10</span>(below_0_area <span class="sc">+</span> <span class="dv">1</span>)</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="co"># get Z-scores and ranks of A. carolinensis with respect to other groups (rank</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 = largest value in the group; ties share the highest rank)</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>get_group_values <span class="ot">&lt;-</span> <span class="cf">function</span>(v, g) {</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>  dat <span class="ot">&lt;-</span> lizard_climatic_overfilling[[v]]</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>  comp <span class="ot">&lt;-</span> <span class="cf">switch</span>(</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>    g,</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">anolis =</span> dat[lizard_climatic_overfilling<span class="sc">$</span>genus <span class="sc">==</span> <span class="st">"Anolis"</span>],</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">arboreal =</span> dat[lizard_climatic_overfilling<span class="sc">$</span>substrate <span class="sc">==</span> <span class="st">"arboreal"</span>],</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">all =</span> dat</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">list</span>(</span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> dat[lizard_climatic_overfilling<span class="sc">$</span>species <span class="sc">==</span> <span class="st">"Anolis carolinensis"</span>],</span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">group =</span> comp[<span class="sc">!</span><span class="fu">is.na</span>(comp)]</span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>caro_z_scores <span class="ot">&lt;-</span> <span class="fu">expand_grid</span>(</span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>  <span class="at">var =</span> <span class="fu">c</span>(</span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>    <span class="st">"below_ctmin_prop"</span>,</span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>    <span class="st">"below_0_prop"</span>,</span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>    <span class="st">"log_below_ctmin_area"</span>,</span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>    <span class="st">"log_below_0_area"</span></span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>  <span class="at">group =</span> <span class="fu">c</span>(<span class="st">"anolis"</span>, <span class="st">"arboreal"</span>, <span class="st">"all"</span>)</span>
+<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a>    <span class="at">z_score =</span> <span class="fu">map2_dbl</span>(var, group, \(v, g) {</span>
+<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a>      vals <span class="ot">&lt;-</span> <span class="fu">get_group_values</span>(v, g)</span>
+<span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a>      <span class="fu">get_z_score</span>(<span class="at">x =</span> vals<span class="sc">$</span>x, <span class="at">group =</span> vals<span class="sc">$</span>group)</span>
+<span id="cb9-45"><a href="#cb9-45" aria-hidden="true" tabindex="-1"></a>    }),</span>
+<span id="cb9-46"><a href="#cb9-46" aria-hidden="true" tabindex="-1"></a>    <span class="at">rank =</span> <span class="fu">map2_chr</span>(var, group, \(v, g) {</span>
+<span id="cb9-47"><a href="#cb9-47" aria-hidden="true" tabindex="-1"></a>      vals <span class="ot">&lt;-</span> <span class="fu">get_group_values</span>(v, g)</span>
+<span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a>      <span class="fu">paste0</span>(<span class="fu">sum</span>(vals<span class="sc">$</span>group <span class="sc">&gt;</span> vals<span class="sc">$</span>x) <span class="sc">+</span> <span class="dv">1</span>, <span class="st">" / "</span>, <span class="fu">length</span>(vals<span class="sc">$</span>group))</span>
+<span id="cb9-49"><a href="#cb9-49" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb9-50"><a href="#cb9-50" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb9-51"><a href="#cb9-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-52"><a href="#cb9-52" aria-hidden="true" tabindex="-1"></a><span class="co"># tidy up for display as a table</span></span>
+<span id="cb9-53"><a href="#cb9-53" aria-hidden="true" tabindex="-1"></a>caro_z_scores <span class="sc">|&gt;</span></span>
+<span id="cb9-54"><a href="#cb9-54" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">z_score =</span> <span class="fu">sprintf</span>(<span class="st">"%.2f"</span>, z_score)) <span class="sc">|&gt;</span></span>
+<span id="cb9-55"><a href="#cb9-55" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> group, <span class="at">values_from =</span> <span class="fu">c</span>(z_score, rank)) <span class="sc">|&gt;</span></span>
+<span id="cb9-56"><a href="#cb9-56" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb9-57"><a href="#cb9-57" aria-hidden="true" tabindex="-1"></a>    <span class="at">metric =</span> <span class="fu">case_when</span>(</span>
+<span id="cb9-58"><a href="#cb9-58" aria-hidden="true" tabindex="-1"></a>      var <span class="sc">==</span> <span class="st">"below_ctmin_prop"</span> <span class="sc">~</span> <span class="st">"Proportion of range below CT&lt;sub&gt;min&lt;/sub&gt;"</span>,</span>
+<span id="cb9-59"><a href="#cb9-59" aria-hidden="true" tabindex="-1"></a>      var <span class="sc">==</span> <span class="st">"below_0_prop"</span> <span class="sc">~</span> <span class="st">"Proportion of range below 0 °C"</span>,</span>
+<span id="cb9-60"><a href="#cb9-60" aria-hidden="true" tabindex="-1"></a>      var <span class="sc">==</span> <span class="st">"log_below_ctmin_area"</span> <span class="sc">~</span> <span class="st">"Area of range below CT&lt;sub&gt;min&lt;/sub&gt; (log&lt;sub&gt;10&lt;/sub&gt; km&lt;sup&gt;2&lt;/sup&gt;)"</span>, <span class="co"># nolint</span></span>
+<span id="cb9-61"><a href="#cb9-61" aria-hidden="true" tabindex="-1"></a>      var <span class="sc">==</span> <span class="st">"log_below_0_area"</span> <span class="sc">~</span> <span class="st">"Area of range below 0 °C (log&lt;sub&gt;10&lt;/sub&gt; km&lt;sup&gt;2&lt;/sup&gt;)"</span> <span class="co"># nolint</span></span>
+<span id="cb9-62"><a href="#cb9-62" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb9-63"><a href="#cb9-63" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb9-64"><a href="#cb9-64" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(</span>
+<span id="cb9-65"><a href="#cb9-65" aria-hidden="true" tabindex="-1"></a>    metric, z_score_anolis, rank_anolis, z_score_arboreal, rank_arboreal,</span>
+<span id="cb9-66"><a href="#cb9-66" aria-hidden="true" tabindex="-1"></a>    z_score_all, rank_all</span>
+<span id="cb9-67"><a href="#cb9-67" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb9-68"><a href="#cb9-68" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kbl</span>(</span>
+<span id="cb9-69"><a href="#cb9-69" aria-hidden="true" tabindex="-1"></a>    <span class="at">col.names =</span> <span class="fu">c</span>(<span class="st">"Metric"</span>, <span class="fu">rep</span>(<span class="fu">c</span>(<span class="st">"Z-score"</span>, <span class="st">"Rank"</span>), <span class="dv">3</span>)),</span>
+<span id="cb9-70"><a href="#cb9-70" aria-hidden="true" tabindex="-1"></a>    <span class="at">escape =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb9-71"><a href="#cb9-71" aria-hidden="true" tabindex="-1"></a>    <span class="at">align =</span> <span class="st">"lcccccc"</span></span>
+<span id="cb9-72"><a href="#cb9-72" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb9-73"><a href="#cb9-73" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable_styling</span>(</span>
+<span id="cb9-74"><a href="#cb9-74" aria-hidden="true" tabindex="-1"></a>    <span class="at">full_width =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb9-75"><a href="#cb9-75" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> <span class="st">"center"</span></span>
+<span id="cb9-76"><a href="#cb9-76" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb9-77"><a href="#cb9-77" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_header_above</span>(</span>
+<span id="cb9-78"><a href="#cb9-78" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(</span>
+<span id="cb9-79"><a href="#cb9-79" aria-hidden="true" tabindex="-1"></a>      <span class="st">" "</span> <span class="ot">=</span> <span class="dv">1</span>, <span class="st">"&lt;i&gt;Anolis&lt;/i&gt; genus"</span> <span class="ot">=</span> <span class="dv">2</span>, <span class="st">"Arboreal lizards"</span> <span class="ot">=</span> <span class="dv">2</span>,</span>
+<span id="cb9-80"><a href="#cb9-80" aria-hidden="true" tabindex="-1"></a>      <span class="st">"All lizards"</span> <span class="ot">=</span> <span class="dv">2</span></span>
+<span id="cb9-81"><a href="#cb9-81" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb9-82"><a href="#cb9-82" aria-hidden="true" tabindex="-1"></a>    <span class="at">escape =</span> <span class="cn">FALSE</span></span>
+<span id="cb9-83"><a href="#cb9-83" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <table quarto-disable-processing="true" class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
  <thead>
+<tr>
+<th style="empty-cells: hide;border-bottom:hidden;" colspan="1"></th>
+<th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; ">
+<i>Anolis</i> genus</div></th>
+<th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; ">Arboreal lizards</div></th>
+<th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; ">All lizards</div></th>
+</tr>
   <tr>
    <th style="text-align:left;"> Metric </th>
-   <th style="text-align:center;"> Z-score (relative to <i>Anolis</i> genus) </th>
-   <th style="text-align:center;"> Z-score (relative to arboreal lizards) </th>
-   <th style="text-align:center;"> Z-score (relative to all lizards) </th>
+   <th style="text-align:center;"> Z-score </th>
+   <th style="text-align:center;"> Rank </th>
+   <th style="text-align:center;"> Z-score </th>
+   <th style="text-align:center;"> Rank </th>
+   <th style="text-align:center;"> Z-score </th>
+   <th style="text-align:center;"> Rank </th>
   </tr>
  </thead>
 <tbody>
   <tr>
    <td style="text-align:left;"> Proportion of range below CT<sub>min</sub> </td>
-   <td style="text-align:center;"> 2.01 </td>
-   <td style="text-align:center;"> 1.98 </td>
+   <td style="text-align:center;"> 1.97 </td>
+   <td style="text-align:center;"> 5 / 34 </td>
+   <td style="text-align:center;"> 2.13 </td>
+   <td style="text-align:center;"> 3 / 24 </td>
    <td style="text-align:center;"> 0.43 </td>
+   <td style="text-align:center;"> 103 / 178 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Proportion of range below 0 °C </td>
+   <td style="text-align:center;"> 5.66 </td>
+   <td style="text-align:center;"> 1 / 34 </td>
+   <td style="text-align:center;"> 3.46 </td>
+   <td style="text-align:center;"> 1 / 24 </td>
+   <td style="text-align:center;"> -0.19 </td>
+   <td style="text-align:center;"> 76 / 178 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Area of range below CT<sub>min</sub> (log<sub>10</sub> km<sup>2</sup>) </td>
+   <td style="text-align:center;"> 2.93 </td>
+   <td style="text-align:center;"> 1 / 35 </td>
+   <td style="text-align:center;"> 2.82 </td>
+   <td style="text-align:center;"> 1 / 25 </td>
+   <td style="text-align:center;"> 1.13 </td>
+   <td style="text-align:center;"> 17 / 180 </td>
+  </tr>
+  <tr>
+   <td style="text-align:left;"> Area of range below 0 °C (log<sub>10</sub> km<sup>2</sup>) </td>
    <td style="text-align:center;"> 5.75 </td>
-   <td style="text-align:center;"> 2.81 </td>
-   <td style="text-align:center;"> -0.18 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Area of range below CT<sub>min</sub> (km<sup>2</sup>) </td>
-   <td style="text-align:center;"> 5.83 </td>
-   <td style="text-align:center;"> 4.86 </td>
-   <td style="text-align:center;"> 0.44 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Area of range below 0 °C (km<sup>2</sup>) </td>
-   <td style="text-align:center;"> 5.83 </td>
-   <td style="text-align:center;"> 4.85 </td>
-   <td style="text-align:center;"> 0.06 </td>
+   <td style="text-align:center;"> 1 / 35 </td>
+   <td style="text-align:center;"> 4.37 </td>
+   <td style="text-align:center;"> 1 / 25 </td>
+   <td style="text-align:center;"> 1.23 </td>
+   <td style="text-align:center;"> 14 / 180 </td>
   </tr>
 </tbody>
 </table>
 </div>
 </div>
-<p>We find that <em>A. carolinensis</em> has a much greater proportion and area of its range below CT<sub>min</sub> and below 0 °C than other <em>Anolis</em> and other arboreal lizards, indicating that it is an exceptional case of climatic overfilling. Relative to all lizards, the green anole’s Z-scores are close to 0, as its overfilling resembles that of terrestrial, fossorial or saxicolous species living in colder climates, which can shelter from the cold in underground refuges.</p>
+<p>Relative to other <em>Anolis</em> and other arboreal lizards, <em>A. carolinensis</em> has a much greater proportion and area of its range below CT<sub>min</sub> and below 0 °C (Z-scores between 1.97 and 5.75), indicating that it is an exceptional case of climatic overfilling among arboreal lizards. Note that <em>A. carolinensis</em> is the only <em>Anolis</em> species in our dataset whose range extends into areas below 0 °C, so its Z-scores for these metrics relative to <em>Anolis</em> simply reflect that it is the only non-zero value in the group. Relative to all lizards, the proportions of the green anole’s range below CT<sub>min</sub> and below 0 °C are close to the average (Z = 0.43 and -0.19), while the areas below CT<sub>min</sub> and below 0 °C are about one standard deviation above the average on a log scale (Z = 1.13 and 1.23). Thus, the green anole’s overfilling resembles that of terrestrial, fossorial or saxicolous species living in colder climates, which can shelter from the cold in underground refuges.</p>
 </section>
 <section id="plots" class="level3">
 <h3 class="anchored" data-anchor-id="plots">Plots</h3>
@@ -1548,7 +1594,7 @@ $ substrate_type &lt;chr&gt; "other", "semi-arboreal", "other", "semi-arboreal",
 </div>
 </div>
 <p>Next we plot by substrate type to see if there are any differences in the latitudinal distribution of CT<sub>min</sub> and BIO6 across different ecological groups of lizards (Fig. S3 in the manuscript). We also highlight the latitudinal distribution of CT<sub>min</sub> for <em>A. carolinensis</em> and compare it to the latitudinal distribution of BIO6 across the globe. In panels B and C, points with error bars represent the mean (± SE) of each substrate group, and the large dark green point represents <em>A. carolinensis</em>.</p>
-<p>Only a few other arboreal species have ranges that extend into areas below their CT<sub>min</sub> (<em>Liolaemus tenuis</em>, four <em>Chamaeleo</em> and four <em>Anolis</em> species), and only three extend into areas below 0 °C (<em>L. tenuis</em>, <em>Chamaeleo hoehnelii</em> and <em>C. schubotzi</em>). In all cases, the area affected is orders of magnitude smaller than for the green anole. Further, although SquamBase classifies <em>L. tenuis</em> as exclusively arboreal, this species adopts a saxicolous/terrestrial strategy in many parts of its range.</p>
+<p>Only a few other arboreal species have ranges that extend into areas below their CT<sub>min</sub> (four <em>Chamaeleo</em> and four <em>Anolis</em> species), and only two extend into areas below 0 °C (<em>Chamaeleo hoehnelii</em> and <em>C. schubotzi</em>). In all cases, the area affected is orders of magnitude smaller than for the green anole. Note that, although SquamBase classifies <em>Liolaemus tenuis</em> as exclusively arboreal, we classify it as semi-arboreal because it adopts a saxicolous/terrestrial strategy in many parts of its range.</p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Plot climatic overfilling by substrate type</summary>
@@ -1790,7 +1836,7 @@ $ substrate_type &lt;chr&gt; "other", "semi-arboreal", "other", "semi-arboreal",
 </section>
 <section id="tables" class="level2">
 <h2 class="anchored" data-anchor-id="tables">Tables</h2>
-<p>Below we table the “overfilling” results of all 181 lizard species. All areas are expressed in millions of km<sup>2</sup>.</p>
+<p>Below we table the “overfilling” results of all 180 lizard species. All areas are expressed in millions of km<sup>2</sup>.</p>
 <div class="tabset-margin-container"></div><div class="panel-tabset">
 <ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-1-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-1" role="tab" aria-controls="tabset-1-1" aria-selected="true" href="">By family and genus</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-1-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-1-2" role="tab" aria-controls="tabset-1-2" aria-selected="false" href="">By species</a></li></ul>
 <div class="tab-content">
@@ -1949,11 +1995,11 @@ $ substrate_type &lt;chr&gt; "other", "semi-arboreal", "other", "semi-arboreal",
   <tr>
    <td style="text-align:left;"> Dactyloidae </td>
    <td style="text-align:left;"> <i>Anolis</i> </td>
-   <td style="text-align:right;"> 0.182 </td>
+   <td style="text-align:right;"> 0.184 </td>
    <td style="text-align:right;"> 0.008 </td>
-   <td style="text-align:right;"> 0.031 </td>
+   <td style="text-align:right;"> 0.032 </td>
    <td style="text-align:right;"> 0.010 </td>
-   <td style="text-align:right;"> 0.072 </td>
+   <td style="text-align:right;"> 0.074 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Eublepharidae </td>
@@ -2421,16 +2467,6 @@ $ substrate_type &lt;chr&gt; "other", "semi-arboreal", "other", "semi-arboreal",
    <td style="text-align:right;"> 0.0018 </td>
    <td style="text-align:right;"> 0.0000 </td>
    <td style="text-align:right;"> 0.0076 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Dactyloidae </td>
-   <td style="text-align:left;"> <i>Anolis</i> </td>
-   <td style="text-align:left;"> <i>barbouri</i> </td>
-   <td style="text-align:right;"> 0.11 </td>
-   <td style="text-align:right;"> 0.00 </td>
-   <td style="text-align:right;"> 0.0001 </td>
-   <td style="text-align:right;"> 0.0000 </td>
-   <td style="text-align:right;"> 0.0011 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Dactyloidae </td>

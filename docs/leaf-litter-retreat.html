@@ -172,8 +172,12 @@ window.Quarto = {
 <span class="menu-text">Leaf Litter Retreat</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./leaf-litter-temps-range.html"> 
-<span class="menu-text">Prediciting Poleward Limits</span></a>
+    <a class="nav-link" href="./biophysical-models.html"> 
+<span class="menu-text">Biophysical Models</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./envelope-models.html"> 
+<span class="menu-text">Predicting Poleward Limits</span></a>
   </li>  
 </ul>
           </div> <!-- /navcollapse -->
@@ -196,7 +200,6 @@ window.Quarto = {
   <li><a href="#the-leaf-litter-buffers-environmental-temperatures" id="toc-the-leaf-litter-buffers-environmental-temperatures" class="nav-link" data-scroll-target="#the-leaf-litter-buffers-environmental-temperatures">The leaf litter buffers environmental temperatures</a>
   <ul class="collapse">
   <li><a href="#buffering-across-latitudes" id="toc-buffering-across-latitudes" class="nav-link" data-scroll-target="#buffering-across-latitudes">Buffering across latitudes</a></li>
-  <li><a href="#buffering-on-the-coldest-nights" id="toc-buffering-on-the-coldest-nights" class="nav-link" data-scroll-target="#buffering-on-the-coldest-nights">Buffering on the coldest nights</a></li>
   <li><a href="#summary-by-location" id="toc-summary-by-location" class="nav-link" data-scroll-target="#summary-by-location">Summary by location</a></li>
   </ul></li>
   <li><a href="#manuscript-figure" id="toc-manuscript-figure" class="nav-link" data-scroll-target="#manuscript-figure">Manuscript Figure</a></li>
@@ -1043,7 +1046,7 @@ T_i \sim Normal(t_i, \sigma)
 <p><span class="math display">\[
 t_i = \alpha + \beta_L \cdot (L_i - \bar{L}) + \beta_M \cdot M_i + \beta_{L \cdot M} \cdot (L_i - \bar{L}) \cdot M_i + a_{O[i]} + b_{S[i]} + c_{N[i]}
 \]</span></p>
-<p>where the nightly minimum operative temperature (<span class="math inline">\(T\)</span>) depends on latitude (<span class="math inline">\(L\)</span>), an indicator variable (<span class="math inline">\(M\)</span>) identifying the microhabitat (<span class="math inline">\(M = 0\)</span> for canopy and <span class="math inline">\(M = 1\)</span> for leaf litter), and their interaction, and <span class="math inline">\(a_O\)</span>, <span class="math inline">\(b_S\)</span> and <span class="math inline">\(c_N\)</span> are normally distributed random intercepts for each OTM (<span class="math inline">\(O\)</span>), location (<span class="math inline">\(S\)</span>) and night at each location (<span class="math inline">\(N\)</span>). We center latitude on the average latitude of the five locations (<span class="math inline">\(\bar{L}\)</span>), so that <span class="math inline">\(\beta_M\)</span> is the average buffering provided by the leaf litter at an average latitude. A positive <span class="math inline">\(\beta_{L \cdot M}\)</span> would indicate that the buffering provided by the leaf litter increases with latitude. We fit the model with the <code>lme4</code> package and test fixed effects with F-tests using the Kenward-Roger approximation for the degrees of freedom (<code>pbkrtest</code> and <code>car</code> packages). The results of this model are presented in Table S7 of the manuscript.</p>
+<p>where the nightly minimum operative temperature (<span class="math inline">\(T\)</span>) depends on latitude (<span class="math inline">\(L\)</span>), an indicator variable (<span class="math inline">\(M\)</span>) identifying the microhabitat (<span class="math inline">\(M = 0\)</span> for canopy and <span class="math inline">\(M = 1\)</span> for leaf litter), and their interaction, and <span class="math inline">\(a_O\)</span>, <span class="math inline">\(b_S\)</span> and <span class="math inline">\(c_N\)</span> are normally distributed random intercepts for each OTM (<span class="math inline">\(O\)</span>), location (<span class="math inline">\(S\)</span>) and night at each location (<span class="math inline">\(N\)</span>), with standard deviations <span class="math inline">\(\sigma_O\)</span>, <span class="math inline">\(\sigma_S\)</span> and <span class="math inline">\(\sigma_N\)</span>. We center latitude on the average latitude of the five locations (<span class="math inline">\(\bar{L}\)</span>), so that <span class="math inline">\(\beta_M\)</span> is the average buffering provided by the leaf litter at an average latitude. A positive <span class="math inline">\(\beta_{L \cdot M}\)</span> would indicate that the buffering provided by the leaf litter increases with latitude. We fit the model with the <code>lme4</code> package and test fixed effects, and the latitudinal slope of each microhabitat (<span class="math inline">\(\beta_L\)</span> for the canopy and <span class="math inline">\(\beta_L + \beta_{L \cdot M}\)</span> for the leaf litter), with t-tests using the Kenward-Roger approximation for standard errors and degrees of freedom (<code>pbkrtest</code> package). The results of this model are presented in Table S7 of the manuscript.</p>
 <details class="code-fold">
 <summary>Linear mixed model of minimum temperatures by latitude and microhabitat</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># nightly minimum temperature recorded by each OTM in January</span></span>
@@ -1071,70 +1074,127 @@ t_i = \alpha + \beta_L \cdot (L_i - \bar{L}) + \beta_M \cdot M_i + \beta_{L \cdo
 <span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>  min_temp <span class="sc">~</span> lat_c <span class="sc">*</span> microhabitat <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> otm) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> location) <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">|</span> night),</span>
 <span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> buffer_data</span>
 <span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>buffer_coefs <span class="ot">&lt;-</span> <span class="fu">summary</span>(buffer_mod)<span class="sc">$</span>coefficients</span>
-<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>buffer_tests <span class="ot">&lt;-</span> car<span class="sc">::</span><span class="fu">Anova</span>(buffer_mod, <span class="at">test.statistic =</span> <span class="st">"F"</span>)</span>
-<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a><span class="co"># Kenward-Roger 95% CIs for the fixed effects</span></span>
-<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>kr_ci <span class="ot">&lt;-</span> <span class="cf">function</span>(model, coef_name) {</span>
-<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>  l <span class="ot">&lt;-</span> <span class="fu">as.numeric</span>(<span class="fu">names</span>(lme4<span class="sc">::</span><span class="fu">fixef</span>(model)) <span class="sc">==</span> coef_name)</span>
-<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>  ddf <span class="ot">&lt;-</span> pbkrtest<span class="sc">::</span><span class="fu">get_Lb_ddf</span>(model, l)</span>
-<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>  se <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="fu">as.numeric</span>(<span class="fu">t</span>(l) <span class="sc">%*%</span> <span class="fu">as.matrix</span>(<span class="fu">vcov</span>(model)) <span class="sc">%*%</span> l))</span>
-<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>  lme4<span class="sc">::</span><span class="fu">fixef</span>(model)[coef_name] <span class="sc">+</span> <span class="fu">c</span>(<span class="sc">-</span><span class="dv">1</span>, <span class="dv">1</span>) <span class="sc">*</span> <span class="fu">qt</span>(<span class="fl">0.975</span>, ddf) <span class="sc">*</span> se</span>
-<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>buffer_ci <span class="ot">&lt;-</span> <span class="fu">t</span>(<span class="fu">sapply</span>(<span class="fu">rownames</span>(buffer_coefs), \(x) <span class="fu">kr_ci</span>(buffer_mod, x)))</span>
-<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a><span class="co"># table parameter estimates</span></span>
-<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>buffer_vc <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(lme4<span class="sc">::</span><span class="fu">VarCorr</span>(buffer_mod))</span>
-<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>table_buffer_params <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
-<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>  <span class="at">parameter =</span> <span class="fu">c</span>(</span>
-<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Intercept"</span>, <span class="st">"Latitude (centered)"</span>, <span class="st">"Leaf litter"</span>,</span>
-<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Latitude &amp;times; Leaf litter"</span></span>
-<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a>  ),</span>
-<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a>  <span class="at">symbol =</span> <span class="fu">c</span>(</span>
-<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a>    <span class="st">"&amp;alpha;"</span>, <span class="st">"&amp;beta;&lt;sub&gt;L&lt;/sub&gt;"</span>, <span class="st">"&amp;beta;&lt;sub&gt;M&lt;/sub&gt;"</span>,</span>
-<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a>    <span class="st">"&amp;beta;&lt;sub&gt;L&amp;middot;M&lt;/sub&gt;"</span></span>
-<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a>  ),</span>
-<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a>  <span class="at">estimate =</span> <span class="fu">sprintf</span>(<span class="st">"%.3f"</span>, buffer_coefs[, <span class="st">"Estimate"</span>]),</span>
-<span id="cb6-50"><a href="#cb6-50" aria-hidden="true" tabindex="-1"></a>  <span class="at">se =</span> <span class="fu">sprintf</span>(<span class="st">"%.3f"</span>, buffer_coefs[, <span class="st">"Std. Error"</span>]),</span>
-<span id="cb6-51"><a href="#cb6-51" aria-hidden="true" tabindex="-1"></a>  <span class="at">ci =</span> <span class="fu">paste</span>(</span>
-<span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sprintf</span>(<span class="st">"%.2f"</span>, buffer_ci[, <span class="dv">1</span>]), <span class="st">"to"</span>, <span class="fu">sprintf</span>(<span class="st">"%.2f"</span>, buffer_ci[, <span class="dv">2</span>])</span>
-<span id="cb6-53"><a href="#cb6-53" aria-hidden="true" tabindex="-1"></a>  ),</span>
-<span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a>  <span class="at">f =</span> <span class="fu">c</span>(<span class="st">"&amp;ndash;"</span>, <span class="fu">sprintf</span>(<span class="st">"%.2f"</span>, buffer_tests<span class="sc">$</span>F)),</span>
-<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a>  <span class="at">df =</span> <span class="fu">c</span>(</span>
-<span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a>    <span class="st">"&amp;ndash;"</span>,</span>
-<span id="cb6-57"><a href="#cb6-57" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste0</span>(<span class="st">"1, "</span>, <span class="fu">sprintf</span>(<span class="st">"%.1f"</span>, buffer_tests<span class="sc">$</span>Df.res))</span>
-<span id="cb6-58"><a href="#cb6-58" aria-hidden="true" tabindex="-1"></a>  ),</span>
-<span id="cb6-59"><a href="#cb6-59" aria-hidden="true" tabindex="-1"></a>  <span class="at">p =</span> <span class="fu">c</span>(<span class="st">"&amp;ndash;"</span>, <span class="fu">format_p</span>(buffer_tests<span class="sc">$</span><span class="st">`</span><span class="at">Pr(&gt;F)</span><span class="st">`</span>))</span>
-<span id="cb6-60"><a href="#cb6-60" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
-<span id="cb6-61"><a href="#cb6-61" aria-hidden="true" tabindex="-1"></a>  <span class="fu">make_section</span>(</span>
-<span id="cb6-62"><a href="#cb6-62" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Parameter estimates"</span>,</span>
-<span id="cb6-63"><a href="#cb6-63" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(</span>
-<span id="cb6-64"><a href="#cb6-64" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Parameter"</span>, <span class="st">"Symbol"</span>, <span class="st">"Estimate"</span>, <span class="st">"Std. Error"</span>, <span class="st">"95% CI"</span>, <span class="st">"F"</span>,</span>
-<span id="cb6-65"><a href="#cb6-65" aria-hidden="true" tabindex="-1"></a>      <span class="st">"df"</span>, <span class="st">"p-value"</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Kenward-Roger t-test and 95% CI for a linear combination of fixed effects</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>kr_test <span class="ot">&lt;-</span> <span class="cf">function</span>(model, l) {</span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>  vcov_kr <span class="ot">&lt;-</span> <span class="fu">as.matrix</span>(pbkrtest<span class="sc">::</span><span class="fu">vcovAdj</span>(model))</span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>  est <span class="ot">&lt;-</span> <span class="fu">sum</span>(l <span class="sc">*</span> lme4<span class="sc">::</span><span class="fu">fixef</span>(model))</span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>  se <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="fu">as.numeric</span>(<span class="fu">t</span>(l) <span class="sc">%*%</span> vcov_kr <span class="sc">%*%</span> l))</span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>  ddf <span class="ot">&lt;-</span> pbkrtest<span class="sc">::</span><span class="fu">get_Lb_ddf</span>(model, l)</span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>  t_value <span class="ot">&lt;-</span> est <span class="sc">/</span> se</span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tibble</span>(</span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">estimate =</span> est,</span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">se =</span> se,</span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">df =</span> ddf,</span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">t =</span> t_value,</span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">p =</span> <span class="dv">2</span> <span class="sc">*</span> <span class="fu">pt</span>(<span class="sc">-</span><span class="fu">abs</span>(t_value), ddf),</span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">lower =</span> est <span class="sc">-</span> <span class="fu">qt</span>(<span class="fl">0.975</span>, ddf) <span class="sc">*</span> se,</span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">upper =</span> est <span class="sc">+</span> <span class="fu">qt</span>(<span class="fl">0.975</span>, ddf) <span class="sc">*</span> se</span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a><span class="co"># test each fixed effect</span></span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a>buffer_coefs <span class="ot">&lt;-</span> purrr<span class="sc">::</span><span class="fu">map</span>(</span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a>  <span class="fu">seq_along</span>(lme4<span class="sc">::</span><span class="fu">fixef</span>(buffer_mod)),</span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a>  \(i) <span class="fu">kr_test</span>(buffer_mod, <span class="fu">as.numeric</span>(<span class="fu">seq_along</span>(lme4<span class="sc">::</span><span class="fu">fixef</span>(buffer_mod)) <span class="sc">==</span> i))</span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a>  <span class="fu">bind_rows</span>() <span class="sc">|&gt;</span></span>
+<span id="cb6-50"><a href="#cb6-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">term =</span> <span class="fu">names</span>(lme4<span class="sc">::</span><span class="fu">fixef</span>(buffer_mod)))</span>
+<span id="cb6-51"><a href="#cb6-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a><span class="co"># latitudinal slope of each microhabitat (canopy = beta_L; leaf litter =</span></span>
+<span id="cb6-53"><a href="#cb6-53" aria-hidden="true" tabindex="-1"></a><span class="co"># beta_L + beta_LM)</span></span>
+<span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a>buffer_slopes <span class="ot">&lt;-</span> <span class="fu">bind_rows</span>(</span>
+<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kr_test</span>(buffer_mod, <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">0</span>)),</span>
+<span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kr_test</span>(buffer_mod, <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">1</span>))</span>
+<span id="cb6-57"><a href="#cb6-57" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb6-58"><a href="#cb6-58" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">microhabitat =</span> <span class="fu">c</span>(<span class="st">"canopy"</span>, <span class="st">"leaflitter"</span>))</span>
+<span id="cb6-59"><a href="#cb6-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-60"><a href="#cb6-60" aria-hidden="true" tabindex="-1"></a><span class="co"># table parameter estimates</span></span>
+<span id="cb6-61"><a href="#cb6-61" aria-hidden="true" tabindex="-1"></a>table_buffer_params <span class="ot">&lt;-</span> buffer_coefs <span class="sc">|&gt;</span></span>
+<span id="cb6-62"><a href="#cb6-62" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb6-63"><a href="#cb6-63" aria-hidden="true" tabindex="-1"></a>    <span class="at">parameter =</span> <span class="fu">c</span>(</span>
+<span id="cb6-64"><a href="#cb6-64" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Intercept"</span>, <span class="st">"Latitude (centered)"</span>, <span class="st">"Leaf litter"</span>,</span>
+<span id="cb6-65"><a href="#cb6-65" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Latitude &amp;times; Leaf litter"</span></span>
 <span id="cb6-66"><a href="#cb6-66" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb6-67"><a href="#cb6-67" aria-hidden="true" tabindex="-1"></a>    <span class="st">"llcccccc"</span></span>
-<span id="cb6-68"><a href="#cb6-68" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb6-69"><a href="#cb6-69" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-70"><a href="#cb6-70" aria-hidden="true" tabindex="-1"></a><span class="co"># table random effects and model information</span></span>
-<span id="cb6-71"><a href="#cb6-71" aria-hidden="true" tabindex="-1"></a>table_buffer_re <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
-<span id="cb6-72"><a href="#cb6-72" aria-hidden="true" tabindex="-1"></a>  <span class="at">component =</span> <span class="fu">c</span>(</span>
-<span id="cb6-73"><a href="#cb6-73" aria-hidden="true" tabindex="-1"></a>    <span class="st">"OTM"</span>, <span class="st">"Location"</span>, <span class="st">"Night (within location)"</span>, <span class="st">"Residual"</span>,</span>
-<span id="cb6-74"><a href="#cb6-74" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Observations"</span></span>
-<span id="cb6-75"><a href="#cb6-75" aria-hidden="true" tabindex="-1"></a>  ),</span>
-<span id="cb6-76"><a href="#cb6-76" aria-hidden="true" tabindex="-1"></a>  <span class="at">value =</span> <span class="fu">c</span>(</span>
-<span id="cb6-77"><a href="#cb6-77" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sprintf</span>(</span>
-<span id="cb6-78"><a href="#cb6-78" aria-hidden="true" tabindex="-1"></a>      <span class="st">"SD = %.3f"</span>,</span>
-<span id="cb6-79"><a href="#cb6-79" aria-hidden="true" tabindex="-1"></a>      buffer_vc<span class="sc">$</span>sdcor[<span class="fu">match</span>(<span class="fu">c</span>(<span class="st">"otm"</span>, <span class="st">"location"</span>, <span class="st">"night"</span>, <span class="st">"Residual"</span>), buffer_vc<span class="sc">$</span>grp)]</span>
-<span id="cb6-80"><a href="#cb6-80" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb6-81"><a href="#cb6-81" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste0</span>(</span>
-<span id="cb6-82"><a href="#cb6-82" aria-hidden="true" tabindex="-1"></a>      <span class="fu">nrow</span>(buffer_data), <span class="st">" nightly minima from "</span>, <span class="fu">n_distinct</span>(buffer_data<span class="sc">$</span>otm),</span>
-<span id="cb6-83"><a href="#cb6-83" aria-hidden="true" tabindex="-1"></a>      <span class="st">" OTMs at "</span>, <span class="fu">n_distinct</span>(buffer_data<span class="sc">$</span>location), <span class="st">" locations"</span></span>
-<span id="cb6-84"><a href="#cb6-84" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb6-85"><a href="#cb6-85" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb6-86"><a href="#cb6-86" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
-<span id="cb6-87"><a href="#cb6-87" aria-hidden="true" tabindex="-1"></a>  <span class="fu">make_section</span>(<span class="st">"Random effects and model information"</span>, <span class="fu">c</span>(<span class="st">""</span>, <span class="st">""</span>), <span class="st">"ll"</span>)</span>
-<span id="cb6-88"><a href="#cb6-88" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-89"><a href="#cb6-89" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(table_buffer_params, table_buffer_re, <span class="at">sep =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb6-67"><a href="#cb6-67" aria-hidden="true" tabindex="-1"></a>    <span class="at">symbol =</span> <span class="fu">c</span>(</span>
+<span id="cb6-68"><a href="#cb6-68" aria-hidden="true" tabindex="-1"></a>      <span class="st">"&amp;alpha;"</span>, <span class="st">"&amp;beta;&lt;sub&gt;L&lt;/sub&gt;"</span>, <span class="st">"&amp;beta;&lt;sub&gt;M&lt;/sub&gt;"</span>,</span>
+<span id="cb6-69"><a href="#cb6-69" aria-hidden="true" tabindex="-1"></a>      <span class="st">"&amp;beta;&lt;sub&gt;L&amp;middot;M&lt;/sub&gt;"</span></span>
+<span id="cb6-70"><a href="#cb6-70" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb6-71"><a href="#cb6-71" aria-hidden="true" tabindex="-1"></a>    <span class="fu">across</span>(<span class="fu">c</span>(estimate, se), <span class="sc">~</span> <span class="fu">sprintf</span>(<span class="st">"%.3f"</span>, .x)),</span>
+<span id="cb6-72"><a href="#cb6-72" aria-hidden="true" tabindex="-1"></a>    <span class="at">df =</span> <span class="fu">sprintf</span>(<span class="st">"%.1f"</span>, df),</span>
+<span id="cb6-73"><a href="#cb6-73" aria-hidden="true" tabindex="-1"></a>    <span class="at">t =</span> <span class="fu">sprintf</span>(<span class="st">"%.2f"</span>, t),</span>
+<span id="cb6-74"><a href="#cb6-74" aria-hidden="true" tabindex="-1"></a>    <span class="at">p =</span> <span class="fu">format_p</span>(p)</span>
+<span id="cb6-75"><a href="#cb6-75" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb6-76"><a href="#cb6-76" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(parameter, symbol, estimate, se, df, t, p) <span class="sc">|&gt;</span></span>
+<span id="cb6-77"><a href="#cb6-77" aria-hidden="true" tabindex="-1"></a>  <span class="fu">make_section</span>(</span>
+<span id="cb6-78"><a href="#cb6-78" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Parameter estimates"</span>,</span>
+<span id="cb6-79"><a href="#cb6-79" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(<span class="st">"Parameter"</span>, <span class="st">"Symbol"</span>, <span class="st">"Estimate"</span>, <span class="st">"Std. Error"</span>, <span class="st">"df"</span>, <span class="st">"t"</span>, <span class="st">"p-value"</span>),</span>
+<span id="cb6-80"><a href="#cb6-80" aria-hidden="true" tabindex="-1"></a>    <span class="st">"llccccc"</span></span>
+<span id="cb6-81"><a href="#cb6-81" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb6-82"><a href="#cb6-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-83"><a href="#cb6-83" aria-hidden="true" tabindex="-1"></a><span class="co"># table latitudinal slopes by microhabitat</span></span>
+<span id="cb6-84"><a href="#cb6-84" aria-hidden="true" tabindex="-1"></a>table_buffer_slopes <span class="ot">&lt;-</span> buffer_slopes <span class="sc">|&gt;</span></span>
+<span id="cb6-85"><a href="#cb6-85" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb6-86"><a href="#cb6-86" aria-hidden="true" tabindex="-1"></a>    <span class="at">microhabitat =</span> <span class="fu">c</span>(</span>
+<span id="cb6-87"><a href="#cb6-87" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Canopy (&amp;beta;&lt;sub&gt;L&lt;/sub&gt;)"</span>,</span>
+<span id="cb6-88"><a href="#cb6-88" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Leaf litter (&amp;beta;&lt;sub&gt;L&lt;/sub&gt; + &amp;beta;&lt;sub&gt;L&amp;middot;M&lt;/sub&gt;)"</span></span>
+<span id="cb6-89"><a href="#cb6-89" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb6-90"><a href="#cb6-90" aria-hidden="true" tabindex="-1"></a>    <span class="at">ci =</span> <span class="fu">paste</span>(<span class="fu">sprintf</span>(<span class="st">"%.3f"</span>, lower), <span class="st">"to"</span>, <span class="fu">sprintf</span>(<span class="st">"%.3f"</span>, upper)),</span>
+<span id="cb6-91"><a href="#cb6-91" aria-hidden="true" tabindex="-1"></a>    <span class="fu">across</span>(<span class="fu">c</span>(estimate, se), <span class="sc">~</span> <span class="fu">sprintf</span>(<span class="st">"%.3f"</span>, .x)),</span>
+<span id="cb6-92"><a href="#cb6-92" aria-hidden="true" tabindex="-1"></a>    <span class="at">df =</span> <span class="fu">sprintf</span>(<span class="st">"%.1f"</span>, df),</span>
+<span id="cb6-93"><a href="#cb6-93" aria-hidden="true" tabindex="-1"></a>    <span class="at">t =</span> <span class="fu">sprintf</span>(<span class="st">"%.2f"</span>, t),</span>
+<span id="cb6-94"><a href="#cb6-94" aria-hidden="true" tabindex="-1"></a>    <span class="at">p =</span> <span class="fu">format_p</span>(p)</span>
+<span id="cb6-95"><a href="#cb6-95" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb6-96"><a href="#cb6-96" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(microhabitat, estimate, se, ci, df, t, p) <span class="sc">|&gt;</span></span>
+<span id="cb6-97"><a href="#cb6-97" aria-hidden="true" tabindex="-1"></a>  <span class="fu">make_section</span>(</span>
+<span id="cb6-98"><a href="#cb6-98" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Latitudinal slopes by microhabitat"</span>,</span>
+<span id="cb6-99"><a href="#cb6-99" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(</span>
+<span id="cb6-100"><a href="#cb6-100" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Microhabitat"</span>, <span class="st">"Slope (°C per ° latitude)"</span>, <span class="st">"Std. Error"</span>, <span class="st">"95% CI"</span>,</span>
+<span id="cb6-101"><a href="#cb6-101" aria-hidden="true" tabindex="-1"></a>      <span class="st">"df"</span>, <span class="st">"t"</span>, <span class="st">"p-value"</span></span>
+<span id="cb6-102"><a href="#cb6-102" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb6-103"><a href="#cb6-103" aria-hidden="true" tabindex="-1"></a>    <span class="st">"lcccccc"</span></span>
+<span id="cb6-104"><a href="#cb6-104" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb6-105"><a href="#cb6-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-106"><a href="#cb6-106" aria-hidden="true" tabindex="-1"></a><span class="co"># table random effects and variance components</span></span>
+<span id="cb6-107"><a href="#cb6-107" aria-hidden="true" tabindex="-1"></a>buffer_vc <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(lme4<span class="sc">::</span><span class="fu">VarCorr</span>(buffer_mod))</span>
+<span id="cb6-108"><a href="#cb6-108" aria-hidden="true" tabindex="-1"></a>table_buffer_re <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb6-109"><a href="#cb6-109" aria-hidden="true" tabindex="-1"></a>  <span class="at">component =</span> <span class="fu">c</span>(<span class="st">"OTM"</span>, <span class="st">"Location"</span>, <span class="st">"Night (within location)"</span>, <span class="st">"Residual"</span>),</span>
+<span id="cb6-110"><a href="#cb6-110" aria-hidden="true" tabindex="-1"></a>  <span class="at">symbol =</span> <span class="fu">c</span>(</span>
+<span id="cb6-111"><a href="#cb6-111" aria-hidden="true" tabindex="-1"></a>    <span class="st">"&amp;sigma;&lt;sub&gt;O&lt;/sub&gt;"</span>, <span class="st">"&amp;sigma;&lt;sub&gt;S&lt;/sub&gt;"</span>, <span class="st">"&amp;sigma;&lt;sub&gt;N&lt;/sub&gt;"</span>,</span>
+<span id="cb6-112"><a href="#cb6-112" aria-hidden="true" tabindex="-1"></a>    <span class="st">"&amp;sigma;"</span></span>
+<span id="cb6-113"><a href="#cb6-113" aria-hidden="true" tabindex="-1"></a>  ),</span>
+<span id="cb6-114"><a href="#cb6-114" aria-hidden="true" tabindex="-1"></a>  <span class="at">sd =</span> <span class="fu">sprintf</span>(</span>
+<span id="cb6-115"><a href="#cb6-115" aria-hidden="true" tabindex="-1"></a>    <span class="st">"%.3f"</span>,</span>
+<span id="cb6-116"><a href="#cb6-116" aria-hidden="true" tabindex="-1"></a>    buffer_vc<span class="sc">$</span>sdcor[<span class="fu">match</span>(<span class="fu">c</span>(<span class="st">"otm"</span>, <span class="st">"location"</span>, <span class="st">"night"</span>, <span class="st">"Residual"</span>), buffer_vc<span class="sc">$</span>grp)]</span>
+<span id="cb6-117"><a href="#cb6-117" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb6-118"><a href="#cb6-118" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb6-119"><a href="#cb6-119" aria-hidden="true" tabindex="-1"></a>  <span class="fu">make_section</span>(</span>
+<span id="cb6-120"><a href="#cb6-120" aria-hidden="true" tabindex="-1"></a>    <span class="st">"Random effects and variance components"</span>,</span>
+<span id="cb6-121"><a href="#cb6-121" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(<span class="st">"Component"</span>, <span class="st">"Symbol"</span>, <span class="st">"SD"</span>),</span>
+<span id="cb6-122"><a href="#cb6-122" aria-hidden="true" tabindex="-1"></a>    <span class="st">"llc"</span></span>
+<span id="cb6-123"><a href="#cb6-123" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb6-124"><a href="#cb6-124" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-125"><a href="#cb6-125" aria-hidden="true" tabindex="-1"></a><span class="co"># table model information</span></span>
+<span id="cb6-126"><a href="#cb6-126" aria-hidden="true" tabindex="-1"></a>table_buffer_info <span class="ot">&lt;-</span> <span class="fu">tibble</span>(</span>
+<span id="cb6-127"><a href="#cb6-127" aria-hidden="true" tabindex="-1"></a>  <span class="at">item =</span> <span class="fu">c</span>(<span class="st">"Observations"</span>, <span class="st">"Log-likelihood (REML)"</span>, <span class="st">"AIC (REML)"</span>),</span>
+<span id="cb6-128"><a href="#cb6-128" aria-hidden="true" tabindex="-1"></a>  <span class="at">value =</span> <span class="fu">c</span>(</span>
+<span id="cb6-129"><a href="#cb6-129" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste0</span>(</span>
+<span id="cb6-130"><a href="#cb6-130" aria-hidden="true" tabindex="-1"></a>      <span class="fu">nrow</span>(buffer_data), <span class="st">" nightly minima from "</span>, <span class="fu">n_distinct</span>(buffer_data<span class="sc">$</span>otm),</span>
+<span id="cb6-131"><a href="#cb6-131" aria-hidden="true" tabindex="-1"></a>      <span class="st">" OTMs ("</span>, <span class="fu">n_distinct</span>(buffer_data<span class="sc">$</span>otm[buffer_data<span class="sc">$</span>microhabitat <span class="sc">==</span> <span class="st">"branch"</span>]),</span>
+<span id="cb6-132"><a href="#cb6-132" aria-hidden="true" tabindex="-1"></a>      <span class="st">" canopy; "</span>,</span>
+<span id="cb6-133"><a href="#cb6-133" aria-hidden="true" tabindex="-1"></a>      <span class="fu">n_distinct</span>(buffer_data<span class="sc">$</span>otm[buffer_data<span class="sc">$</span>microhabitat <span class="sc">==</span> <span class="st">"leaflitter"</span>]),</span>
+<span id="cb6-134"><a href="#cb6-134" aria-hidden="true" tabindex="-1"></a>      <span class="st">" leaf litter) at "</span>, <span class="fu">n_distinct</span>(buffer_data<span class="sc">$</span>location), <span class="st">" locations"</span></span>
+<span id="cb6-135"><a href="#cb6-135" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb6-136"><a href="#cb6-136" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sprintf</span>(<span class="st">"%.2f"</span>, <span class="fu">as.numeric</span>(<span class="fu">logLik</span>(buffer_mod))),</span>
+<span id="cb6-137"><a href="#cb6-137" aria-hidden="true" tabindex="-1"></a>    <span class="fu">sprintf</span>(<span class="st">"%.1f"</span>, <span class="fu">AIC</span>(buffer_mod))</span>
+<span id="cb6-138"><a href="#cb6-138" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb6-139"><a href="#cb6-139" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb6-140"><a href="#cb6-140" aria-hidden="true" tabindex="-1"></a>  <span class="fu">make_section</span>(<span class="st">"Model information"</span>, <span class="fu">c</span>(<span class="st">""</span>, <span class="st">""</span>), <span class="st">"ll"</span>)</span>
+<span id="cb6-141"><a href="#cb6-141" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-142"><a href="#cb6-142" aria-hidden="true" tabindex="-1"></a><span class="co"># print all table sections together</span></span>
+<span id="cb6-143"><a href="#cb6-143" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span>(</span>
+<span id="cb6-144"><a href="#cb6-144" aria-hidden="true" tabindex="-1"></a>  table_buffer_params, table_buffer_slopes, table_buffer_re, table_buffer_info,</span>
+<span id="cb6-145"><a href="#cb6-145" aria-hidden="true" tabindex="-1"></a>  <span class="at">sep =</span> <span class="st">"</span><span class="sc">\n</span><span class="st">"</span></span>
+<span id="cb6-146"><a href="#cb6-146" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <table quarto-disable-processing="true" class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>
@@ -1155,13 +1215,10 @@ Estimate
 Std. Error
 </th>
 <th style="text-align:center;">
-95% CI
-</th>
-<th style="text-align:center;">
-F
-</th>
-<th style="text-align:center;">
 df
+</th>
+<th style="text-align:center;">
+t
 </th>
 <th style="text-align:center;">
 p-value
@@ -1183,16 +1240,13 @@ Intercept
 0.431
 </td>
 <td style="text-align:center;">
-7.60 to 10.06
+3.7
 </td>
 <td style="text-align:center;">
-–
+20.48
 </td>
 <td style="text-align:center;">
-–
-</td>
-<td style="text-align:center;">
-–
+&lt; 0.0001
 </td>
 </tr>
 <tr>
@@ -1209,16 +1263,13 @@ Latitude (centered)
 0.151
 </td>
 <td style="text-align:center;">
--2.12 to -1.15
+3.0
 </td>
 <td style="text-align:center;">
-122.10
+-10.79
 </td>
 <td style="text-align:center;">
-1, 2.5
-</td>
-<td style="text-align:center;">
-0.0032
+0.0018
 </td>
 </tr>
 <tr>
@@ -1235,13 +1286,10 @@ Leaf litter
 0.301
 </td>
 <td style="text-align:center;">
-4.12 to 5.34
+32.4
 </td>
 <td style="text-align:center;">
-334.64
-</td>
-<td style="text-align:center;">
-1, 32.1
+15.70
 </td>
 <td style="text-align:center;">
 &lt; 0.0001
@@ -1261,13 +1309,10 @@ Latitude × Leaf litter
 0.085
 </td>
 <td style="text-align:center;">
--0.12 to 0.23
+32.3
 </td>
 <td style="text-align:center;">
-0.39
-</td>
-<td style="text-align:center;">
-1, 32.3
+0.63
 </td>
 <td style="text-align:center;">
 0.5362
@@ -1277,7 +1322,149 @@ Latitude × Leaf litter
 </table>
 <table quarto-disable-processing="true" class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
 <caption>
-Random effects and model information
+Latitudinal slopes by microhabitat
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Microhabitat
+</th>
+<th style="text-align:center;">
+Slope (°C per ° latitude)
+</th>
+<th style="text-align:center;">
+Std. Error
+</th>
+<th style="text-align:center;">
+95% CI
+</th>
+<th style="text-align:center;">
+df
+</th>
+<th style="text-align:center;">
+t
+</th>
+<th style="text-align:center;">
+p-value
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Canopy (β<sub>L</sub>)
+</td>
+<td style="text-align:center;">
+-1.632
+</td>
+<td style="text-align:center;">
+0.151
+</td>
+<td style="text-align:center;">
+-2.117 to -1.147
+</td>
+<td style="text-align:center;">
+3.0
+</td>
+<td style="text-align:center;">
+-10.79
+</td>
+<td style="text-align:center;">
+0.0018
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Leaf litter (β<sub>L</sub> + β<sub>L·M</sub>)
+</td>
+<td style="text-align:center;">
+-1.578
+</td>
+<td style="text-align:center;">
+0.152
+</td>
+<td style="text-align:center;">
+-2.058 to -1.099
+</td>
+<td style="text-align:center;">
+3.0
+</td>
+<td style="text-align:center;">
+-10.41
+</td>
+<td style="text-align:center;">
+0.0018
+</td>
+</tr>
+</tbody>
+</table>
+<table quarto-disable-processing="true" class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<caption>
+Random effects and variance components
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Component
+</th>
+<th style="text-align:left;">
+Symbol
+</th>
+<th style="text-align:center;">
+SD
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+OTM
+</td>
+<td style="text-align:left;">
+σ<sub>O</sub>
+</td>
+<td style="text-align:center;">
+0.751
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Location
+</td>
+<td style="text-align:left;">
+σ<sub>S</sub>
+</td>
+<td style="text-align:center;">
+0.193
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Night (within location)
+</td>
+<td style="text-align:left;">
+σ<sub>N</sub>
+</td>
+<td style="text-align:center;">
+4.467
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Residual
+</td>
+<td style="text-align:left;">
+σ
+</td>
+<td style="text-align:center;">
+1.593
+</td>
+</tr>
+</tbody>
+</table>
+<table quarto-disable-processing="true" class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
+<caption>
+Model information
 </caption>
 <thead>
 <tr>
@@ -1290,215 +1477,31 @@ Random effects and model information
 <tbody>
 <tr>
 <td style="text-align:left;">
-OTM
-</td>
-<td style="text-align:left;">
-SD = 0.751
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Location
-</td>
-<td style="text-align:left;">
-SD = 0.193
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Night (within location)
-</td>
-<td style="text-align:left;">
-SD = 4.467
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
-Residual
-</td>
-<td style="text-align:left;">
-SD = 1.593
-</td>
-</tr>
-<tr>
-<td style="text-align:left;">
 Observations
 </td>
 <td style="text-align:left;">
-1180 nightly minima from 39 OTMs at 5 locations
+1180 nightly minima from 39 OTMs (22 canopy; 17 leaf litter) at 5 locations
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Log-likelihood (REML)
+</td>
+<td style="text-align:left;">
+-2556.75
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+AIC (REML)
+</td>
+<td style="text-align:left;">
+5129.5
 </td>
 </tr>
 </tbody>
 </table>
-<p>At an average latitude (29°N), nightly minimum temperatures in the leaf litter were 4.7 °C warmer than in the canopy (95% CI: 4.1 to 5.3 °C; F<sub>1, 32.1</sub> = 334.6, p &lt; 0.0001). Minimum temperatures declined with latitude at a similar rate in both microhabitats (latitude × microhabitat: <span class="math inline">\(\beta_{L \cdot M}\)</span> = 0.053 °C per degree; 95% CI: -0.12 to 0.23; p = 0.5362), so, on average, the leaf litter acts as a roughly constant thermal offset across latitudes. Averages, however, can hide what happens on the coldest nights, which are the ones that matter for survival. We examine these next.</p>
-</section>
-<section id="buffering-on-the-coldest-nights" class="level3">
-<h3 class="anchored" data-anchor-id="buffering-on-the-coldest-nights">Buffering on the coldest nights</h3>
-<p>To test whether the leaf litter buffers cold nights more strongly than mild ones, we compare the minimum temperature in the leaf litter with the minimum temperature in the canopy at the same location on the same night. To make this comparison robust to any remaining faulty OTMs, we summarise each location, microhabitat and night by the median minimum temperature across OTMs. We then fit the linear mixed model:</p>
-<p><span class="math display">\[
-T^{LL}_{s,n} \sim Normal(t_{s,n}, \sigma)
-\]</span></p>
-<p><span class="math display">\[
-t_{s,n} = \alpha + a_s + (\beta_C + b_s) \cdot T^{C}_{s,n}
-\]</span></p>
-<p>where <span class="math inline">\(T^{LL}_{s,n}\)</span> and <span class="math inline">\(T^{C}_{s,n}\)</span> are the minimum temperatures in the leaf litter and the canopy at location <span class="math inline">\(s\)</span> on night <span class="math inline">\(n\)</span>, and <span class="math inline">\(a_s\)</span> and <span class="math inline">\(b_s\)</span> are random intercepts and slopes for each location. If the leaf litter simply added a constant offset to canopy temperatures, <span class="math inline">\(\beta_C\)</span> would equal 1. If <span class="math inline">\(\beta_C &lt; 1\)</span>, leaf-litter temperatures change less than canopy temperatures, and the buffering provided by the leaf litter (<span class="math inline">\(T^{LL} - T^{C}\)</span>) increases by <span class="math inline">\(1 - \beta_C\)</span> °C for every degree that the canopy cools.</p>
-<div class="cell">
-<details class="code-fold">
-<summary>Linear mixed model of leaf-litter vs canopy minimum temperatures on the same night</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># median nightly minimum per location, microhabitat and night</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>nightly_medians <span class="ot">&lt;-</span> otms_data_sum <span class="sc">|&gt;</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(location, lat, microhabitat, date) <span class="sc">|&gt;</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">min_temp =</span> <span class="fu">median</span>(min_temp), <span class="at">.groups =</span> <span class="st">"drop"</span>) <span class="sc">|&gt;</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> microhabitat, <span class="at">values_from =</span> min_temp) <span class="sc">|&gt;</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(branch), <span class="sc">!</span><span class="fu">is.na</span>(leaflitter)) <span class="sc">|&gt;</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="at">canopy =</span> branch, <span class="at">litter =</span> leaflitter) <span class="sc">|&gt;</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">buffer =</span> litter <span class="sc">-</span> canopy)</span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co"># fit model</span></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>cold_mod <span class="ot">&lt;-</span> lme4<span class="sc">::</span><span class="fu">lmer</span>(</span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>  litter <span class="sc">~</span> canopy <span class="sc">+</span> (<span class="dv">1</span> <span class="sc">+</span> canopy <span class="sc">|</span> location),</span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>  <span class="at">data =</span> nightly_medians</span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>cold_slope <span class="ot">&lt;-</span> lme4<span class="sc">::</span><span class="fu">fixef</span>(cold_mod)[<span class="st">"canopy"</span>]</span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>cold_slope_ci <span class="ot">&lt;-</span> <span class="fu">kr_ci</span>(cold_mod, <span class="st">"canopy"</span>)</span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>cold_slope_test <span class="ot">&lt;-</span> car<span class="sc">::</span><span class="fu">Anova</span>(cold_mod, <span class="at">test.statistic =</span> <span class="st">"F"</span>)</span>
-<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="co"># test whether the slope differs from 1 (constant offset)</span></span>
-<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>cold_l <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>)</span>
-<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>cold_ddf <span class="ot">&lt;-</span> pbkrtest<span class="sc">::</span><span class="fu">get_Lb_ddf</span>(cold_mod, cold_l)</span>
-<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>cold_se <span class="ot">&lt;-</span> <span class="fu">sqrt</span>(<span class="fu">as.numeric</span>(<span class="fu">as.matrix</span>(<span class="fu">vcov</span>(cold_mod))[<span class="dv">2</span>, <span class="dv">2</span>]))</span>
-<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>cold_t1 <span class="ot">&lt;-</span> (cold_slope <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">/</span> cold_se</span>
-<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>cold_p1 <span class="ot">&lt;-</span> <span class="dv">2</span> <span class="sc">*</span> <span class="fu">pt</span>(<span class="sc">-</span><span class="fu">abs</span>(cold_t1), cold_ddf)</span>
-<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a><span class="co"># predicted buffering at different canopy temperatures at each location</span></span>
-<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a><span class="co"># (fixed + random effects)</span></span>
-<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>cold_coefs <span class="ot">&lt;-</span> <span class="fu">coef</span>(cold_mod)<span class="sc">$</span>location</span>
-<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>buffer_at <span class="ot">&lt;-</span> <span class="cf">function</span>(canopy_temp, <span class="at">loc =</span> <span class="st">"ATL"</span>) {</span>
-<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as.numeric</span>(</span>
-<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>    cold_coefs[loc, <span class="st">"(Intercept)"</span>] <span class="sc">+</span> (cold_coefs[loc, <span class="st">"canopy"</span>] <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">*</span> canopy_temp</span>
-<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a><span class="fu">tibble</span>(</span>
-<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>  <span class="at">parameter =</span> <span class="fu">c</span>(<span class="st">"Intercept"</span>, <span class="st">"Canopy minimum temperature"</span>),</span>
-<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>  <span class="at">symbol =</span> <span class="fu">c</span>(<span class="st">"&amp;alpha;"</span>, <span class="st">"&amp;beta;&lt;sub&gt;C&lt;/sub&gt;"</span>),</span>
-<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a>  <span class="at">estimate =</span> <span class="fu">sprintf</span>(<span class="st">"%.3f"</span>, lme4<span class="sc">::</span><span class="fu">fixef</span>(cold_mod)),</span>
-<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a>  <span class="at">se =</span> <span class="fu">sprintf</span>(<span class="st">"%.3f"</span>, <span class="fu">sqrt</span>(<span class="fu">diag</span>(<span class="fu">as.matrix</span>(<span class="fu">vcov</span>(cold_mod))))),</span>
-<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>  <span class="at">ci =</span> <span class="fu">c</span>(</span>
-<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="fu">sprintf</span>(<span class="st">"%.2f"</span>, <span class="fu">kr_ci</span>(cold_mod, <span class="st">"(Intercept)"</span>)), <span class="at">collapse =</span> <span class="st">" to "</span>),</span>
-<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a>    <span class="fu">paste</span>(<span class="fu">sprintf</span>(<span class="st">"%.2f"</span>, cold_slope_ci), <span class="at">collapse =</span> <span class="st">" to "</span>)</span>
-<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
-<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kbl</span>(</span>
-<span id="cb7-46"><a href="#cb7-46" aria-hidden="true" tabindex="-1"></a>    <span class="at">col.names =</span> <span class="fu">c</span>(<span class="st">"Parameter"</span>, <span class="st">"Symbol"</span>, <span class="st">"Estimate"</span>, <span class="st">"Std. Error"</span>, <span class="st">"95% CI"</span>),</span>
-<span id="cb7-47"><a href="#cb7-47" aria-hidden="true" tabindex="-1"></a>    <span class="at">escape =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb7-48"><a href="#cb7-48" aria-hidden="true" tabindex="-1"></a>    <span class="at">align =</span> <span class="st">"llccc"</span></span>
-<span id="cb7-49"><a href="#cb7-49" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb7-50"><a href="#cb7-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable_styling</span>(<span class="at">full_width =</span> <span class="cn">FALSE</span>, <span class="at">position =</span> <span class="st">"center"</span>) <span class="sc">|&gt;</span></span>
-<span id="cb7-51"><a href="#cb7-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">footnote</span>(</span>
-<span id="cb7-52"><a href="#cb7-52" aria-hidden="true" tabindex="-1"></a>    <span class="at">general =</span> <span class="fu">paste0</span>(</span>
-<span id="cb7-53"><a href="#cb7-53" aria-hidden="true" tabindex="-1"></a>      <span class="fu">nrow</span>(nightly_medians), <span class="st">" location-nights at "</span>,</span>
-<span id="cb7-54"><a href="#cb7-54" aria-hidden="true" tabindex="-1"></a>      <span class="fu">n_distinct</span>(nightly_medians<span class="sc">$</span>location), <span class="st">" locations. Test of "</span>,</span>
-<span id="cb7-55"><a href="#cb7-55" aria-hidden="true" tabindex="-1"></a>      <span class="st">"&amp;beta;&lt;sub&gt;C&lt;/sub&gt; = 1: t&lt;sub&gt;"</span>, <span class="fu">sprintf</span>(<span class="st">"%.1f"</span>, cold_ddf), <span class="st">"&lt;/sub&gt; = "</span>,</span>
-<span id="cb7-56"><a href="#cb7-56" aria-hidden="true" tabindex="-1"></a>      <span class="fu">sprintf</span>(<span class="st">"%.2f"</span>, cold_t1), <span class="st">", p "</span>, <span class="fu">ifelse</span>(</span>
-<span id="cb7-57"><a href="#cb7-57" aria-hidden="true" tabindex="-1"></a>        cold_p1 <span class="sc">&lt;</span> <span class="fl">0.0001</span>, <span class="st">"&lt; 0.0001"</span>, <span class="fu">paste</span>(<span class="st">"="</span>, <span class="fu">format_p</span>(cold_p1))</span>
-<span id="cb7-58"><a href="#cb7-58" aria-hidden="true" tabindex="-1"></a>      )</span>
-<span id="cb7-59"><a href="#cb7-59" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb7-60"><a href="#cb7-60" aria-hidden="true" tabindex="-1"></a>    <span class="at">general_title =</span> <span class="st">""</span>,</span>
-<span id="cb7-61"><a href="#cb7-61" aria-hidden="true" tabindex="-1"></a>    <span class="at">escape =</span> <span class="cn">FALSE</span></span>
-<span id="cb7-62"><a href="#cb7-62" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
-<div class="cell-output-display">
-<table quarto-disable-processing="true" class="table" style="width: auto !important; margin-left: auto; margin-right: auto;border-bottom: 0;">
- <thead>
-  <tr>
-   <th style="text-align:left;"> Parameter </th>
-   <th style="text-align:left;"> Symbol </th>
-   <th style="text-align:center;"> Estimate </th>
-   <th style="text-align:center;"> Std. Error </th>
-   <th style="text-align:center;"> 95% CI </th>
-  </tr>
- </thead>
-<tbody>
-  <tr>
-   <td style="text-align:left;"> Intercept </td>
-   <td style="text-align:left;"> α </td>
-   <td style="text-align:center;"> 8.863 </td>
-   <td style="text-align:center;"> 1.071 </td>
-   <td style="text-align:center;"> 5.89 to 11.84 </td>
-  </tr>
-  <tr>
-   <td style="text-align:left;"> Canopy minimum temperature </td>
-   <td style="text-align:left;"> β<sub>C</sub> </td>
-   <td style="text-align:center;"> 0.545 </td>
-   <td style="text-align:center;"> 0.021 </td>
-   <td style="text-align:center;"> 0.49 to 0.60 </td>
-  </tr>
-</tbody>
-<tfoot><tr><td style="padding: 0; " colspan="100%">
-<sup></sup> 150 location-nights at 5 locations. Test of β<sub>C</sub> = 1: t<sub>3.9</sub> = -21.69, p &lt; 0.0001</td></tr></tfoot>
-</table>
-</div>
-</div>
-<p>Leaf-litter minimum temperatures changed by only 0.54 °C for every degree of change in canopy minimum temperatures (95% CI: 0.49 to 0.6), significantly less than the 1:1 change expected from a constant offset (t<sub>3.9</sub> = -21.69, p &lt; 0.0001). As a result, the buffering provided by the leaf litter increases by 0.46 °C for every degree that the canopy cools. This pattern was consistent across locations (location-specific slopes: 0.50 to 0.60), although, at a given canopy temperature, the leaf litter was cooler at higher latitudes. In Atlanta, where nights were coldest, the model predicts that the leaf litter buffers canopy temperatures by 1.5 °C on nights when the canopy reaches 10 °C, 5.5 °C when it reaches 0 °C, and 9.6 °C when it reaches -10 °C. The figure below shows this relationship at each location (new supplementary figure in the manuscript).</p>
-<div class="cell" data-layout-align="center">
-<details class="code-fold">
-<summary>Plot leaf-litter vs canopy minimum temperatures on the same night</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># predicted leaf-litter temperatures at each location (fixed + random effects)</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co"># across the range of canopy temperatures observed there</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>cold_pred <span class="ot">&lt;-</span> nightly_medians <span class="sc">|&gt;</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(location) <span class="sc">|&gt;</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">reframe</span>(<span class="at">canopy =</span> <span class="fu">seq</span>(<span class="fu">min</span>(canopy), <span class="fu">max</span>(canopy), <span class="at">by =</span> <span class="fl">0.1</span>))</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>cold_pred<span class="sc">$</span>litter <span class="ot">&lt;-</span> <span class="fu">predict</span>(cold_mod, <span class="at">newdata =</span> cold_pred)</span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>nightly_medians <span class="sc">|&gt;</span></span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">location =</span> <span class="fu">factor</span>(location, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"MIA"</span>, <span class="st">"PSL"</span>, <span class="st">"ORL"</span>, <span class="st">"GNV"</span>, <span class="st">"ATL"</span>))</span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> canopy, <span class="at">y =</span> litter)) <span class="sc">+</span></span>
-<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_abline</span>(<span class="at">slope =</span> <span class="dv">1</span>, <span class="at">intercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>) <span class="sc">+</span></span>
-<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(<span class="at">yintercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"darkblue"</span>) <span class="sc">+</span></span>
-<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="dv">0</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"darkblue"</span>) <span class="sc">+</span></span>
-<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">color =</span> location), <span class="at">size =</span> <span class="fl">2.5</span>, <span class="at">alpha =</span> <span class="fl">0.6</span>) <span class="sc">+</span></span>
-<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(</span>
-<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> cold_pred <span class="sc">|&gt;</span></span>
-<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>      <span class="fu">mutate</span>(</span>
-<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>        <span class="at">location =</span> <span class="fu">factor</span>(</span>
-<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>          location,</span>
-<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>          <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"MIA"</span>, <span class="st">"PSL"</span>, <span class="st">"ORL"</span>, <span class="st">"GNV"</span>, <span class="st">"ATL"</span>)</span>
-<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>        )</span>
-<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>      ),</span>
-<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">color =</span> location),</span>
-<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">linewidth =</span> <span class="dv">1</span></span>
-<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_viridis_d</span>(<span class="at">name =</span> <span class="cn">NULL</span>, <span class="at">option =</span> <span class="st">"plasma"</span>, <span class="at">end =</span> <span class="fl">0.85</span>) <span class="sc">+</span></span>
-<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_equal</span>() <span class="sc">+</span></span>
-<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
-<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">12</span>),</span>
-<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">10</span>),</span>
-<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.line =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
-<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
-<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid =</span> <span class="fu">element_blank</span>(),</span>
-<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">"inside"</span>,</span>
-<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position.inside =</span> <span class="fu">c</span>(<span class="fl">0.02</span>, <span class="fl">0.98</span>),</span>
-<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.justification =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>),</span>
-<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">11</span>)</span>
-<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
-<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Minimum Lizard Body Temperature in Canopy (°C)"</span>,</span>
-<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Minimum Lizard Body Temperature in Leaf Litter (°C)"</span></span>
-<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</details>
-<div class="cell-output-display">
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><a href="leaf-litter-retreat_files/figure-html/plot-cold-night-buffering-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="leaf-litter-retreat_files/figure-html/plot-cold-night-buffering-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:66.0%"></a></p>
-</figure>
-</div>
-</div>
-</div>
-<p>Points show the median nightly minimum temperature across OTMs at each location in January, colored lines show the predictions of the mixed model for each location, and the dashed black line shows the 1:1 relationship expected if the leaf litter did not buffer canopy temperatures.</p>
+<p>At an average latitude (29°N), nightly minimum temperatures in the leaf litter were 4.7 °C warmer than in the canopy (95% CI: 4.1 to 5.3 °C; t<sub>32.4</sub> = 15.7, p &lt; 0.0001). Minimum temperatures declined with latitude at a similar rate in both microhabitats (canopy: -1.63 °C per degree; leaf litter: -1.58 °C per degree; latitude × microhabitat: <span class="math inline">\(\beta_{L \cdot M}\)</span> = 0.053; 95% CI: -0.12 to 0.23; t<sub>32.3</sub> = 0.63, p = 0.5362), so the leaf litter acts as a roughly constant thermal offset across latitudes.</p>
 </section>
 <section id="summary-by-location" class="level3">
 <h3 class="anchored" data-anchor-id="summary-by-location">Summary by location</h3>
@@ -1506,195 +1509,181 @@ t_{s,n} = \alpha + a_s + (\beta_C + b_s) \cdot T^{C}_{s,n}
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Plot minimum temperatures in the canopy and leaf litter across latitudes</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># average nightly minimum per OTM</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>otm_means <span class="ot">&lt;-</span> otms_data_sum <span class="sc">|&gt;</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(location, lat, microhabitat, id) <span class="sc">|&gt;</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">min_temp =</span> <span class="fu">mean</span>(min_temp), <span class="at">.groups =</span> <span class="st">"drop"</span>)</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co"># fixed-effect predictions of the latitude x microhabitat model</span></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>buffer_pred <span class="ot">&lt;-</span> <span class="fu">expand_grid</span>(</span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">lat =</span> <span class="fu">seq</span>(<span class="fu">min</span>(otm_means<span class="sc">$</span>lat), <span class="fu">max</span>(otm_means<span class="sc">$</span>lat), <span class="at">by =</span> <span class="fl">0.1</span>),</span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">microhabitat =</span> <span class="fu">factor</span>(<span class="fu">c</span>(<span class="st">"branch"</span>, <span class="st">"leaflitter"</span>))</span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">lat_c =</span> lat <span class="sc">-</span> mean_lat)</span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>buffer_pred<span class="sc">$</span>min_temp <span class="ot">&lt;-</span> <span class="fu">predict</span>(buffer_mod, <span class="at">newdata =</span> buffer_pred, <span class="at">re.form =</span> <span class="cn">NA</span>)</span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="co"># plot</span></span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>buffering_plot <span class="ot">&lt;-</span> otm_means <span class="sc">|&gt;</span></span>
-<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> lat, <span class="at">y =</span> min_temp)) <span class="sc">+</span></span>
-<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(</span>
-<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">yintercept =</span> <span class="fu">c</span>(<span class="dv">0</span>),</span>
-<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">linetype =</span> <span class="st">"dashed"</span>,</span>
-<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="st">"darkblue"</span></span>
-<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(</span>
-<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">linetype =</span> <span class="st">"dashed"</span>,</span>
-<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">yintercept =</span> ctmin_min, <span class="at">color =</span> <span class="st">"CTmin"</span>),</span>
-<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">show.legend =</span> <span class="cn">TRUE</span></span>
-<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(</span>
-<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">linetype =</span> <span class="st">"dashed"</span>,</span>
-<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">yintercept =</span> tret_temp, <span class="at">color =</span> <span class="st">"Tret"</span>),</span>
-<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">show.legend =</span> <span class="cn">TRUE</span></span>
-<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(</span>
-<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> buffer_pred,</span>
-<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">color =</span> microhabitat),</span>
-<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">linewidth =</span> <span class="dv">1</span></span>
-<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_summary</span>(</span>
-<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">color =</span> microhabitat),</span>
-<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> <span class="fu">position_dodge</span>(<span class="at">width =</span> <span class="fl">0.75</span>),</span>
-<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">fun.data =</span> mean_sdl,</span>
-<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">fun.args =</span> <span class="fu">list</span>(<span class="at">mult =</span> <span class="dv">1</span>),</span>
-<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a>    <span class="at">size =</span> <span class="dv">1</span></span>
-<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(</span>
-<span id="cb9-45"><a href="#cb9-45" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> otm_means <span class="sc">|&gt;</span></span>
-<span id="cb9-46"><a href="#cb9-46" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(microhabitat <span class="sc">==</span> <span class="st">"leaflitter"</span>) <span class="sc">|&gt;</span></span>
-<span id="cb9-47"><a href="#cb9-47" aria-hidden="true" tabindex="-1"></a>      <span class="fu">group_by</span>(location) <span class="sc">|&gt;</span></span>
-<span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a>      <span class="fu">summarise</span>(</span>
-<span id="cb9-49"><a href="#cb9-49" aria-hidden="true" tabindex="-1"></a>        <span class="at">lat =</span> <span class="fu">mean</span>(lat),</span>
-<span id="cb9-50"><a href="#cb9-50" aria-hidden="true" tabindex="-1"></a>        <span class="at">min_temp_mean =</span> <span class="fu">mean</span>(min_temp),</span>
-<span id="cb9-51"><a href="#cb9-51" aria-hidden="true" tabindex="-1"></a>        <span class="at">min_temp_sd =</span> <span class="fu">sd</span>(min_temp),</span>
-<span id="cb9-52"><a href="#cb9-52" aria-hidden="true" tabindex="-1"></a>        <span class="at">.groups =</span> <span class="st">"drop"</span></span>
-<span id="cb9-53"><a href="#cb9-53" aria-hidden="true" tabindex="-1"></a>      ),</span>
-<span id="cb9-54"><a href="#cb9-54" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> lat, <span class="at">y =</span> min_temp_mean <span class="sc">+</span> min_temp_sd <span class="sc">+</span> <span class="fl">0.5</span>, <span class="at">label =</span> location),</span>
-<span id="cb9-55"><a href="#cb9-55" aria-hidden="true" tabindex="-1"></a>    <span class="at">inherit.aes =</span> <span class="cn">FALSE</span>,</span>
-<span id="cb9-56"><a href="#cb9-56" aria-hidden="true" tabindex="-1"></a>    <span class="at">vjust =</span> <span class="sc">-</span><span class="fl">0.75</span>,</span>
-<span id="cb9-57"><a href="#cb9-57" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="st">"darkgray"</span>,</span>
-<span id="cb9-58"><a href="#cb9-58" aria-hidden="true" tabindex="-1"></a>    <span class="at">fontface =</span> <span class="st">"bold"</span></span>
-<span id="cb9-59"><a href="#cb9-59" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb9-60"><a href="#cb9-60" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(</span>
-<span id="cb9-61"><a href="#cb9-61" aria-hidden="true" tabindex="-1"></a>    <span class="at">values =</span> <span class="fu">c</span>(</span>
-<span id="cb9-62"><a href="#cb9-62" aria-hidden="true" tabindex="-1"></a>      <span class="st">"branch"</span> <span class="ot">=</span> <span class="st">"forestgreen"</span>,</span>
-<span id="cb9-63"><a href="#cb9-63" aria-hidden="true" tabindex="-1"></a>      <span class="st">"leaflitter"</span> <span class="ot">=</span> <span class="st">"darkorange"</span>,</span>
-<span id="cb9-64"><a href="#cb9-64" aria-hidden="true" tabindex="-1"></a>      <span class="st">"CTmin"</span> <span class="ot">=</span> <span class="st">"steelblue"</span>,</span>
-<span id="cb9-65"><a href="#cb9-65" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Tret"</span> <span class="ot">=</span> <span class="st">"skyblue"</span></span>
-<span id="cb9-66"><a href="#cb9-66" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb9-67"><a href="#cb9-67" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="st">"Microhabitat"</span>,</span>
-<span id="cb9-68"><a href="#cb9-68" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> <span class="fu">c</span>(<span class="st">"branch"</span>, <span class="st">"leaflitter"</span>, <span class="st">"CTmin"</span>, <span class="st">"Tret"</span>),</span>
-<span id="cb9-69"><a href="#cb9-69" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> <span class="fu">c</span>(</span>
-<span id="cb9-70"><a href="#cb9-70" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Canopy"</span>, <span class="st">"Leaf litter"</span>, <span class="fu">expression</span>(CT[min]), <span class="fu">expression</span>(T[ret])</span>
-<span id="cb9-71"><a href="#cb9-71" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb9-72"><a href="#cb9-72" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb9-73"><a href="#cb9-73" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(</span>
-<span id="cb9-74"><a href="#cb9-74" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">25</span>, <span class="dv">35</span>, <span class="at">by =</span> <span class="fl">2.5</span>),</span>
-<span id="cb9-75"><a href="#cb9-75" aria-hidden="true" tabindex="-1"></a>    <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">25</span>, <span class="dv">35</span>),</span>
-<span id="cb9-76"><a href="#cb9-76" aria-hidden="true" tabindex="-1"></a>    <span class="at">expand =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>)</span>
-<span id="cb9-77"><a href="#cb9-77" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb9-78"><a href="#cb9-78" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb9-79"><a href="#cb9-79" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
-<span id="cb9-80"><a href="#cb9-80" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">12</span>),</span>
-<span id="cb9-81"><a href="#cb9-81" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">10</span>),</span>
-<span id="cb9-82"><a href="#cb9-82" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.line =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
-<span id="cb9-83"><a href="#cb9-83" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
-<span id="cb9-84"><a href="#cb9-84" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid =</span> <span class="fu">element_blank</span>(),</span>
-<span id="cb9-85"><a href="#cb9-85" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.title =</span> <span class="fu">element_blank</span>(),</span>
-<span id="cb9-86"><a href="#cb9-86" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">"inside"</span>,</span>
-<span id="cb9-87"><a href="#cb9-87" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position.inside =</span> <span class="fu">c</span>(<span class="fl">0.98</span>, <span class="fl">0.98</span>),</span>
-<span id="cb9-88"><a href="#cb9-88" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.justification =</span> <span class="fu">c</span>(<span class="st">"right"</span>, <span class="st">"top"</span>),</span>
-<span id="cb9-89"><a href="#cb9-89" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">14</span>),</span>
-<span id="cb9-90"><a href="#cb9-90" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.key.spacing.y =</span> <span class="fu">unit</span>(<span class="fl">0.5</span>, <span class="st">"lines"</span>)</span>
-<span id="cb9-91"><a href="#cb9-91" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb9-92"><a href="#cb9-92" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
-<span id="cb9-93"><a href="#cb9-93" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Latitude (°N)"</span>,</span>
-<span id="cb9-94"><a href="#cb9-94" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Minimum Lizard Body Temperature (°C)"</span></span>
-<span id="cb9-95"><a href="#cb9-95" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb9-96"><a href="#cb9-96" aria-hidden="true" tabindex="-1"></a>buffering_plot</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># average nightly minimum per OTM</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>otm_means <span class="ot">&lt;-</span> otms_data_sum <span class="sc">|&gt;</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(location, lat, microhabitat, id) <span class="sc">|&gt;</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">min_temp =</span> <span class="fu">mean</span>(min_temp), <span class="at">.groups =</span> <span class="st">"drop"</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co"># fixed-effect predictions of the latitude x microhabitat model</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>buffer_pred <span class="ot">&lt;-</span> <span class="fu">expand_grid</span>(</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">lat =</span> <span class="fu">seq</span>(<span class="fu">min</span>(otm_means<span class="sc">$</span>lat), <span class="fu">max</span>(otm_means<span class="sc">$</span>lat), <span class="at">by =</span> <span class="fl">0.1</span>),</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">microhabitat =</span> <span class="fu">factor</span>(<span class="fu">c</span>(<span class="st">"branch"</span>, <span class="st">"leaflitter"</span>))</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">lat_c =</span> lat <span class="sc">-</span> mean_lat)</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>buffer_pred<span class="sc">$</span>min_temp <span class="ot">&lt;-</span> <span class="fu">predict</span>(buffer_mod, <span class="at">newdata =</span> buffer_pred, <span class="at">re.form =</span> <span class="cn">NA</span>)</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="co"># plot</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>buffering_plot <span class="ot">&lt;-</span> otm_means <span class="sc">|&gt;</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> lat, <span class="at">y =</span> min_temp)) <span class="sc">+</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">yintercept =</span> <span class="fu">c</span>(<span class="dv">0</span>),</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">linetype =</span> <span class="st">"dashed"</span>,</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="st">"darkblue"</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">linetype =</span> <span class="st">"dashed"</span>,</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">yintercept =</span> ctmin_min, <span class="at">color =</span> <span class="st">"CTmin"</span>),</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">show.legend =</span> <span class="cn">TRUE</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_hline</span>(</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">linetype =</span> <span class="st">"dashed"</span>,</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">yintercept =</span> tret_temp, <span class="at">color =</span> <span class="st">"Tret"</span>),</span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">show.legend =</span> <span class="cn">TRUE</span></span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(</span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> buffer_pred,</span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">color =</span> microhabitat),</span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">linewidth =</span> <span class="dv">1</span></span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_summary</span>(</span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">color =</span> microhabitat),</span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> <span class="fu">position_dodge</span>(<span class="at">width =</span> <span class="fl">0.75</span>),</span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>    <span class="at">fun.data =</span> mean_sdl,</span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">fun.args =</span> <span class="fu">list</span>(<span class="at">mult =</span> <span class="dv">1</span>),</span>
+<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a>    <span class="at">size =</span> <span class="dv">1</span></span>
+<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(</span>
+<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> otm_means <span class="sc">|&gt;</span></span>
+<span id="cb7-46"><a href="#cb7-46" aria-hidden="true" tabindex="-1"></a>      <span class="fu">filter</span>(microhabitat <span class="sc">==</span> <span class="st">"leaflitter"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb7-47"><a href="#cb7-47" aria-hidden="true" tabindex="-1"></a>      <span class="fu">group_by</span>(location) <span class="sc">|&gt;</span></span>
+<span id="cb7-48"><a href="#cb7-48" aria-hidden="true" tabindex="-1"></a>      <span class="fu">summarise</span>(</span>
+<span id="cb7-49"><a href="#cb7-49" aria-hidden="true" tabindex="-1"></a>        <span class="at">lat =</span> <span class="fu">mean</span>(lat),</span>
+<span id="cb7-50"><a href="#cb7-50" aria-hidden="true" tabindex="-1"></a>        <span class="at">min_temp_mean =</span> <span class="fu">mean</span>(min_temp),</span>
+<span id="cb7-51"><a href="#cb7-51" aria-hidden="true" tabindex="-1"></a>        <span class="at">min_temp_sd =</span> <span class="fu">sd</span>(min_temp),</span>
+<span id="cb7-52"><a href="#cb7-52" aria-hidden="true" tabindex="-1"></a>        <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb7-53"><a href="#cb7-53" aria-hidden="true" tabindex="-1"></a>      ),</span>
+<span id="cb7-54"><a href="#cb7-54" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> lat, <span class="at">y =</span> min_temp_mean <span class="sc">+</span> min_temp_sd <span class="sc">+</span> <span class="fl">0.5</span>, <span class="at">label =</span> location),</span>
+<span id="cb7-55"><a href="#cb7-55" aria-hidden="true" tabindex="-1"></a>    <span class="at">inherit.aes =</span> <span class="cn">FALSE</span>,</span>
+<span id="cb7-56"><a href="#cb7-56" aria-hidden="true" tabindex="-1"></a>    <span class="at">vjust =</span> <span class="sc">-</span><span class="fl">0.75</span>,</span>
+<span id="cb7-57"><a href="#cb7-57" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="st">"darkgray"</span>,</span>
+<span id="cb7-58"><a href="#cb7-58" aria-hidden="true" tabindex="-1"></a>    <span class="at">fontface =</span> <span class="st">"bold"</span></span>
+<span id="cb7-59"><a href="#cb7-59" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb7-60"><a href="#cb7-60" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(</span>
+<span id="cb7-61"><a href="#cb7-61" aria-hidden="true" tabindex="-1"></a>    <span class="at">values =</span> <span class="fu">c</span>(</span>
+<span id="cb7-62"><a href="#cb7-62" aria-hidden="true" tabindex="-1"></a>      <span class="st">"branch"</span> <span class="ot">=</span> <span class="st">"forestgreen"</span>,</span>
+<span id="cb7-63"><a href="#cb7-63" aria-hidden="true" tabindex="-1"></a>      <span class="st">"leaflitter"</span> <span class="ot">=</span> <span class="st">"darkorange"</span>,</span>
+<span id="cb7-64"><a href="#cb7-64" aria-hidden="true" tabindex="-1"></a>      <span class="st">"CTmin"</span> <span class="ot">=</span> <span class="st">"steelblue"</span>,</span>
+<span id="cb7-65"><a href="#cb7-65" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Tret"</span> <span class="ot">=</span> <span class="st">"skyblue"</span></span>
+<span id="cb7-66"><a href="#cb7-66" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb7-67"><a href="#cb7-67" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="st">"Microhabitat"</span>,</span>
+<span id="cb7-68"><a href="#cb7-68" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> <span class="fu">c</span>(<span class="st">"branch"</span>, <span class="st">"leaflitter"</span>, <span class="st">"CTmin"</span>, <span class="st">"Tret"</span>),</span>
+<span id="cb7-69"><a href="#cb7-69" aria-hidden="true" tabindex="-1"></a>    <span class="at">labels =</span> <span class="fu">c</span>(</span>
+<span id="cb7-70"><a href="#cb7-70" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Canopy"</span>, <span class="st">"Leaf litter"</span>, <span class="fu">expression</span>(CT[min]), <span class="fu">expression</span>(T[ret])</span>
+<span id="cb7-71"><a href="#cb7-71" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb7-72"><a href="#cb7-72" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb7-73"><a href="#cb7-73" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(</span>
+<span id="cb7-74"><a href="#cb7-74" aria-hidden="true" tabindex="-1"></a>    <span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">25</span>, <span class="dv">35</span>, <span class="at">by =</span> <span class="fl">2.5</span>),</span>
+<span id="cb7-75"><a href="#cb7-75" aria-hidden="true" tabindex="-1"></a>    <span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">25</span>, <span class="dv">35</span>),</span>
+<span id="cb7-76"><a href="#cb7-76" aria-hidden="true" tabindex="-1"></a>    <span class="at">expand =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">0</span>)</span>
+<span id="cb7-77"><a href="#cb7-77" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb7-78"><a href="#cb7-78" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb7-79"><a href="#cb7-79" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb7-80"><a href="#cb7-80" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">12</span>),</span>
+<span id="cb7-81"><a href="#cb7-81" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">10</span>),</span>
+<span id="cb7-82"><a href="#cb7-82" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.line =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb7-83"><a href="#cb7-83" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.ticks =</span> <span class="fu">element_line</span>(<span class="at">color =</span> <span class="st">"black"</span>),</span>
+<span id="cb7-84"><a href="#cb7-84" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb7-85"><a href="#cb7-85" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.title =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb7-86"><a href="#cb7-86" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">"inside"</span>,</span>
+<span id="cb7-87"><a href="#cb7-87" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position.inside =</span> <span class="fu">c</span>(<span class="fl">0.98</span>, <span class="fl">0.98</span>),</span>
+<span id="cb7-88"><a href="#cb7-88" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.justification =</span> <span class="fu">c</span>(<span class="st">"right"</span>, <span class="st">"top"</span>),</span>
+<span id="cb7-89"><a href="#cb7-89" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">14</span>),</span>
+<span id="cb7-90"><a href="#cb7-90" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.key.spacing.y =</span> <span class="fu">unit</span>(<span class="fl">0.5</span>, <span class="st">"lines"</span>)</span>
+<span id="cb7-91"><a href="#cb7-91" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb7-92"><a href="#cb7-92" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb7-93"><a href="#cb7-93" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Latitude (°N)"</span>,</span>
+<span id="cb7-94"><a href="#cb7-94" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Minimum Lizard Body Temperature (°C)"</span></span>
+<span id="cb7-95"><a href="#cb7-95" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb7-96"><a href="#cb7-96" aria-hidden="true" tabindex="-1"></a>buffering_plot</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><a href="leaf-litter-retreat_files/figure-html/plot-leaf-litter-buffering-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5"><img src="leaf-litter-retreat_files/figure-html/plot-leaf-litter-buffering-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:66.0%"></a></p>
+<p><a href="leaf-litter-retreat_files/figure-html/plot-leaf-litter-buffering-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-4"><img src="leaf-litter-retreat_files/figure-html/plot-leaf-litter-buffering-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:66.0%"></a></p>
 </figure>
 </div>
 </div>
 </div>
-<p>Lastly, we table, for each location and microhabitat, the average (± SD across OTMs) and absolute minimum temperatures recorded by OTMs in January, the average buffering provided by the leaf litter (i.e., the difference in average minimum temperature between the leaf litter and the canopy) and the number of nights on which minimum temperatures fell below 0 °C and below CT<sub>min</sub> (averaged across OTMs; Table S6 in the manuscript). While the average buffering is similar across locations, the leaf litter all but eliminates nights below 0 °C and greatly reduces nights below CT<sub>min</sub>: in Atlanta, canopy OTMs recorded sub-freezing temperatures on 15.2 of 31 nights in January, on average, compared with 1.3 nights in the leaf litter.</p>
+<p>Lastly, we table, for each location and microhabitat, the average (± SD across OTMs) and absolute minimum temperatures recorded by OTMs in January, and the average buffering provided by the leaf litter (i.e., the difference in average minimum temperature between the leaf litter and the canopy; Table S6 in the manuscript).</p>
 <div class="cell">
 <details class="code-fold">
 <summary>Table minimum temperatures by location and microhabitat</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># summarise each OTM, then each location and microhabitat</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>location_summary <span class="ot">&lt;-</span> otms_data_sum <span class="sc">|&gt;</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(location, lat, microhabitat, id) <span class="sc">|&gt;</span></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_min =</span> <span class="fu">mean</span>(min_temp),</span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">abs_min =</span> <span class="fu">min</span>(min_temp),</span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">nights_0 =</span> <span class="fu">sum</span>(min_temp <span class="sc">&lt;</span> <span class="dv">0</span>),</span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">nights_ctmin =</span> <span class="fu">sum</span>(min_temp <span class="sc">&lt;</span> ctmin_min),</span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(location, lat, microhabitat) <span class="sc">|&gt;</span></span>
-<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">est =</span> <span class="fu">paste0</span>(<span class="fu">sprintf</span>(<span class="st">"%.1f"</span>, <span class="fu">mean</span>(mean_min)), <span class="st">" ± "</span>, <span class="fu">sprintf</span>(<span class="st">"%.1f"</span>, <span class="fu">sd</span>(mean_min))),</span>
-<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_min =</span> <span class="fu">mean</span>(mean_min),</span>
-<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">abs_min =</span> <span class="fu">sprintf</span>(<span class="st">"%.1f"</span>, <span class="fu">min</span>(abs_min)),</span>
-<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">nights_0 =</span> <span class="fu">sprintf</span>(<span class="st">"%.1f"</span>, <span class="fu">mean</span>(nights_0)),</span>
-<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">nights_ctmin =</span> <span class="fu">sprintf</span>(<span class="st">"%.1f"</span>, <span class="fu">mean</span>(nights_ctmin)),</span>
-<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
-<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">microhabitat =</span> <span class="fu">ifelse</span>(microhabitat <span class="sc">==</span> <span class="st">"branch"</span>, <span class="st">"canopy"</span>, <span class="st">"litter"</span>)) <span class="sc">|&gt;</span></span>
-<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(</span>
-<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">names_from =</span> microhabitat,</span>
-<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">values_from =</span> <span class="fu">c</span>(est, mean_min, abs_min, nights_0, nights_ctmin)</span>
-<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">buffering =</span> <span class="fu">sprintf</span>(<span class="st">"%.1f"</span>, mean_min_litter <span class="sc">-</span> mean_min_canopy),</span>
-<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">location =</span> <span class="fu">factor</span>(</span>
-<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>      location,</span>
-<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>      <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"MIA"</span>, <span class="st">"PSL"</span>, <span class="st">"ORL"</span>, <span class="st">"GNV"</span>, <span class="st">"ATL"</span>),</span>
-<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>      <span class="at">labels =</span> <span class="fu">c</span>(</span>
-<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Miami, FL (MIA)"</span>, <span class="st">"Port Saint Lucie, FL (PSL)"</span>, <span class="st">"Orlando, FL (ORL)"</span>,</span>
-<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Gainesville, FL (GNV)"</span>, <span class="st">"Atlanta, GA (ATL)"</span></span>
-<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>      )</span>
-<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">lat =</span> <span class="fu">sprintf</span>(<span class="st">"%.2f"</span>, lat)</span>
-<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(location)</span>
-<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a>location_summary <span class="sc">|&gt;</span></span>
-<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(</span>
-<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a>    location, lat,</span>
-<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a>    est_canopy, abs_min_canopy, est_litter, abs_min_litter, buffering,</span>
-<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a>    nights_0_canopy, nights_0_litter, nights_ctmin_canopy, nights_ctmin_litter</span>
-<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kbl</span>(</span>
-<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a>    <span class="at">col.names =</span> <span class="fu">c</span>(</span>
-<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Location"</span>, <span class="st">"Lat. (°N)"</span>,</span>
-<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Mean ± SD"</span>, <span class="st">"Min."</span>, <span class="st">"Mean ± SD"</span>, <span class="st">"Min."</span>, <span class="st">"Buffer (°C)"</span>,</span>
-<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Canopy"</span>, <span class="st">"Leaf litter"</span>, <span class="st">"Canopy"</span>, <span class="st">"Leaf litter"</span></span>
-<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a>    <span class="at">align =</span> <span class="st">"lcccccccccc"</span></span>
-<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable_styling</span>(<span class="at">full_width =</span> <span class="cn">FALSE</span>, <span class="at">position =</span> <span class="st">"center"</span>, <span class="at">font_size =</span> <span class="dv">12</span>) <span class="sc">|&gt;</span></span>
-<span id="cb10-54"><a href="#cb10-54" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_header_above</span>(</span>
-<span id="cb10-55"><a href="#cb10-55" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(</span>
-<span id="cb10-56"><a href="#cb10-56" aria-hidden="true" tabindex="-1"></a>      <span class="st">" "</span> <span class="ot">=</span> <span class="dv">2</span>, <span class="st">"Canopy (°C)"</span> <span class="ot">=</span> <span class="dv">2</span>, <span class="st">"Leaf litter (°C)"</span> <span class="ot">=</span> <span class="dv">2</span>, <span class="st">" "</span> <span class="ot">=</span> <span class="dv">1</span>,</span>
-<span id="cb10-57"><a href="#cb10-57" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Nights &amp;lt; 0 °C"</span> <span class="ot">=</span> <span class="dv">2</span>, <span class="st">"Nights &amp;lt; CT&lt;sub&gt;min&lt;/sub&gt;"</span> <span class="ot">=</span> <span class="dv">2</span></span>
-<span id="cb10-58"><a href="#cb10-58" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb10-59"><a href="#cb10-59" aria-hidden="true" tabindex="-1"></a>    <span class="at">escape =</span> <span class="cn">FALSE</span></span>
-<span id="cb10-60"><a href="#cb10-60" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb10-61"><a href="#cb10-61" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_header_above</span>(</span>
-<span id="cb10-62"><a href="#cb10-62" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(<span class="st">" "</span> <span class="ot">=</span> <span class="dv">2</span>, <span class="st">"Minimum operative temperatures"</span> <span class="ot">=</span> <span class="dv">5</span>, <span class="st">"Exposure"</span> <span class="ot">=</span> <span class="dv">4</span>)</span>
-<span id="cb10-63"><a href="#cb10-63" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># summarise each OTM, then each location and microhabitat</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>location_summary <span class="ot">&lt;-</span> otms_data_sum <span class="sc">|&gt;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(location, lat, microhabitat, id) <span class="sc">|&gt;</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_min =</span> <span class="fu">mean</span>(min_temp),</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">abs_min =</span> <span class="fu">min</span>(min_temp),</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(location, lat, microhabitat) <span class="sc">|&gt;</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">est =</span> <span class="fu">paste0</span>(<span class="fu">sprintf</span>(<span class="st">"%.1f"</span>, <span class="fu">mean</span>(mean_min)), <span class="st">" ± "</span>, <span class="fu">sprintf</span>(<span class="st">"%.1f"</span>, <span class="fu">sd</span>(mean_min))),</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_min =</span> <span class="fu">mean</span>(mean_min),</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">abs_min =</span> <span class="fu">sprintf</span>(<span class="st">"%.1f"</span>, <span class="fu">min</span>(abs_min)),</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">microhabitat =</span> <span class="fu">ifelse</span>(microhabitat <span class="sc">==</span> <span class="st">"branch"</span>, <span class="st">"canopy"</span>, <span class="st">"litter"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">names_from =</span> microhabitat,</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">values_from =</span> <span class="fu">c</span>(est, mean_min, abs_min)</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">buffering =</span> <span class="fu">sprintf</span>(<span class="st">"%.1f"</span>, mean_min_litter <span class="sc">-</span> mean_min_canopy),</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">location =</span> <span class="fu">factor</span>(</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>      location,</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>      <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"MIA"</span>, <span class="st">"PSL"</span>, <span class="st">"ORL"</span>, <span class="st">"GNV"</span>, <span class="st">"ATL"</span>),</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>      <span class="at">labels =</span> <span class="fu">c</span>(</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Miami, FL (MIA)"</span>, <span class="st">"Port Saint Lucie, FL (PSL)"</span>, <span class="st">"Orlando, FL (ORL)"</span>,</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>        <span class="st">"Gainesville, FL (GNV)"</span>, <span class="st">"Atlanta, GA (ATL)"</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>      )</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">lat =</span> <span class="fu">sprintf</span>(<span class="st">"%.2f"</span>, lat)</span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(location)</span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>location_summary <span class="sc">|&gt;</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(</span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a>    location, lat,</span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a>    est_canopy, abs_min_canopy, est_litter, abs_min_litter, buffering</span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kbl</span>(</span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">col.names =</span> <span class="fu">c</span>(</span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Location"</span>, <span class="st">"Lat. (°N)"</span>,</span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>      <span class="st">"Mean ± SD"</span>, <span class="st">"Min."</span>, <span class="st">"Mean ± SD"</span>, <span class="st">"Min."</span>, <span class="st">"Buffer (°C)"</span></span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a>    <span class="at">align =</span> <span class="st">"lcccccc"</span></span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb8-47"><a href="#cb8-47" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable_styling</span>(<span class="at">full_width =</span> <span class="cn">FALSE</span>, <span class="at">position =</span> <span class="st">"center"</span>, <span class="at">font_size =</span> <span class="dv">16</span>) <span class="sc">|&gt;</span></span>
+<span id="cb8-48"><a href="#cb8-48" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_header_above</span>(</span>
+<span id="cb8-49"><a href="#cb8-49" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(<span class="st">" "</span> <span class="ot">=</span> <span class="dv">2</span>, <span class="st">"Canopy (°C)"</span> <span class="ot">=</span> <span class="dv">2</span>, <span class="st">"Leaf litter (°C)"</span> <span class="ot">=</span> <span class="dv">2</span>, <span class="st">" "</span> <span class="ot">=</span> <span class="dv">1</span>)</span>
+<span id="cb8-50"><a href="#cb8-50" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb8-51"><a href="#cb8-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_header_above</span>(</span>
+<span id="cb8-52"><a href="#cb8-52" aria-hidden="true" tabindex="-1"></a>    <span class="fu">c</span>(<span class="st">" "</span> <span class="ot">=</span> <span class="dv">2</span>, <span class="st">"Minimum operative temperatures"</span> <span class="ot">=</span> <span class="dv">5</span>)</span>
+<span id="cb8-53"><a href="#cb8-53" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
-<table quarto-disable-processing="true" class="table" style="font-size: 12px; width: auto !important; margin-left: auto; margin-right: auto;">
+<table quarto-disable-processing="true" class="table" style="font-size: 16px; width: auto !important; margin-left: auto; margin-right: auto;">
  <thead>
 <tr>
 <th style="empty-cells: hide;border-bottom:hidden;" colspan="2"></th>
 <th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="5"><div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; ">Minimum operative temperatures</div></th>
-<th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="4"><div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; ">Exposure</div></th>
 </tr>
 <tr>
 <th style="empty-cells: hide;border-bottom:hidden;" colspan="2"></th>
 <th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; ">Canopy (°C)</div></th>
 <th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; ">Leaf litter (°C)</div></th>
 <th style="empty-cells: hide;border-bottom:hidden;" colspan="1"></th>
-<th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; ">Nights &lt; 0 °C</div></th>
-<th style="border-bottom:hidden;padding-bottom:0; padding-left:3px;padding-right:3px;text-align: center; " colspan="2"><div style="border-bottom: 1px solid #ddd; padding-bottom: 5px; ">Nights &lt; CT<sub>min</sub>
-</div></th>
 </tr>
   <tr>
    <th style="text-align:left;"> Location </th>
@@ -1704,10 +1693,6 @@ t_{s,n} = \alpha + a_s + (\beta_C + b_s) \cdot T^{C}_{s,n}
    <th style="text-align:center;"> Mean ± SD </th>
    <th style="text-align:center;"> Min. </th>
    <th style="text-align:center;"> Buffer (°C) </th>
-   <th style="text-align:center;"> Canopy </th>
-   <th style="text-align:center;"> Leaf litter </th>
-   <th style="text-align:center;"> Canopy </th>
-   <th style="text-align:center;"> Leaf litter </th>
   </tr>
  </thead>
 <tbody>
@@ -1719,10 +1704,6 @@ t_{s,n} = \alpha + a_s + (\beta_C + b_s) \cdot T^{C}_{s,n}
    <td style="text-align:center;"> 19.2 ± 0.5 </td>
    <td style="text-align:center;"> 13.5 </td>
    <td style="text-align:center;"> 4.3 </td>
-   <td style="text-align:center;"> 0.0 </td>
-   <td style="text-align:center;"> 0.0 </td>
-   <td style="text-align:center;"> 2.0 </td>
-   <td style="text-align:center;"> 0.0 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Port Saint Lucie, FL (PSL) </td>
@@ -1732,10 +1713,6 @@ t_{s,n} = \alpha + a_s + (\beta_C + b_s) \cdot T^{C}_{s,n}
    <td style="text-align:center;"> 16.2 ± 0.5 </td>
    <td style="text-align:center;"> 10.5 </td>
    <td style="text-align:center;"> 3.6 </td>
-   <td style="text-align:center;"> 0.0 </td>
-   <td style="text-align:center;"> 0.0 </td>
-   <td style="text-align:center;"> 7.0 </td>
-   <td style="text-align:center;"> 0.0 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Orlando, FL (ORL) </td>
@@ -1745,10 +1722,6 @@ t_{s,n} = \alpha + a_s + (\beta_C + b_s) \cdot T^{C}_{s,n}
    <td style="text-align:center;"> 14.6 ± 1.6 </td>
    <td style="text-align:center;"> 7.5 </td>
    <td style="text-align:center;"> 6.1 </td>
-   <td style="text-align:center;"> 1.3 </td>
-   <td style="text-align:center;"> 0.0 </td>
-   <td style="text-align:center;"> 11.3 </td>
-   <td style="text-align:center;"> 0.0 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Gainesville, FL (GNV) </td>
@@ -1758,10 +1731,6 @@ t_{s,n} = \alpha + a_s + (\beta_C + b_s) \cdot T^{C}_{s,n}
    <td style="text-align:center;"> 11.6 ± 1.0 </td>
    <td style="text-align:center;"> 5.0 </td>
    <td style="text-align:center;"> 4.8 </td>
-   <td style="text-align:center;"> 4.3 </td>
-   <td style="text-align:center;"> 0.0 </td>
-   <td style="text-align:center;"> 15.0 </td>
-   <td style="text-align:center;"> 3.7 </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Atlanta, GA (ATL) </td>
@@ -1771,10 +1740,6 @@ t_{s,n} = \alpha + a_s + (\beta_C + b_s) \cdot T^{C}_{s,n}
    <td style="text-align:center;"> 6.6 ± 1.3 </td>
    <td style="text-align:center;"> -2.5 </td>
    <td style="text-align:center;"> 4.9 </td>
-   <td style="text-align:center;"> 15.2 </td>
-   <td style="text-align:center;"> 1.3 </td>
-   <td style="text-align:center;"> 24.8 </td>
-   <td style="text-align:center;"> 15.7 </td>
   </tr>
 </tbody>
 </table>
@@ -1788,20 +1753,20 @@ t_{s,n} = \alpha + a_s + (\beta_C + b_s) \cdot T^{C}_{s,n}
 <div class="cell" data-layout-align="center">
 <details class="code-fold">
 <summary>Plot manuscript figure</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggarrange</span>(</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  tret,</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  buffering_plot,</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">ncol =</span> <span class="dv">2</span>,</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">nrow =</span> <span class="dv">1</span>,</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">widths =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>),</span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"A"</span>, <span class="st">"B"</span>),</span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">font.label =</span> <span class="fu">list</span>(<span class="at">size =</span> <span class="dv">16</span>, <span class="at">face =</span> <span class="st">"bold"</span>)</span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggarrange</span>(</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  tret,</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  buffering_plot,</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">ncol =</span> <span class="dv">2</span>,</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">nrow =</span> <span class="dv">1</span>,</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">widths =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">1</span>),</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"A"</span>, <span class="st">"B"</span>),</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">font.label =</span> <span class="fu">list</span>(<span class="at">size =</span> <span class="dv">16</span>, <span class="at">face =</span> <span class="st">"bold"</span>)</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><a href="leaf-litter-retreat_files/figure-html/plot-manuscript-figure-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-6"><img src="leaf-litter-retreat_files/figure-html/plot-manuscript-figure-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:100.0%"></a></p>
+<p><a href="leaf-litter-retreat_files/figure-html/plot-manuscript-figure-1.png" class="lightbox" data-gallery="quarto-lightbox-gallery-5"><img src="leaf-litter-retreat_files/figure-html/plot-manuscript-figure-1.png" class="img-fluid quarto-figure quarto-figure-center figure-img" style="width:100.0%"></a></p>
 </figure>
 </div>
 </div>

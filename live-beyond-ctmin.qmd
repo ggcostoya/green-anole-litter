@@ -29,7 +29,7 @@ options(
 
 ## Overview
 
-Ectotherms are often assumed to need physiological adaptation to expand their ranges poleward. If that were the case for the green anole, its cold tolerance should track the colder climates it encounters at higher latitudes. Below we test this assumption in two steps. First, we compare how the critical thermal minimum (CT<sub>min</sub>) of green anoles and minimum annual temperatures change across the species' latitudinal range. Second, we combine CT<sub>min</sub> data with the geographic ranges of 181 lizard species to quantify how much of each species' range falls below its CT<sub>min</sub> and below 0 °C, and assess whether the green anole is an exceptional case.
+Ectotherms are often assumed to need physiological adaptation to expand their ranges poleward. If that were the case for the green anole, its cold tolerance should track the colder climates it encounters at higher latitudes. Below we test this assumption in two steps. First, we compare how the critical thermal minimum (CT<sub>min</sub>) of green anoles and minimum annual temperatures change across the species' latitudinal range. Second, we combine CT<sub>min</sub> data with the geographic ranges of 180 lizard species to quantify how much of each species' range falls below its CT<sub>min</sub> and below 0 °C, and assess whether the green anole is an exceptional case.
 
 ## CT<sub>min</sub> does not scale with climate
 
@@ -400,7 +400,7 @@ ctmin_gradient |>
 
 ### Data processing
 
-We compiled a dataset of CT<sub>min</sub> and elevational limits for 181 lizard species, representing 17 families and 46 genera. We obtained CT<sub>min</sub> estimates from the GlobTherm database and complemented them with two datasets focused specifically on *Anolis* lizards (Bodensteiner et al. 2024; Salazar et al. 2025). We then obtained elevational range limits, substrate use (arboreal, semi-arboreal or other) and the identifiers linking each species to its range map in the GARD database from SquamBase. The script used to compile this dataset (`process-ctmin-lizards-data.R`) is stored in the `raw_data` folder. For *A. carolinensis*, we set CT<sub>min</sub> to 6.8 °C, the lowest population-average CT<sub>min</sub> we measured (Knoxville, TN).
+We compiled a dataset of CT<sub>min</sub> and elevational limits for 180 lizard species, representing 17 families and 46 genera. We obtained CT<sub>min</sub> estimates from the GlobTherm database and complemented them with two datasets focused specifically on *Anolis* lizards (Bodensteiner et al. 2024; Salazar et al. 2025). When a species was present in more than one dataset (only *A. barbouri*), we kept the GlobTherm record. We then obtained elevational range limits, substrate use (arboreal, semi-arboreal or other) and the identifiers linking each species to its range map in the GARD database from SquamBase. The script used to compile this dataset (`process-ctmin-lizards-data.R`) is stored in the `raw_data` folder. For *A. carolinensis*, we set CT<sub>min</sub> to 6.8 °C, the lowest population-average CT<sub>min</sub> we measured (Knoxville, TN).
 
 Below we present the structure of the resulting dataset, which is stored in the `data` folder:
 
@@ -576,7 +576,7 @@ saveRDS(bio6_global, "data/bio6_global.rds")
 
 ### Statistical analysis
 
-To assess whether *A. carolinensis* is a unique case, we conducted an outlier analysis. Below we calculate Z-scores (i.e., the number of standard deviations above or below the mean of a group) for the area and proportion of the green anole's range below CT<sub>min</sub> and below 0 °C, relative to three groups: other *Anolis*, exclusively arboreal lizards, and all lizards in our dataset (Table S4 in the manuscript).
+To assess whether *A. carolinensis* is a unique case, we conducted an outlier analysis. Below we calculate Z-scores (i.e., the number of standard deviations above or below the mean of a group) for the area and proportion of the green anole's range below CT<sub>min</sub> and below 0 °C, relative to three groups: other *Anolis*, exclusively arboreal lizards, and all lizards in our dataset (Table S4 in the manuscript). Because Z-scores assume approximately normal data and the areas below each threshold span several orders of magnitude, we calculate Z-scores for areas on a log scale (log<sub>10</sub>[area + 1], adding 1 km<sup>2</sup> to accommodate species with no area below a threshold). Because Z-scores can still be affected by the many species with no area below a threshold, we also report the rank of *A. carolinensis* within each group (1 = the largest value in the group; tied species share the highest rank).
 
 ```{r z-score-analysis}
 #| code-summary: "Z-scores of A. carolinensis relative to other lizards"
@@ -589,64 +589,84 @@ get_z_score <- function(x, group) {
   (x - mean(group, na.rm = TRUE)) / sd(group, na.rm = TRUE)
 }
 
-# get Z-scores of A. carolinensis with respect to other groups
+# log-transform areas (adding 1 km2 to accommodate species with no area below
+# a threshold), as they span several orders of magnitude
+lizard_climatic_overfilling <- lizard_climatic_overfilling |>
+  mutate(
+    log_below_ctmin_area = log10(below_ctmin_area + 1),
+    log_below_0_area = log10(below_0_area + 1)
+  )
+
+# get Z-scores and ranks of A. carolinensis with respect to other groups (rank
+# 1 = largest value in the group; ties share the highest rank)
+get_group_values <- function(v, g) {
+  dat <- lizard_climatic_overfilling[[v]]
+  comp <- switch(
+    g,
+    anolis = dat[lizard_climatic_overfilling$genus == "Anolis"],
+    arboreal = dat[lizard_climatic_overfilling$substrate == "arboreal"],
+    all = dat
+  )
+  list(
+    x = dat[lizard_climatic_overfilling$species == "Anolis carolinensis"],
+    group = comp[!is.na(comp)]
+  )
+}
 caro_z_scores <- expand_grid(
   var = c(
     "below_ctmin_prop",
     "below_0_prop",
-    "below_ctmin_area",
-    "below_0_area"
+    "log_below_ctmin_area",
+    "log_below_0_area"
   ),
   group = c("anolis", "arboreal", "all")
 ) |>
   mutate(
     z_score = map2_dbl(var, group, \(v, g) {
-      dat <- lizard_climatic_overfilling[[v]]
-      comp <- switch(
-        g,
-        anolis = dat[lizard_climatic_overfilling$genus == "Anolis"],
-        arboreal = dat[lizard_climatic_overfilling$substrate == "arboreal"],
-        all = dat
-      )
-      x <- dat[lizard_climatic_overfilling$species == "Anolis carolinensis"]
-      get_z_score(x = x, group = comp)
+      vals <- get_group_values(v, g)
+      get_z_score(x = vals$x, group = vals$group)
+    }),
+    rank = map2_chr(var, group, \(v, g) {
+      vals <- get_group_values(v, g)
+      paste0(sum(vals$group > vals$x) + 1, " / ", length(vals$group))
     })
   )
 
 # tidy up for display as a table
 caro_z_scores |>
-  pivot_wider(names_from = group, values_from = z_score) |>
-  mutate(
-    across(
-      c(anolis, arboreal, all),
-      ~ round(.x, 2)
-    )
-  ) |>
+  mutate(z_score = sprintf("%.2f", z_score)) |>
+  pivot_wider(names_from = group, values_from = c(z_score, rank)) |>
   mutate(
     metric = case_when(
       var == "below_ctmin_prop" ~ "Proportion of range below CT<sub>min</sub>",
       var == "below_0_prop" ~ "Proportion of range below 0 °C",
-      var == "below_ctmin_area" ~ "Area of range below CT<sub>min</sub> (km<sup>2</sup>)",
-      var == "below_0_area" ~ "Area of range below 0 °C (km<sup>2</sup>)"
+      var == "log_below_ctmin_area" ~ "Area of range below CT<sub>min</sub> (log<sub>10</sub> km<sup>2</sup>)", # nolint
+      var == "log_below_0_area" ~ "Area of range below 0 °C (log<sub>10</sub> km<sup>2</sup>)" # nolint
     )
   ) |>
-  select(metric, anolis, arboreal, all) |>
+  select(
+    metric, z_score_anolis, rank_anolis, z_score_arboreal, rank_arboreal,
+    z_score_all, rank_all
+  ) |>
   kbl(
-    col.names = c(
-      "Metric", "Z-score (relative to <i>Anolis</i> genus)",
-      "Z-score (relative to arboreal lizards)",
-      "Z-score (relative to all lizards)"
-    ),
+    col.names = c("Metric", rep(c("Z-score", "Rank"), 3)),
     escape = FALSE,
-    align = "lccc"
+    align = "lcccccc"
   ) |>
   kable_styling(
     full_width = FALSE,
     position = "center"
+  ) |>
+  add_header_above(
+    c(
+      " " = 1, "<i>Anolis</i> genus" = 2, "Arboreal lizards" = 2,
+      "All lizards" = 2
+    ),
+    escape = FALSE
   )
 ```
 
-We find that *A. carolinensis* has a much greater proportion and area of its range below CT<sub>min</sub> and below 0 °C than other *Anolis* and other arboreal lizards, indicating that it is an exceptional case of climatic overfilling. Relative to all lizards, the green anole's Z-scores are close to 0, as its overfilling resembles that of terrestrial, fossorial or saxicolous species living in colder climates, which can shelter from the cold in underground refuges.
+Relative to other *Anolis* and other arboreal lizards, *A. carolinensis* has a much greater proportion and area of its range below CT<sub>min</sub> and below 0 °C (Z-scores between `{r} sprintf("%.2f", min(caro_z_scores$z_score[caro_z_scores$group != "all"]))` and `{r} sprintf("%.2f", max(caro_z_scores$z_score[caro_z_scores$group != "all"]))`), indicating that it is an exceptional case of climatic overfilling among arboreal lizards. Note that *A. carolinensis* is the only *Anolis* species in our dataset whose range extends into areas below 0 °C, so its Z-scores for these metrics relative to *Anolis* simply reflect that it is the only non-zero value in the group. Relative to all lizards, the proportions of the green anole's range below CT<sub>min</sub> and below 0 °C are close to the average (Z = `{r} sprintf("%.2f", caro_z_scores$z_score[caro_z_scores$var == "below_ctmin_prop" & caro_z_scores$group == "all"])` and `{r} sprintf("%.2f", caro_z_scores$z_score[caro_z_scores$var == "below_0_prop" & caro_z_scores$group == "all"])`), while the areas below CT<sub>min</sub> and below 0 °C are about one standard deviation above the average on a log scale (Z = `{r} sprintf("%.2f", caro_z_scores$z_score[caro_z_scores$var == "log_below_ctmin_area" & caro_z_scores$group == "all"])` and `{r} sprintf("%.2f", caro_z_scores$z_score[caro_z_scores$var == "log_below_0_area" & caro_z_scores$group == "all"])`). Thus, the green anole's overfilling resembles that of terrestrial, fossorial or saxicolous species living in colder climates, which can shelter from the cold in underground refuges.
 
 ### Plots
 
@@ -911,7 +931,7 @@ combined_plot
 
 Next we plot by substrate type to see if there are any differences in the latitudinal distribution of CT<sub>min</sub> and BIO6 across different ecological groups of lizards (Fig. S3 in the manuscript). We also highlight the latitudinal distribution of CT<sub>min</sub> for *A. carolinensis* and compare it to the latitudinal distribution of BIO6 across the globe. In panels B and C, points with error bars represent the mean (± SE) of each substrate group, and the large dark green point represents *A. carolinensis*.
 
-Only a few other arboreal species have ranges that extend into areas below their CT<sub>min</sub> (*Liolaemus tenuis*, four *Chamaeleo* and four *Anolis* species), and only three extend into areas below 0 °C (*L. tenuis*, *Chamaeleo hoehnelii* and *C. schubotzi*). In all cases, the area affected is orders of magnitude smaller than for the green anole. Further, although SquamBase classifies *L. tenuis* as exclusively arboreal, this species adopts a saxicolous/terrestrial strategy in many parts of its range.
+Only a few other arboreal species have ranges that extend into areas below their CT<sub>min</sub> (four *Chamaeleo* and four *Anolis* species), and only two extend into areas below 0 °C (*Chamaeleo hoehnelii* and *C. schubotzi*). In all cases, the area affected is orders of magnitude smaller than for the green anole. Note that, although SquamBase classifies *Liolaemus tenuis* as exclusively arboreal, we classify it as semi-arboreal because it adopts a saxicolous/terrestrial strategy in many parts of its range.
 
 ```{r plot-by-substrate}
 #| code-summary: "Plot climatic overfilling by substrate type"
@@ -1148,7 +1168,7 @@ ggarrange(
 
 ## Tables
 
-Below we table the "overfilling" results of all 181 lizard species. All areas are expressed in millions of km<sup>2</sup>.
+Below we table the "overfilling" results of all 180 lizard species. All areas are expressed in millions of km<sup>2</sup>.
 
 ::: {.panel-tabset}
 

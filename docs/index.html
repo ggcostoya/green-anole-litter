@@ -106,8 +106,12 @@ ul.task-list li input[type="checkbox"] {
 <span class="menu-text">Leaf Litter Retreat</span></a>
   </li>  
   <li class="nav-item">
-    <a class="nav-link" href="./leaf-litter-temps-range.html"> 
-<span class="menu-text">Prediciting Poleward Limits</span></a>
+    <a class="nav-link" href="./biophysical-models.html"> 
+<span class="menu-text">Biophysical Models</span></a>
+  </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="./envelope-models.html"> 
+<span class="menu-text">Predicting Poleward Limits</span></a>
   </li>  
 </ul>
           </div> <!-- /navcollapse -->
@@ -205,9 +209,10 @@ In the leaf litter (photos from iNaturalist: <a href="https://www.inaturalist.or
 <section id="vignettes-and-analysis" class="level2">
 <h2 class="anchored" data-anchor-id="vignettes-and-analysis">Vignettes and analysis</h2>
 <ul>
-<li><p><a href="./live-beyond-ctmin.html"><strong>Green anoles live beyond their physiological cold tolerance</strong></a>: We compare the critical thermal minimum (CT<sub>min</sub>) of green anoles across a latitudinal gradient with minimum annual temperatures and show that cold tolerance does not track climate. We then compare the green anole with 180 other lizard species and show that it is an exceptional case of a species living beyond its physiological cold tolerance limits (Fig. 2, S2, S3; Table S1-S4).</p></li>
+<li><p><a href="./live-beyond-ctmin.html"><strong>Green anoles live beyond their physiological cold tolerance</strong></a>: We compare the critical thermal minimum (CT<sub>min</sub>) of green anoles across a latitudinal gradient with minimum annual temperatures and show that cold tolerance does not track climate. We then compare the green anole with 179 other lizard species and show that it is an exceptional case of a species living beyond its physiological cold tolerance limits (Fig. 2, S2, S3; Table S1-S4).</p></li>
 <li><p><a href="./leaf-litter-retreat.html"><strong>Green anoles retreat to the leaf litter to avoid extreme cold</strong></a>: We combine standardized night surveys with operative temperature models (OTMs) to identify the temperature at which green anoles retreat from the canopy into the leaf litter (T<sub>ret</sub>) while accounting for photoperiod, and quantify how much the leaf litter buffers the minimum temperatures lizards experience across latitudes (Fig. 3, S6; Table S5-S7).</p></li>
-<li><p><a href="./leaf-litter-temps-range.html"><strong>Leaf litter temperatures predict the green anole’s poleward range limit</strong></a>: We define the green anole’s range using iNaturalist observations, use biophysical models to estimate the minimum annual body temperatures a green anole would experience in the canopy and at different depths in the leaf litter, and use mechanistic envelope models to test which microclimate best predicts the species’ range (Fig. 4, S7, S8; Table S8).</p></li>
+<li><p><a href="./biophysical-models.html"><strong>Biophysical models of green anole body temperatures</strong></a>: We define the green anole’s range using iNaturalist observations and use biophysical models to estimate the minimum annual body temperatures a green anole would experience in the canopy and at different depths in the leaf litter across southeastern North America, validating these estimates with our operative temperature models (Fig. S7, S8).</p></li>
+<li><p><a href="./envelope-models.html"><strong>Leaf litter temperatures predict the green anole’s poleward range limit</strong></a>: We use mechanistic envelope models to test which microclimate and forest cover threshold best predict the green anole’s range, evaluate the contribution of each variable, and test whether the results are consistent along the range edge using longitudinal bands (Fig. 4; Table S8).</p></li>
 </ul>
 </section>
 <section id="datasets" class="level2">
@@ -218,8 +223,8 @@ In the leaf litter (photos from iNaturalist: <a href="https://www.inaturalist.or
 <li><p><code>caro_occ_data.rds</code> - Curated occurrence data for the green anole (<em>Anolis carolinensis</em>), with indicators for outlier locations.</p></li>
 <li><p><code>caro_range.rds</code> - Polygon defining the native range of the green anole (<em>Anolis carolinensis</em>).</p></li>
 <li><p><code>ctmin_gradient.rds</code> - Individual CT<sub>min</sub> estimates (°C) and body mass of 95 green anoles from 7 locations across the species’ latitudinal range.</p></li>
-<li><p><code>ctmin_lizards.rds</code> - CT<sub>min</sub>, elevational limits, substrate type (arboreal, semi-arboreal, other) and GARD range identifiers for 181 lizard species. Compiled from GlobTherm, SquamBase, Bodensteiner et al.&nbsp;(2024) and Salazar et al.&nbsp;(2025).</p></li>
-<li><p><code>lizard_climatic_overfilling.rds</code> - Latitudinal limits, total range area, and the area and proportion of the range below CT<sub>min</sub> and below 0 °C for each of the 181 lizard species.</p></li>
+<li><p><code>ctmin_lizards.rds</code> - CT<sub>min</sub>, elevational limits, substrate type (arboreal, semi-arboreal, other) and GARD range identifiers for 180 lizard species. Compiled from GlobTherm, SquamBase, Bodensteiner et al.&nbsp;(2024) and Salazar et al.&nbsp;(2025).</p></li>
+<li><p><code>lizard_climatic_overfilling.rds</code> - Latitudinal limits, total range area, and the area and proportion of the range below CT<sub>min</sub> and below 0 °C for each of the 180 lizard species.</p></li>
 <li><p><code>bio6_global.rds</code> - Global mean (± SD) minimum temperature of the coldest month (BIO6) for every degree of absolute latitude.</p></li>
 <li><p><code>sleepy-lizard-survey-data.rds</code> - Night survey data from Atlanta, GA. Each row is either a lizard observation or, for surveys where no lizards were found, a placeholder row for the survey itself.</p></li>
 <li><p><code>otms-data.rds</code> - Operative temperatures (°C) recorded by operative temperature models (OTMs) deployed in the canopy (<code>branch</code>) and leaf litter (<code>leaflitter</code>) at five locations: Miami (MIA), Port Saint Lucie (PSL), Orlando (ORL), Gainesville (GNV) and Atlanta (ATL).</p></li>

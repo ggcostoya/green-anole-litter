@@ -57,11 +57,13 @@ The analyses are organized into three vignettes that follow the structure of the
 
 ## Vignettes and analysis
 
-- [**Green anoles live beyond their physiological cold tolerance**](live-beyond-ctmin.qmd): We compare the critical thermal minimum (CT<sub>min</sub>) of green anoles across a latitudinal gradient with minimum annual temperatures and show that cold tolerance does not track climate. We then compare the green anole with 180 other lizard species and show that it is an exceptional case of a species living beyond its physiological cold tolerance limits (Fig. 2, S2, S3; Table S1-S4).
+- [**Green anoles live beyond their physiological cold tolerance**](live-beyond-ctmin.qmd): We compare the critical thermal minimum (CT<sub>min</sub>) of green anoles across a latitudinal gradient with minimum annual temperatures and show that cold tolerance does not track climate. We then compare the green anole with 179 other lizard species and show that it is an exceptional case of a species living beyond its physiological cold tolerance limits (Fig. 2, S2, S3; Table S1-S4).
 
 - [**Green anoles retreat to the leaf litter to avoid extreme cold**](leaf-litter-retreat.qmd): We combine standardized night surveys with operative temperature models (OTMs) to identify the temperature at which green anoles retreat from the canopy into the leaf litter (T<sub>ret</sub>) while accounting for photoperiod, and quantify how much the leaf litter buffers the minimum temperatures lizards experience across latitudes (Fig. 3, S6; Table S5-S7).
 
-- [**Leaf litter temperatures predict the green anole's poleward range limit**](leaf-litter-temps-range.qmd): We define the green anole's range using iNaturalist observations, use biophysical models to estimate the minimum annual body temperatures a green anole would experience in the canopy and at different depths in the leaf litter, and use mechanistic envelope models to test which microclimate best predicts the species' range (Fig. 4, S7, S8; Table S8).
+- [**Biophysical models of green anole body temperatures**](biophysical-models.qmd): We define the green anole's range using iNaturalist observations and use biophysical models to estimate the minimum annual body temperatures a green anole would experience in the canopy and at different depths in the leaf litter across southeastern North America, validating these estimates with our operative temperature models (Fig. S7, S8).
+
+- [**Leaf litter temperatures predict the green anole's poleward range limit**](envelope-models.qmd): We use mechanistic envelope models to test which microclimate and forest cover threshold best predict the green anole's range, evaluate the contribution of each variable, and test whether the results are consistent along the range edge using longitudinal bands (Fig. 4; Table S8).
 
 ## Datasets
 
@@ -75,9 +77,9 @@ The following datasets are used in this analysis and included in the `data` fold
 
 - `ctmin_gradient.rds` - Individual CT<sub>min</sub> estimates (°C) and body mass of 95 green anoles from 7 locations across the species' latitudinal range.
 
-- `ctmin_lizards.rds` - CT<sub>min</sub>, elevational limits, substrate type (arboreal, semi-arboreal, other) and GARD range identifiers for 181 lizard species. Compiled from GlobTherm, SquamBase, Bodensteiner et al. (2024) and Salazar et al. (2025).
+- `ctmin_lizards.rds` - CT<sub>min</sub>, elevational limits, substrate type (arboreal, semi-arboreal, other) and GARD range identifiers for 180 lizard species. Compiled from GlobTherm, SquamBase, Bodensteiner et al. (2024) and Salazar et al. (2025).
 
-- `lizard_climatic_overfilling.rds` - Latitudinal limits, total range area, and the area and proportion of the range below CT<sub>min</sub> and below 0 °C for each of the 181 lizard species.
+- `lizard_climatic_overfilling.rds` - Latitudinal limits, total range area, and the area and proportion of the range below CT<sub>min</sub> and below 0 °C for each of the 180 lizard species.
 
 - `bio6_global.rds` - Global mean (± SD) minimum temperature of the coldest month (BIO6) for every degree of absolute latitude.
 

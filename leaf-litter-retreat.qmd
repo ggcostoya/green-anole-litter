@@ -582,7 +582,7 @@ $$
 t_i = \alpha + \beta_L \cdot (L_i - \bar{L}) + \beta_M \cdot M_i + \beta_{L \cdot M} \cdot (L_i - \bar{L}) \cdot M_i + a_{O[i]} + b_{S[i]} + c_{N[i]}
 $$
 
-where the nightly minimum operative temperature ($T$) depends on latitude ($L$), an indicator variable ($M$) identifying the microhabitat ($M = 0$ for canopy and $M = 1$ for leaf litter), and their interaction, and $a_O$, $b_S$ and $c_N$ are normally distributed random intercepts for each OTM ($O$), location ($S$) and night at each location ($N$). We center latitude on the average latitude of the five locations ($\bar{L}$), so that $\beta_M$ is the average buffering provided by the leaf litter at an average latitude. A positive $\beta_{L \cdot M}$ would indicate that the buffering provided by the leaf litter increases with latitude. We fit the model with the `lme4` package and test fixed effects with F-tests using the Kenward-Roger approximation for the degrees of freedom (`pbkrtest` and `car` packages). The results of this model are presented in Table S7 of the manuscript.
+where the nightly minimum operative temperature ($T$) depends on latitude ($L$), an indicator variable ($M$) identifying the microhabitat ($M = 0$ for canopy and $M = 1$ for leaf litter), and their interaction, and $a_O$, $b_S$ and $c_N$ are normally distributed random intercepts for each OTM ($O$), location ($S$) and night at each location ($N$), with standard deviations $\sigma_O$, $\sigma_S$ and $\sigma_N$. We center latitude on the average latitude of the five locations ($\bar{L}$), so that $\beta_M$ is the average buffering provided by the leaf litter at an average latitude. A positive $\beta_{L \cdot M}$ would indicate that the buffering provided by the leaf litter increases with latitude. We fit the model with the `lme4` package and test fixed effects, and the latitudinal slope of each microhabitat ($\beta_L$ for the canopy and $\beta_L + \beta_{L \cdot M}$ for the leaf litter), with t-tests using the Kenward-Roger approximation for standard errors and degrees of freedom (`pbkrtest` package). The results of this model are presented in Table S7 of the manuscript.
 
 ```{r stats-leaf-litter-buffering}
 #| code-summary: "Linear mixed model of minimum temperatures by latitude and microhabitat"
@@ -614,213 +614,130 @@ buffer_mod <- lme4::lmer(
   min_temp ~ lat_c * microhabitat + (1 | otm) + (1 | location) + (1 | night),
   data = buffer_data
 )
-buffer_coefs <- summary(buffer_mod)$coefficients
-buffer_tests <- car::Anova(buffer_mod, test.statistic = "F")
-
-# Kenward-Roger 95% CIs for the fixed effects
-kr_ci <- function(model, coef_name) {
-  l <- as.numeric(names(lme4::fixef(model)) == coef_name)
+# Kenward-Roger t-test and 95% CI for a linear combination of fixed effects
+kr_test <- function(model, l) {
+  vcov_kr <- as.matrix(pbkrtest::vcovAdj(model))
+  est <- sum(l * lme4::fixef(model))
+  se <- sqrt(as.numeric(t(l) %*% vcov_kr %*% l))
   ddf <- pbkrtest::get_Lb_ddf(model, l)
-  se <- sqrt(as.numeric(t(l) %*% as.matrix(vcov(model)) %*% l))
-  lme4::fixef(model)[coef_name] + c(-1, 1) * qt(0.975, ddf) * se
+  t_value <- est / se
+  tibble(
+    estimate = est,
+    se = se,
+    df = ddf,
+    t = t_value,
+    p = 2 * pt(-abs(t_value), ddf),
+    lower = est - qt(0.975, ddf) * se,
+    upper = est + qt(0.975, ddf) * se
+  )
 }
-buffer_ci <- t(sapply(rownames(buffer_coefs), \(x) kr_ci(buffer_mod, x)))
+
+# test each fixed effect
+buffer_coefs <- purrr::map(
+  seq_along(lme4::fixef(buffer_mod)),
+  \(i) kr_test(buffer_mod, as.numeric(seq_along(lme4::fixef(buffer_mod)) == i))
+) |>
+  bind_rows() |>
+  mutate(term = names(lme4::fixef(buffer_mod)))
+
+# latitudinal slope of each microhabitat (canopy = beta_L; leaf litter =
+# beta_L + beta_LM)
+buffer_slopes <- bind_rows(
+  kr_test(buffer_mod, c(0, 1, 0, 0)),
+  kr_test(buffer_mod, c(0, 1, 0, 1))
+) |>
+  mutate(microhabitat = c("canopy", "leaflitter"))
 
 # table parameter estimates
-buffer_vc <- as.data.frame(lme4::VarCorr(buffer_mod))
-table_buffer_params <- tibble(
-  parameter = c(
-    "Intercept", "Latitude (centered)", "Leaf litter",
-    "Latitude &times; Leaf litter"
-  ),
-  symbol = c(
-    "&alpha;", "&beta;<sub>L</sub>", "&beta;<sub>M</sub>",
-    "&beta;<sub>L&middot;M</sub>"
-  ),
-  estimate = sprintf("%.3f", buffer_coefs[, "Estimate"]),
-  se = sprintf("%.3f", buffer_coefs[, "Std. Error"]),
-  ci = paste(
-    sprintf("%.2f", buffer_ci[, 1]), "to", sprintf("%.2f", buffer_ci[, 2])
-  ),
-  f = c("&ndash;", sprintf("%.2f", buffer_tests$F)),
-  df = c(
-    "&ndash;",
-    paste0("1, ", sprintf("%.1f", buffer_tests$Df.res))
-  ),
-  p = c("&ndash;", format_p(buffer_tests$`Pr(>F)`))
-) |>
+table_buffer_params <- buffer_coefs |>
+  mutate(
+    parameter = c(
+      "Intercept", "Latitude (centered)", "Leaf litter",
+      "Latitude &times; Leaf litter"
+    ),
+    symbol = c(
+      "&alpha;", "&beta;<sub>L</sub>", "&beta;<sub>M</sub>",
+      "&beta;<sub>L&middot;M</sub>"
+    ),
+    across(c(estimate, se), ~ sprintf("%.3f", .x)),
+    df = sprintf("%.1f", df),
+    t = sprintf("%.2f", t),
+    p = format_p(p)
+  ) |>
+  select(parameter, symbol, estimate, se, df, t, p) |>
   make_section(
     "Parameter estimates",
-    c(
-      "Parameter", "Symbol", "Estimate", "Std. Error", "95% CI", "F",
-      "df", "p-value"
-    ),
-    "llcccccc"
+    c("Parameter", "Symbol", "Estimate", "Std. Error", "df", "t", "p-value"),
+    "llccccc"
   )
 
-# table random effects and model information
-table_buffer_re <- tibble(
-  component = c(
-    "OTM", "Location", "Night (within location)", "Residual",
-    "Observations"
-  ),
-  value = c(
-    sprintf(
-      "SD = %.3f",
-      buffer_vc$sdcor[match(c("otm", "location", "night", "Residual"), buffer_vc$grp)]
+# table latitudinal slopes by microhabitat
+table_buffer_slopes <- buffer_slopes |>
+  mutate(
+    microhabitat = c(
+      "Canopy (&beta;<sub>L</sub>)",
+      "Leaf litter (&beta;<sub>L</sub> + &beta;<sub>L&middot;M</sub>)"
     ),
+    ci = paste(sprintf("%.3f", lower), "to", sprintf("%.3f", upper)),
+    across(c(estimate, se), ~ sprintf("%.3f", .x)),
+    df = sprintf("%.1f", df),
+    t = sprintf("%.2f", t),
+    p = format_p(p)
+  ) |>
+  select(microhabitat, estimate, se, ci, df, t, p) |>
+  make_section(
+    "Latitudinal slopes by microhabitat",
+    c(
+      "Microhabitat", "Slope (°C per ° latitude)", "Std. Error", "95% CI",
+      "df", "t", "p-value"
+    ),
+    "lcccccc"
+  )
+
+# table random effects and variance components
+buffer_vc <- as.data.frame(lme4::VarCorr(buffer_mod))
+table_buffer_re <- tibble(
+  component = c("OTM", "Location", "Night (within location)", "Residual"),
+  symbol = c(
+    "&sigma;<sub>O</sub>", "&sigma;<sub>S</sub>", "&sigma;<sub>N</sub>",
+    "&sigma;"
+  ),
+  sd = sprintf(
+    "%.3f",
+    buffer_vc$sdcor[match(c("otm", "location", "night", "Residual"), buffer_vc$grp)]
+  )
+) |>
+  make_section(
+    "Random effects and variance components",
+    c("Component", "Symbol", "SD"),
+    "llc"
+  )
+
+# table model information
+table_buffer_info <- tibble(
+  item = c("Observations", "Log-likelihood (REML)", "AIC (REML)"),
+  value = c(
     paste0(
       nrow(buffer_data), " nightly minima from ", n_distinct(buffer_data$otm),
-      " OTMs at ", n_distinct(buffer_data$location), " locations"
-    )
-  )
-) |>
-  make_section("Random effects and model information", c("", ""), "ll")
-
-cat(table_buffer_params, table_buffer_re, sep = "\n")
-```
-
-At an average latitude (`{r} round(mean_lat, 1)`°N), nightly minimum temperatures in the leaf litter were `{r} round(buffer_coefs["microhabitatleaflitter", "Estimate"], 1)` °C warmer than in the canopy (95% CI: `{r} round(buffer_ci["microhabitatleaflitter", 1], 1)` to `{r} round(buffer_ci["microhabitatleaflitter", 2], 1)` °C; F<sub>1, `{r} round(buffer_tests["microhabitat", "Df.res"], 1)`</sub> = `{r} round(buffer_tests["microhabitat", "F"], 1)`, p `{r} ifelse(buffer_tests["microhabitat", "Pr(>F)"] < 0.0001, "< 0.0001", paste("=", format_p(buffer_tests["microhabitat", "Pr(>F)"])))`). Minimum temperatures declined with latitude at a similar rate in both microhabitats (latitude &times; microhabitat: $\beta_{L \cdot M}$ = `{r} round(buffer_coefs["lat_c:microhabitatleaflitter", "Estimate"], 3)` °C per degree; 95% CI: `{r} round(buffer_ci["lat_c:microhabitatleaflitter", 1], 2)` to `{r} round(buffer_ci["lat_c:microhabitatleaflitter", 2], 2)`; p = `{r} format_p(buffer_tests["lat_c:microhabitat", "Pr(>F)"])`), so, on average, the leaf litter acts as a roughly constant thermal offset across latitudes. Averages, however, can hide what happens on the coldest nights, which are the ones that matter for survival. We examine these next.
-
-### Buffering on the coldest nights
-
-To test whether the leaf litter buffers cold nights more strongly than mild ones, we compare the minimum temperature in the leaf litter with the minimum temperature in the canopy at the same location on the same night. To make this comparison robust to any remaining faulty OTMs, we summarise each location, microhabitat and night by the median minimum temperature across OTMs. We then fit the linear mixed model:
-
-$$
-T^{LL}_{s,n} \sim Normal(t_{s,n}, \sigma)
-$$
-
-$$
-t_{s,n} = \alpha + a_s + (\beta_C + b_s) \cdot T^{C}_{s,n}
-$$
-
-where $T^{LL}_{s,n}$ and $T^{C}_{s,n}$ are the minimum temperatures in the leaf litter and the canopy at location $s$ on night $n$, and $a_s$ and $b_s$ are random intercepts and slopes for each location. If the leaf litter simply added a constant offset to canopy temperatures, $\beta_C$ would equal 1. If $\beta_C < 1$, leaf-litter temperatures change less than canopy temperatures, and the buffering provided by the leaf litter ($T^{LL} - T^{C}$) increases by $1 - \beta_C$ °C for every degree that the canopy cools.
-
-```{r stats-cold-night-buffering}
-#| code-summary: "Linear mixed model of leaf-litter vs canopy minimum temperatures on the same night"
-#| message: false
-
-# median nightly minimum per location, microhabitat and night
-nightly_medians <- otms_data_sum |>
-  group_by(location, lat, microhabitat, date) |>
-  summarise(min_temp = median(min_temp), .groups = "drop") |>
-  pivot_wider(names_from = microhabitat, values_from = min_temp) |>
-  filter(!is.na(branch), !is.na(leaflitter)) |>
-  rename(canopy = branch, litter = leaflitter) |>
-  mutate(buffer = litter - canopy)
-
-# fit model
-cold_mod <- lme4::lmer(
-  litter ~ canopy + (1 + canopy | location),
-  data = nightly_medians
-)
-cold_slope <- lme4::fixef(cold_mod)["canopy"]
-cold_slope_ci <- kr_ci(cold_mod, "canopy")
-cold_slope_test <- car::Anova(cold_mod, test.statistic = "F")
-
-# test whether the slope differs from 1 (constant offset)
-cold_l <- c(0, 1)
-cold_ddf <- pbkrtest::get_Lb_ddf(cold_mod, cold_l)
-cold_se <- sqrt(as.numeric(as.matrix(vcov(cold_mod))[2, 2]))
-cold_t1 <- (cold_slope - 1) / cold_se
-cold_p1 <- 2 * pt(-abs(cold_t1), cold_ddf)
-
-# predicted buffering at different canopy temperatures at each location
-# (fixed + random effects)
-cold_coefs <- coef(cold_mod)$location
-buffer_at <- function(canopy_temp, loc = "ATL") {
-  as.numeric(
-    cold_coefs[loc, "(Intercept)"] + (cold_coefs[loc, "canopy"] - 1) * canopy_temp
-  )
-}
-
-tibble(
-  parameter = c("Intercept", "Canopy minimum temperature"),
-  symbol = c("&alpha;", "&beta;<sub>C</sub>"),
-  estimate = sprintf("%.3f", lme4::fixef(cold_mod)),
-  se = sprintf("%.3f", sqrt(diag(as.matrix(vcov(cold_mod))))),
-  ci = c(
-    paste(sprintf("%.2f", kr_ci(cold_mod, "(Intercept)")), collapse = " to "),
-    paste(sprintf("%.2f", cold_slope_ci), collapse = " to ")
-  )
-) |>
-  kbl(
-    col.names = c("Parameter", "Symbol", "Estimate", "Std. Error", "95% CI"),
-    escape = FALSE,
-    align = "llccc"
-  ) |>
-  kable_styling(full_width = FALSE, position = "center") |>
-  footnote(
-    general = paste0(
-      nrow(nightly_medians), " location-nights at ",
-      n_distinct(nightly_medians$location), " locations. Test of ",
-      "&beta;<sub>C</sub> = 1: t<sub>", sprintf("%.1f", cold_ddf), "</sub> = ",
-      sprintf("%.2f", cold_t1), ", p ", ifelse(
-        cold_p1 < 0.0001, "< 0.0001", paste("=", format_p(cold_p1))
-      )
+      " OTMs (", n_distinct(buffer_data$otm[buffer_data$microhabitat == "branch"]),
+      " canopy; ",
+      n_distinct(buffer_data$otm[buffer_data$microhabitat == "leaflitter"]),
+      " leaf litter) at ", n_distinct(buffer_data$location), " locations"
     ),
-    general_title = "",
-    escape = FALSE
+    sprintf("%.2f", as.numeric(logLik(buffer_mod))),
+    sprintf("%.1f", AIC(buffer_mod))
   )
+) |>
+  make_section("Model information", c("", ""), "ll")
+
+# print all table sections together
+cat(
+  table_buffer_params, table_buffer_slopes, table_buffer_re, table_buffer_info,
+  sep = "\n"
+)
 ```
 
-Leaf-litter minimum temperatures changed by only `{r} round(cold_slope, 2)` °C for every degree of change in canopy minimum temperatures (95% CI: `{r} round(cold_slope_ci[1], 2)` to `{r} round(cold_slope_ci[2], 2)`), significantly less than the 1:1 change expected from a constant offset (t<sub>`{r} round(cold_ddf, 1)`</sub> = `{r} round(cold_t1, 2)`, p `{r} ifelse(cold_p1 < 0.0001, "< 0.0001", paste("=", format_p(cold_p1)))`). As a result, the buffering provided by the leaf litter increases by `{r} round(1 - cold_slope, 2)` °C for every degree that the canopy cools. This pattern was consistent across locations (location-specific slopes: `{r} paste(sprintf("%.2f", range(cold_coefs$canopy)), collapse = " to ")`), although, at a given canopy temperature, the leaf litter was cooler at higher latitudes. In Atlanta, where nights were coldest, the model predicts that the leaf litter buffers canopy temperatures by `{r} round(buffer_at(10), 1)` °C on nights when the canopy reaches 10 °C, `{r} round(buffer_at(0), 1)` °C when it reaches 0 °C, and `{r} round(buffer_at(-10), 1)` °C when it reaches -10 °C. The figure below shows this relationship at each location (new supplementary figure in the manuscript).
-
-```{r plot-cold-night-buffering}
-#| code-summary: "Plot leaf-litter vs canopy minimum temperatures on the same night"
-#| fig-align: center
-#| fig-width: 5
-#| fig-height: 5
-#| out.width: 66%
-
-# predicted leaf-litter temperatures at each location (fixed + random effects)
-# across the range of canopy temperatures observed there
-cold_pred <- nightly_medians |>
-  group_by(location) |>
-  reframe(canopy = seq(min(canopy), max(canopy), by = 0.1))
-cold_pred$litter <- predict(cold_mod, newdata = cold_pred)
-
-nightly_medians |>
-  mutate(
-    location = factor(location, levels = c("MIA", "PSL", "ORL", "GNV", "ATL"))
-  ) |>
-  ggplot(aes(x = canopy, y = litter)) +
-  geom_abline(slope = 1, intercept = 0, linetype = "dashed") +
-  geom_hline(yintercept = 0, linetype = "dashed", color = "darkblue") +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "darkblue") +
-  geom_point(aes(color = location), size = 2.5, alpha = 0.6) +
-  geom_line(
-    data = cold_pred |>
-      mutate(
-        location = factor(
-          location,
-          levels = c("MIA", "PSL", "ORL", "GNV", "ATL")
-        )
-      ),
-    aes(color = location),
-    linewidth = 1
-  ) +
-  scale_color_viridis_d(name = NULL, option = "plasma", end = 0.85) +
-  coord_equal() +
-  theme_minimal() +
-  theme(
-    axis.title = element_text(size = 12),
-    axis.text = element_text(size = 10),
-    axis.line = element_line(color = "black"),
-    axis.ticks = element_line(color = "black"),
-    panel.grid = element_blank(),
-    legend.position = "inside",
-    legend.position.inside = c(0.02, 0.98),
-    legend.justification = c(0, 1),
-    legend.text = element_text(size = 11)
-  ) +
-  labs(
-    x = "Minimum Lizard Body Temperature in Canopy (°C)",
-    y = "Minimum Lizard Body Temperature in Leaf Litter (°C)"
-  )
-```
-
-Points show the median nightly minimum temperature across OTMs at each location in January, colored lines show the predictions of the mixed model for each location, and the dashed black line shows the 1:1 relationship expected if the leaf litter did not buffer canopy temperatures.
+At an average latitude (`{r} round(mean_lat, 1)`°N), nightly minimum temperatures in the leaf litter were `{r} round(buffer_coefs$estimate[3], 1)` °C warmer than in the canopy (95% CI: `{r} round(buffer_coefs$lower[3], 1)` to `{r} round(buffer_coefs$upper[3], 1)` °C; t<sub>`{r} round(buffer_coefs$df[3], 1)`</sub> = `{r} round(buffer_coefs$t[3], 2)`, p `{r} ifelse(buffer_coefs$p[3] < 0.0001, "< 0.0001", paste("=", format_p(buffer_coefs$p[3])))`). Minimum temperatures declined with latitude at a similar rate in both microhabitats (canopy: `{r} round(buffer_slopes$estimate[1], 2)` °C per degree; leaf litter: `{r} round(buffer_slopes$estimate[2], 2)` °C per degree; latitude &times; microhabitat: $\beta_{L \cdot M}$ = `{r} round(buffer_coefs$estimate[4], 3)`; 95% CI: `{r} round(buffer_coefs$lower[4], 2)` to `{r} round(buffer_coefs$upper[4], 2)`; t<sub>`{r} round(buffer_coefs$df[4], 1)`</sub> = `{r} round(buffer_coefs$t[4], 2)`, p = `{r} format_p(buffer_coefs$p[4])`), so the leaf litter acts as a roughly constant thermal offset across latitudes.
 
 ### Summary by location
 
@@ -931,7 +848,7 @@ buffering_plot <- otm_means |>
 buffering_plot
 ```
 
-Lastly, we table, for each location and microhabitat, the average (± SD across OTMs) and absolute minimum temperatures recorded by OTMs in January, the average buffering provided by the leaf litter (i.e., the difference in average minimum temperature between the leaf litter and the canopy) and the number of nights on which minimum temperatures fell below 0 °C and below CT<sub>min</sub> (averaged across OTMs; Table S6 in the manuscript). While the average buffering is similar across locations, the leaf litter all but eliminates nights below 0 °C and greatly reduces nights below CT<sub>min</sub>: in Atlanta, canopy OTMs recorded sub-freezing temperatures on `{r} otms_data_sum |> filter(location == "ATL", microhabitat == "branch") |> group_by(id) |> summarise(n = sum(min_temp < 0)) |> pull(n) |> mean() |> round(1)` of `{r} n_distinct(otms_data_sum$date[otms_data_sum$location == "ATL"])` nights in January, on average, compared with `{r} otms_data_sum |> filter(location == "ATL", microhabitat == "leaflitter") |> group_by(id) |> summarise(n = sum(min_temp < 0)) |> pull(n) |> mean() |> round(1)` nights in the leaf litter.
+Lastly, we table, for each location and microhabitat, the average (± SD across OTMs) and absolute minimum temperatures recorded by OTMs in January, and the average buffering provided by the leaf litter (i.e., the difference in average minimum temperature between the leaf litter and the canopy; Table S6 in the manuscript).
 
 ```{r table-leaf-litter-buffering}
 #| code-summary: "Table minimum temperatures by location and microhabitat"
@@ -942,8 +859,6 @@ location_summary <- otms_data_sum |>
   summarise(
     mean_min = mean(min_temp),
     abs_min = min(min_temp),
-    nights_0 = sum(min_temp < 0),
-    nights_ctmin = sum(min_temp < ctmin_min),
     .groups = "drop"
   ) |>
   group_by(location, lat, microhabitat) |>
@@ -951,14 +866,12 @@ location_summary <- otms_data_sum |>
     est = paste0(sprintf("%.1f", mean(mean_min)), " ± ", sprintf("%.1f", sd(mean_min))),
     mean_min = mean(mean_min),
     abs_min = sprintf("%.1f", min(abs_min)),
-    nights_0 = sprintf("%.1f", mean(nights_0)),
-    nights_ctmin = sprintf("%.1f", mean(nights_ctmin)),
     .groups = "drop"
   ) |>
   mutate(microhabitat = ifelse(microhabitat == "branch", "canopy", "litter")) |>
   pivot_wider(
     names_from = microhabitat,
-    values_from = c(est, mean_min, abs_min, nights_0, nights_ctmin)
+    values_from = c(est, mean_min, abs_min)
   ) |>
   mutate(
     buffering = sprintf("%.1f", mean_min_litter - mean_min_canopy),
@@ -977,27 +890,21 @@ location_summary <- otms_data_sum |>
 location_summary |>
   select(
     location, lat,
-    est_canopy, abs_min_canopy, est_litter, abs_min_litter, buffering,
-    nights_0_canopy, nights_0_litter, nights_ctmin_canopy, nights_ctmin_litter
+    est_canopy, abs_min_canopy, est_litter, abs_min_litter, buffering
   ) |>
   kbl(
     col.names = c(
       "Location", "Lat. (°N)",
-      "Mean ± SD", "Min.", "Mean ± SD", "Min.", "Buffer (°C)",
-      "Canopy", "Leaf litter", "Canopy", "Leaf litter"
+      "Mean ± SD", "Min.", "Mean ± SD", "Min.", "Buffer (°C)"
     ),
-    align = "lcccccccccc"
+    align = "lcccccc"
   ) |>
-  kable_styling(full_width = FALSE, position = "center", font_size = 12) |>
+  kable_styling(full_width = FALSE, position = "center", font_size = 16) |>
   add_header_above(
-    c(
-      " " = 2, "Canopy (°C)" = 2, "Leaf litter (°C)" = 2, " " = 1,
-      "Nights &lt; 0 °C" = 2, "Nights &lt; CT<sub>min</sub>" = 2
-    ),
-    escape = FALSE
+    c(" " = 2, "Canopy (°C)" = 2, "Leaf litter (°C)" = 2, " " = 1)
   ) |>
   add_header_above(
-    c(" " = 2, "Minimum operative temperatures" = 5, "Exposure" = 4)
+    c(" " = 2, "Minimum operative temperatures" = 5)
   )
 ```
 

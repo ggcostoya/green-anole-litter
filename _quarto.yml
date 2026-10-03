@@ -19,8 +19,10 @@ website:
       href: live-beyond-ctmin.qmd
     - text: "Leaf Litter Retreat"
       href: leaf-litter-retreat.qmd
-    - text: "Prediciting Poleward Limits" 
-      href: leaf-litter-temps-range.qmd
+    - text: "Biophysical Models"
+      href: biophysical-models.qmd
+    - text: "Predicting Poleward Limits"
+      href: envelope-models.qmd
 
 format:
   html:
