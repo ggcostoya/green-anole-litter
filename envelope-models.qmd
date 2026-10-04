@@ -93,18 +93,93 @@ thresh <- micro_df |>
 micro_df <- micro_df |>
   left_join(thresh, by = c("lon", "lat", "elev", "veg", "presence"))
 
+# range edge: boundaries between adjacent land cells where the green anole is
+# present and absent. Unlike a contour, this does not trace the coastline. The
+# range polygon also stops slightly short of the coast in many places, leaving
+# a narrow fringe of "absent" coastal cells; we ignore boundaries with absent
+# cells within `coast_buffer` cells (~4 km each) of the coast so that the line
+# only shows the inland range edge
+range_edge <- function(cells, res = 1 / 24, coast_buffer = 3,
+                       min_neighbors = 10) {
+  grid <- cells |>
+    mutate(
+      i = round((lon - min(lon)) / res),
+      j = round((lat - min(lat)) / res),
+      key = paste(i, j)
+    ) |>
+    select(i, j, key, lon, lat, presence)
+  shift_key <- function(df, di, dj) paste(df$i + di, df$j + dj)
+  steps <- list(c(1, 0), c(-1, 0), c(0, 1), c(0, -1))
+
+  # cells within coast_buffer cells of the coast (i.e., of a missing cell)
+  near_coast <- !Reduce(
+    `&`, lapply(steps, \(k) shift_key(grid, k[1], k[2]) %in% grid$key)
+  )
+  for (b in seq_len(coast_buffer - 1)) {
+    near_keys <- grid$key[near_coast]
+    near_coast <- near_coast | Reduce(
+      `|`, lapply(steps, \(k) shift_key(grid, k[1], k[2]) %in% near_keys)
+    )
+  }
+  grid$near_coast <- near_coast
+
+  # boundaries with the eastern and northern neighbor of each cell
+  neighbor <- function(di, dj) {
+    grid |>
+      mutate(i = i - di, j = j - dj) |>
+      select(i, j, presence_n = presence, near_coast_n = near_coast)
+  }
+  inland_boundary <- function(df) {
+    df |>
+      filter(presence != presence_n) |>
+      # skip boundaries where the absent cell is in the coastal fringe
+      filter(!ifelse(presence == 0, near_coast, near_coast_n))
+  }
+  east <- grid |>
+    inner_join(neighbor(1, 0), by = c("i", "j")) |>
+    inland_boundary() |>
+    transmute(
+      x = lon + res / 2, xend = lon + res / 2,
+      y = lat - res / 2, yend = lat + res / 2
+    )
+  north <- grid |>
+    inner_join(neighbor(0, 1), by = c("i", "j")) |>
+    inland_boundary() |>
+    transmute(
+      x = lon - res / 2, xend = lon + res / 2,
+      y = lat + res / 2, yend = lat + res / 2
+    )
+  edges <- bind_rows(east, north)
+
+  # drop isolated specks (e.g., small islands): keep segments with at least
+  # `min_neighbors` other segments within 0.25 degrees, which is always true
+  # along the continuous range edge
+  mid_x <- (edges$x + edges$xend) / 2
+  mid_y <- (edges$y + edges$yend) / 2
+  n_close <- vapply(seq_len(nrow(edges)), \(k) {
+    sum((mid_x - mid_x[k])^2 + (mid_y - mid_y[k])^2 < 0.25^2) - 1
+  }, numeric(1))
+  edges[n_close >= min_neighbors, ]
+}
+range_edge_segments <- range_edge(thresh)
+
 # plot thresholds
 thresh_plot <- thresh |>
   ggplot(aes(x = lon, y = lat, fill = thresh)) +
-  geom_tile() +
-  geom_contour(aes(z = presence), color = "white", breaks = 1) +
+  geom_raster() +
+  geom_segment(
+    data = range_edge_segments,
+    aes(x = x, y = y, xend = xend, yend = yend),
+    color = "white", linewidth = 0.5, lineend = "square",
+    inherit.aes = FALSE
+  ) +
   scale_x_continuous(
     breaks = seq(-100, -75, by = 5),
     labels = function(x) paste0(abs(x), "°W"),
     expand = c(0, 0)
   ) +
   scale_y_continuous(
-    breaks = seq(25, 37.5, by = 2.5),
+    breaks = seq(25, 35, by = 2.5),
     labels = function(x) paste0(x, "°N"),
     expand = c(0, 0)
   ) +
@@ -122,7 +197,7 @@ thresh_plot <- thresh |>
       "below_ctmin" = expression("< " * CT[min])
     )
   ) +
-  coord_quickmap(xlim = c(-101, -75), ylim = c(24, 37.5)) +
+  coord_cartesian(xlim = c(-101, -75), ylim = c(24, 37.5), expand = FALSE) +
   theme_minimal() +
   theme(
     panel.border = element_rect(fill = NA),
@@ -130,9 +205,12 @@ thresh_plot <- thresh |>
     panel.grid = element_blank(),
     axis.title = element_blank(),
     axis.text = element_text(size = 10),
-    legend.position = "top",
+    legend.position = "inside",
+    legend.position.inside = c(0.5, 0.06),
+    legend.justification = c(0.5, 0),
+    legend.direction = "horizontal",
     legend.title = element_blank(),
-    legend.text = element_text(size = 14),
+    legend.text = element_text(size = 12),
     legend.key.spacing.x = unit(0.5, "lines")
   )
 ```
@@ -205,7 +283,7 @@ Across all spatial extents, leaf-litter microclimates predict the green anole's 
 ```{r plot-memo-results}
 #| code-summary: "Plot mechanistic envelope model results"
 #| fig-align: "center"
-#| fig-height: 10
+#| fig-height: 11.5
 #| fig-width: 6
 
 
@@ -301,13 +379,20 @@ tss_grid_plot <- tss_grid |>
     axis.text.y = element_text(size = 10)
   )
 
-ggarrange(
-  thresh_plot,
+# align the map with the TSS panels: the map spans the width of the two panel
+# columns (~4.4 in), and its height (in inches) keeps the map's aspect ratio
+# (as in coord_quickmap) plus space for the axis labels
+map_aspect <- (37.5 - 24) / ((-75 - -101) * cos(mean(c(24, 37.5)) * pi / 180))
+map_height <- 4.4 * map_aspect + 0.6
+cowplot::plot_grid(
+  thresh_plot + theme(plot.margin = margin(t = 15, r = 5, b = 5, l = 5)),
   tss_grid_plot,
   ncol = 1,
-  heights = c(1, 2),
-  widths = c(1, 0.5),
-  labels = c("A", "B")
+  align = "v",
+  axis = "lr",
+  rel_heights = c(map_height, 11.5 - map_height),
+  labels = c("A", "B"),
+  label_size = 16
 )
 ```
 
@@ -904,12 +989,8 @@ map_background <- map(extent_levels, \(e) {
   list_rbind() |>
   mutate(thresh = factor(thresh, levels = extent_levels))
 
-# range edge
-map_range <- map(extent_levels, \(e) {
-  map_cells |> select(lon, lat, presence) |> mutate(thresh = e)
-}) |>
-  list_rbind() |>
-  mutate(thresh = factor(thresh, levels = extent_levels))
+# range edge (shown in every panel)
+map_range <- range_edge(map_cells)
 
 # shared map elements
 band_map <- function(fill_var) {
@@ -923,10 +1004,10 @@ band_map <- function(fill_var) {
       data = map_bands,
       aes(x = lon, y = lat, fill = .data[[fill_var]])
     ) +
-    geom_contour(
+    geom_segment(
       data = map_range,
-      aes(x = lon, y = lat, z = presence),
-      breaks = 0.5, color = "black", linewidth = 0.3
+      aes(x = x, y = y, xend = xend, yend = yend),
+      color = "black", linewidth = 0.3, lineend = "square"
     ) +
     facet_wrap(~thresh, nrow = 1, labeller = extent_strip) +
     scale_x_continuous(
@@ -1004,3 +1085,610 @@ ggarrange(
 ```
 
 In areas where canopy temperatures fall below 0 °C, shallow leaf-litter microclimates (1–6 cm deep) best predict the green anole's range in every longitudinal band (note that, in this spatial extent, the canopy predicts all cells to be unsuitable by definition, so the advantage of the leaf litter equals its TSS). When considering larger spatial extents, the advantage of the leaf litter over the canopy is greatest in the eastern half of the range, where the range extends farthest north, and disappears in the western and lower Mississippi Valley bands, where above-ground microclimates predict the range as well as the leaf litter.
+
+Lastly, to see how the optimal leaf-litter depth, forest cover threshold and advantage of the leaf litter over the canopy vary with both longitude and latitude, we overlay the four spatial extents on a single map. Because the spatial extents are nested (areas below 0 °C are also below CT<sub>min</sub> and T<sub>ret</sub>), each cell is colored according to the results of the most restrictive spatial extent it belongs to, in its longitudinal band: cells where canopy temperatures fall below 0 °C show the results for that extent, cells where canopy temperatures fall between 0 °C and CT<sub>min</sub> show the results for the < CT<sub>min</sub> extent, and so on. Note that, because of this nesting, the results shown for each zone come from models fitted to all cells colder than its upper threshold (e.g., the < CT<sub>min</sub> zone shows results from all cells below CT<sub>min</sub>, including those below 0 °C). Thin white lines show the boundaries between zones, and the black line shows the edge of the green anole's range. We only show areas south of the green anole's northern range edge.
+
+```{r map-memo-bands-overlay}
+#| code-summary: "Map envelope model results by longitudinal band and thermal zone"
+#| fig-align: "center"
+#| fig-width: 13
+#| fig-height: 4.5
+
+# northernmost cell where the green anole is present in each column of the
+# grid (columns without any presence are dropped)
+range_north <- map_cells |>
+  filter(presence == 1) |>
+  group_by(lon_col = round(lon, 4)) |>
+  summarise(max_lat = max(lat), .groups = "drop")
+
+# each cell takes the results of the most restrictive spatial extent it belongs
+# to (i.e., its own threshold class) in its longitudinal band; we only keep
+# cells south of the northern range edge
+map_overlay <- map_cells |>
+  mutate(lon_col = round(lon, 4)) |>
+  inner_join(range_north, by = "lon_col") |>
+  filter(lat <= max_lat) |>
+  select(-lon_col, -max_lat) |>
+  left_join(
+    bands_lat |>
+      mutate(thresh = as.character(thresh)) |>
+      select(thresh, band, depth, above_ground, veg, advantage),
+    by = c("thresh", "band")
+  ) |>
+  mutate(
+    depth_class = case_when(
+      above_ground ~ "Above ground",
+      !is.na(depth) ~ paste(round(depth), "cm"),
+      TRUE ~ "Not enough data"
+    ),
+    depth_class = factor(
+      depth_class,
+      levels = c("Above ground", paste(1:6, "cm"), "Not enough data")
+    )
+  )
+
+# boundaries between thermal zones (between adjacent land cells only)
+zone_edges <- function(cells, res = 1 / 24) {
+  grid <- cells |>
+    mutate(
+      i = round((lon - min(lon)) / res),
+      j = round((lat - min(lat)) / res)
+    ) |>
+    select(i, j, lon, lat, thresh)
+  neighbor <- function(di, dj) {
+    grid |>
+      mutate(i = i - di, j = j - dj) |>
+      select(i, j, thresh_n = thresh)
+  }
+  east <- grid |>
+    inner_join(neighbor(1, 0), by = c("i", "j")) |>
+    filter(thresh != thresh_n) |>
+    transmute(
+      x = lon + res / 2, xend = lon + res / 2,
+      y = lat - res / 2, yend = lat + res / 2
+    )
+  north <- grid |>
+    inner_join(neighbor(0, 1), by = c("i", "j")) |>
+    filter(thresh != thresh_n) |>
+    transmute(
+      x = lon - res / 2, xend = lon + res / 2,
+      y = lat + res / 2, yend = lat + res / 2
+    )
+  bind_rows(east, north)
+}
+map_zones <- zone_edges(map_overlay)
+
+# shared map elements
+overlay_map <- function(fill_var, title) {
+  ggplot() +
+    geom_raster(
+      data = map_overlay,
+      aes(x = lon, y = lat, fill = .data[[fill_var]])
+    ) +
+    geom_segment(
+      data = map_zones,
+      aes(x = x, y = y, xend = xend, yend = yend),
+      color = "white", linewidth = 0.2, lineend = "square"
+    ) +
+    geom_segment(
+      data = map_range,
+      aes(x = x, y = y, xend = xend, yend = yend),
+      color = "black", linewidth = 0.4, lineend = "square"
+    ) +
+    scale_x_continuous(
+      breaks = seq(-100, -80, by = 10),
+      labels = function(x) paste0(abs(x), "°W"),
+      expand = c(0, 0)
+    ) +
+    scale_y_continuous(
+      breaks = seq(25, 37.5, by = 5),
+      labels = function(x) paste0(x, "°N"),
+      expand = c(0, 0)
+    ) +
+    coord_quickmap(
+      xlim = range(map_overlay$lon) + c(-0.3, 0.3),
+      ylim = c(24, max(map_overlay$lat) + 0.3)
+    ) +
+    theme_minimal() +
+    theme(
+      panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+      panel.grid = element_blank(),
+      axis.title = element_blank(),
+      axis.text = element_text(size = 9),
+      axis.ticks = element_line(color = "black", linewidth = 0.25),
+      plot.title = element_text(size = 13, hjust = 0.5),
+      legend.position = "bottom",
+      legend.title = element_text(size = 10, vjust = 0.8),
+      legend.text = element_text(size = 9)
+    ) +
+    labs(title = title)
+}
+
+# optimal depth
+depth_overlay <- overlay_map("depth_class", "Optimal depth in leaf litter") +
+  scale_fill_manual(
+    name = NULL,
+    values = setNames(
+      c("forestgreen", hcl.colors(7, "Oranges", rev = TRUE)[2:7], "gray55"),
+      c("Above ground", paste(1:6, "cm"), "Not enough data")
+    ),
+    drop = TRUE
+  ) +
+  guides(fill = guide_legend(nrow = 3))
+
+# optimal forest cover
+veg_overlay <- overlay_map("veg", "Optimal forest cover threshold") +
+  scale_fill_viridis_c(
+    name = "%",
+    option = "viridis",
+    limits = c(0, 60),
+    na.value = "gray55",
+    guide = guide_colorbar(barwidth = unit(5, "cm"), barheight = unit(0.4, "cm"))
+  )
+
+# TSS advantage of the best microclimate over the canopy
+advantage_overlay <- overlay_map(
+  "advantage", "TSS advantage over the canopy"
+) +
+  scale_fill_distiller(
+    name = NULL,
+    palette = "YlGnBu",
+    direction = 1,
+    limits = c(0, 1),
+    na.value = "gray55",
+    guide = guide_colorbar(barwidth = unit(5, "cm"), barheight = unit(0.4, "cm"))
+  )
+
+ggarrange(
+  depth_overlay,
+  veg_overlay,
+  advantage_overlay,
+  nrow = 1,
+  align = "h",
+  labels = c("A", "B", "C")
+)
+```
+
+## BONUS: We dared to go one layer deeper in the dream
+
+Finally, we push the analysis above to a much finer resolution, defining spatial extents by latitude instead of by temperature. We split the study area into 0.25°-wide longitudinal bands and, within each band, define a spatial extent for every latitude L at 0.25° intervals, including all cells in the band at or north of L. As we move L south, each extent includes progressively warmer areas, from those just around the poleward range edge to the entire band. Within each band and spatial extent, we again evaluate every combination of microclimate and forest cover threshold, and keep the combination that maximizes TSS. As before, we only consider extents with at least 10 cells where the green anole is present and 10 where it is absent. Because the spatial extents are nested, we calculate the number of true and false positives and negatives for each 0.25° latitudinal class and accumulate them from north to south, which yields the results of all spatial extents at once.
+
+```{r run-memo-lat, eval = FALSE}
+#| code-summary: "Run envelope models by 0.25° longitudinal band and 0.25° latitudinal extent"
+#| code-fold: false
+
+## Note: This code chunk is not evaluated as it takes a long time to run.
+## The output is saved in the `data/tss_bands_lat.rds` file.
+
+band_res <- 0.25
+lat_res <- 0.25
+veg_thresholds <- seq(0, 1, by = 0.05)
+
+# longitudinal band and latitudinal class of each cell; the spatial extent
+# defined by latitude L includes all cells in the band at or north of L
+cells_lat <- micro_df |>
+  filter(z == 1.8) |>
+  transmute(
+    lon, lat, elev, veg, presence,
+    band = round(floor(lon / band_res) * band_res, 2),
+    lat_class = round(floor(lat / lat_res) * lat_res, 2)
+  )
+all_classes <- expand_grid(
+  band = sort(unique(cells_lat$band)),
+  lat_class = sort(unique(cells_lat$lat_class))
+)
+
+# TSS of every forest cover threshold, for every band and latitudinal extent,
+# for one microclimate (counts are accumulated from north to south)
+tss_lat_z <- function(zz) {
+  d <- micro_df |>
+    filter(z == zz) |>
+    select(lon, lat, elev, veg, presence, min_annual_body_temp) |>
+    inner_join(
+      cells_lat |> select(lon, lat, elev, veg, presence, band, lat_class),
+      by = c("lon", "lat", "elev", "veg", "presence")
+    ) |>
+    mutate(presence = presence == 1, pred_temp = min_annual_body_temp > 0)
+  map(veg_thresholds, \(v) {
+    d |>
+      mutate(pred = pred_temp & veg > v) |>
+      group_by(band, lat_class) |>
+      summarise(
+        tp = sum(pred & presence),
+        fn = sum(!pred & presence),
+        tn = sum(!pred & !presence),
+        fp = sum(pred & !presence),
+        .groups = "drop"
+      ) |>
+      right_join(all_classes, by = c("band", "lat_class")) |>
+      mutate(across(c(tp, fn, tn, fp), \(x) replace_na(x, 0))) |>
+      arrange(band, desc(lat_class)) |>
+      group_by(band) |>
+      mutate(across(c(tp, fn, tn, fp), cumsum)) |>
+      ungroup() |>
+      transmute(
+        band,
+        min_lat = lat_class,
+        n_pres = tp + fn,
+        n_abs = tn + fp,
+        tss = (tp / (tp + fn)) + (tn / (tn + fp)) - 1,
+        veg = v
+      )
+  }) |>
+    list_rbind()
+}
+
+# keep the best combination (and ties) for every band and extent, looping
+# through microclimates to limit memory use
+best_lat <- NULL
+canopy_lat <- NULL
+for (zz in sort(unique(micro_df$z))) {
+  cur <- tss_lat_z(zz) |>
+    filter(!is.na(tss)) |>
+    group_by(band, min_lat, n_pres, n_abs) |>
+    filter(abs(tss - max(tss)) < 1e-9) |>
+    summarise(
+      tss = max(tss),
+      veg_min = min(veg),
+      veg_max = max(veg),
+      .groups = "drop"
+    ) |>
+    mutate(z_min = zz, z_max = zz, above_ground = zz > 0)
+  if (zz == 1.8) {
+    canopy_lat <- cur |> select(band, min_lat, canopy_tss = tss)
+  }
+  if (is.null(best_lat)) {
+    best_lat <- cur
+    next
+  }
+  best_lat <- full_join(
+    best_lat, cur,
+    by = c("band", "min_lat", "n_pres", "n_abs"),
+    suffix = c("", "_new")
+  ) |>
+    mutate(
+      better = !is.na(tss_new) & (is.na(tss) | tss_new > tss + 1e-9),
+      tied = !is.na(tss_new) & !is.na(tss) & abs(tss_new - tss) < 1e-9,
+      z_min = case_when(better ~ z_min_new, tied ~ pmin(z_min, z_min_new), TRUE ~ z_min),
+      z_max = case_when(better ~ z_max_new, tied ~ pmax(z_max, z_max_new), TRUE ~ z_max),
+      veg_min = case_when(better ~ veg_min_new, tied ~ pmin(veg_min, veg_min_new), TRUE ~ veg_min),
+      veg_max = case_when(better ~ veg_max_new, tied ~ pmax(veg_max, veg_max_new), TRUE ~ veg_max),
+      above_ground = case_when(
+        better ~ above_ground_new,
+        tied ~ above_ground | above_ground_new,
+        TRUE ~ above_ground
+      ),
+      tss = ifelse(better, tss_new, tss)
+    ) |>
+    select(band, min_lat, n_pres, n_abs, tss, z_min, z_max, veg_min, veg_max, above_ground)
+}
+
+tss_bands_lat <- best_lat |>
+  left_join(canopy_lat, by = c("band", "min_lat"))
+saveRDS(tss_bands_lat, "data/tss_bands_lat.rds")
+```
+
+First, we plot the results as a function of longitude (x-axis) and the southern limit of each spatial extent (y-axis). Each tile shows the optimal leaf-litter depth (A), the optimal forest cover threshold (B) and the TSS advantage of the best microclimate over the canopy (C) for the spatial extent that includes all cells in the band at or north of that latitude. When several microclimates or forest cover thresholds tie for the highest TSS, we show the midpoint of the tied values. The black line shows the northern range edge of the green anole in each band.
+
+```{r plot-memo-lat-heatmap}
+#| code-summary: "Plot envelope model results by band and latitudinal extent"
+#| fig-align: "center"
+#| fig-width: 12
+#| fig-height: 11
+
+# load results and summarise the optimal values in each band and extent
+tss_bands_lat <- readRDS("data/tss_bands_lat.rds") |>
+  mutate(
+    enough_data = n_pres >= 10 & n_abs >= 10,
+    depth = ifelse(above_ground, 0, (-z_min * 100 + -z_max * 100) / 2),
+    # depths deeper than 5 cm are grouped into classes
+    depth_class = case_when(
+      !enough_data ~ "Not enough data",
+      above_ground ~ "Above ground",
+      round(depth) <= 5 ~ paste(round(depth), "cm"),
+      round(depth) <= 10 ~ "6–10 cm",
+      TRUE ~ "11–20 cm"
+    ),
+    veg = ifelse(enough_data, (veg_min + veg_max) / 2 * 100, NA),
+    advantage = ifelse(enough_data, tss - canopy_tss, NA)
+  )
+depth_levels <- c(
+  "Above ground", paste(1:5, "cm"), "6–10 cm", "11–20 cm", "Not enough data"
+)
+depth_colors <- setNames(
+  c("forestgreen", hcl.colors(8, "Oranges", rev = TRUE)[2:8], "gray55"),
+  depth_levels
+)
+tss_bands_lat <- tss_bands_lat |>
+  mutate(depth_class = factor(depth_class, levels = depth_levels))
+
+# northern range edge in each 0.25-degree band
+band_edge_lat <- map_cells |>
+  filter(presence == 1) |>
+  group_by(band = round(floor(lon / 0.25) * 0.25, 2)) |>
+  summarise(max_lat = max(lat), .groups = "drop")
+
+# shared elements
+lat_heatmap <- function(fill_var, title) {
+  tss_bands_lat |>
+    ggplot(aes(x = band + 0.125, y = min_lat + 0.125)) +
+    geom_tile(aes(fill = .data[[fill_var]]), width = 0.25, height = 0.25) +
+    geom_step(
+      data = band_edge_lat,
+      aes(x = band, y = max_lat),
+      color = "black", linewidth = 0.5, direction = "hv"
+    ) +
+    scale_x_continuous(
+      labels = function(x) paste0(abs(x), "°W"),
+      breaks = seq(-100, -75, by = 5),
+      expand = c(0, 0)
+    ) +
+    scale_y_continuous(
+      breaks = seq(24, 36, by = 2),
+      labels = function(x) paste0("≥ ", x, "°N"),
+      expand = c(0, 0)
+    ) +
+    theme_minimal() +
+    theme(
+      panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+      panel.grid = element_blank(),
+      axis.ticks = element_line(color = "black", linewidth = 0.25),
+      axis.title = element_text(size = 11),
+      axis.text = element_text(size = 9),
+      plot.title = element_text(size = 13),
+      legend.title = element_text(size = 10),
+      legend.text = element_text(size = 9)
+    ) +
+    labs(
+      title = title,
+      x = "Longitudinal band",
+      y = "Spatial extent\n(latitude and north)"
+    )
+}
+
+depth_heat <- lat_heatmap("depth_class", "Optimal depth in leaf litter") +
+  scale_fill_manual(name = NULL, values = depth_colors, drop = TRUE) +
+  theme(axis.title.x = element_blank())
+veg_heat <- lat_heatmap("veg", "Optimal forest cover threshold") +
+  scale_fill_viridis_c(
+    name = "%", option = "viridis", limits = c(0, 100), na.value = "gray55"
+  ) +
+  theme(axis.title.x = element_blank())
+advantage_heat <- lat_heatmap("advantage", "TSS advantage over the canopy") +
+  scale_fill_distiller(
+    name = NULL, palette = "YlGnBu", direction = 1,
+    limits = c(0, 1), na.value = "gray55"
+  )
+
+ggarrange(
+  depth_heat,
+  veg_heat,
+  advantage_heat,
+  ncol = 1,
+  align = "v",
+  labels = c("A", "B", "C")
+)
+```
+
+Next, we map these results: each cell is colored according to the results of the spatial extent that starts at its 0.25° latitudinal class (i.e., the extent that includes it and all cells to its north) in its longitudinal band. As before, we only show areas south of the green anole's northern range edge.
+
+```{r map-memo-lat-overlay}
+#| code-summary: "Map envelope model results by band and latitudinal extent"
+#| fig-align: "center"
+#| fig-width: 13
+#| fig-height: 5
+
+# band and latitudinal class of each cell, cropped to the area south of the
+# northern range edge
+lat_cells <- map_cells |>
+  mutate(
+    band = round(floor(lon / 0.25) * 0.25, 2),
+    min_lat = round(floor(lat / 0.25) * 0.25, 2),
+    lon_col = round(lon, 4)
+  ) |>
+  inner_join(range_north, by = "lon_col") |>
+  filter(lat <= max_lat) |>
+  select(-lon_col, -max_lat) |>
+  left_join(
+    tss_bands_lat |> select(band, min_lat, depth_class, veg, advantage),
+    by = c("band", "min_lat")
+  ) |>
+  mutate(
+    depth_class = factor(
+      ifelse(is.na(depth_class), "Not enough data", as.character(depth_class)),
+      levels = depth_levels
+    )
+  )
+
+# shared map elements (same layout as the overlay maps above)
+lat_map <- function(fill_var, title) {
+  ggplot() +
+    geom_raster(
+      data = lat_cells,
+      aes(x = lon, y = lat, fill = .data[[fill_var]])
+    ) +
+    geom_segment(
+      data = map_range,
+      aes(x = x, y = y, xend = xend, yend = yend),
+      color = "black", linewidth = 0.4, lineend = "square"
+    ) +
+    scale_x_continuous(
+      breaks = seq(-100, -80, by = 10),
+      labels = function(x) paste0(abs(x), "°W"),
+      expand = c(0, 0)
+    ) +
+    scale_y_continuous(
+      breaks = seq(25, 37.5, by = 5),
+      labels = function(x) paste0(x, "°N"),
+      expand = c(0, 0)
+    ) +
+    coord_quickmap(
+      xlim = range(lat_cells$lon) + c(-0.3, 0.3),
+      ylim = c(24, max(lat_cells$lat) + 0.3)
+    ) +
+    theme_minimal() +
+    theme(
+      panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+      panel.grid = element_blank(),
+      axis.title = element_blank(),
+      axis.text = element_text(size = 9),
+      axis.ticks = element_line(color = "black", linewidth = 0.25),
+      plot.title = element_text(size = 13, hjust = 0.5),
+      legend.position = "bottom",
+      legend.title = element_text(size = 10, vjust = 0.8),
+      legend.text = element_text(size = 9)
+    ) +
+    labs(title = title)
+}
+
+depth_lat_map <- lat_map("depth_class", "Optimal depth in leaf litter") +
+  scale_fill_manual(name = NULL, values = depth_colors, drop = TRUE) +
+  guides(fill = guide_legend(nrow = 3))
+veg_lat_map <- lat_map("veg", "Optimal forest cover threshold") +
+  scale_fill_viridis_c(
+    name = "%", option = "viridis", limits = c(0, 100), na.value = "gray55",
+    guide = guide_colorbar(barwidth = unit(5, "cm"), barheight = unit(0.4, "cm"))
+  )
+advantage_lat_map <- lat_map("advantage", "TSS advantage over the canopy") +
+  scale_fill_distiller(
+    name = NULL, palette = "YlGnBu", direction = 1,
+    limits = c(0, 1), na.value = "gray55",
+    guide = guide_colorbar(barwidth = unit(5, "cm"), barheight = unit(0.4, "cm"))
+  )
+
+ggarrange(
+  depth_lat_map,
+  veg_lat_map,
+  advantage_lat_map,
+  nrow = 1,
+  align = "h",
+  labels = c("A", "B", "C")
+)
+```
+
+Cutting spatial extents by latitude reveals a clear north–south gradient. In the spatial extents closest to the poleward range edge, leaf-litter microclimates best predict the range in almost every band, the advantage of the leaf litter over the canopy is largest, and the optimal leaf-litter depth and forest cover threshold tend to be highest. As the spatial extent expands south to include warmer areas, the optimal depth becomes shallower (1–4 cm) and the advantage of the leaf litter over the canopy decreases, except in the easternmost bands, where it remains high. In the western bands and in the lower Mississippi Valley, above-ground microclimates predict the range as well as the leaf litter once warmer, southern areas are included. Note that the deepest optimal depths (> 5 cm) occur in extents restricted to a narrow area around the range edge, where the number of cells is smallest and results are therefore least robust.
+
+### Minimum leaf-litter depth required in each cell
+
+The maps above assign each cell the optimum of a spatial extent that includes other cells (e.g., all cells to its north), so the color of a cell partly reflects conditions elsewhere. In fact, an optimal leaf-litter depth or forest cover threshold cannot be defined for a single cell: TSS requires both presences and absences, and, for a single cell where the green anole is present, every microclimate that keeps lizards above 0 °C predicts its presence equally well. What we can calculate for each cell independently, using only its own biophysical model estimates, is the minimum leaf-litter depth at which a green anole's minimum annual body temperature stays above a given threshold. Minimum annual body temperatures never decrease with depth in any cell, so this minimum depth is well defined. Below we map the minimum depth required to stay above 0 °C (A) and above CT<sub>min</sub> (B) in each cell, where "canopy" indicates that body temperatures in the canopy already stay above the threshold (i.e., no leaf litter is needed) and "> 20 cm" that none of the leaf-litter depths we modeled is warm enough. The black line shows the edge of the green anole's range.
+
+```{r map-required-depth}
+#| code-summary: "Map the minimum leaf-litter depth required in each cell"
+#| fig-align: "center"
+#| fig-width: 10
+#| fig-height: 5
+
+# minimum depth at which minimum annual body temperatures stay above a
+# threshold in each cell
+required_depth <- function(threshold) {
+  micro_df |>
+    group_by(lon, lat) |>
+    summarise(
+      canopy = any(z == 1.8 & min_annual_body_temp > threshold),
+      # rounded to avoid floating-point errors (e.g., 4.000000000000001 cm)
+      depth = round(suppressWarnings(
+        min(-z[z <= 0 & min_annual_body_temp > threshold]) * 100
+      )),
+      .groups = "drop"
+    ) |>
+    mutate(
+      depth_class = case_when(
+        canopy ~ "Canopy",
+        is.infinite(depth) ~ "> 20 cm",
+        depth <= 4 ~ paste(round(depth), "cm"),
+        depth <= 6 ~ "5–6 cm",
+        depth <= 10 ~ "7–10 cm",
+        TRUE ~ "11–20 cm"
+      )
+    )
+}
+required_levels <- c(
+  "Canopy", paste(1:4, "cm"), "5–6 cm", "7–10 cm", "11–20 cm", "> 20 cm"
+)
+required_colors <- setNames(
+  c("forestgreen", hcl.colors(8, "Oranges", rev = TRUE)[2:8], "gray25"),
+  required_levels
+)
+required_maps <- bind_rows(
+  required_depth(0) |> mutate(threshold = "zero"),
+  required_depth(ctmin_min) |> mutate(threshold = "ctmin")
+) |>
+  mutate(
+    depth_class = factor(depth_class, levels = required_levels),
+    threshold = factor(threshold, levels = c("zero", "ctmin"))
+  )
+
+# share of cells inside and outside the range requiring > 4 cm of leaf litter
+# to stay above 0 °C
+required_summary <- required_maps |>
+  filter(threshold == "zero") |>
+  left_join(map_cells |> select(lon, lat, presence), by = c("lon", "lat")) |>
+  group_by(presence) |>
+  summarise(
+    deep = mean(!canopy & (is.infinite(depth) | depth > 4)),
+    .groups = "drop"
+  )
+
+# shared map elements: full study area, with the range edge on top
+required_map <- function(df, fill_var) {
+  ggplot() +
+    geom_raster(data = df, aes(x = lon, y = lat, fill = .data[[fill_var]])) +
+    geom_segment(
+      data = map_range,
+      aes(x = x, y = y, xend = xend, yend = yend),
+      color = "white", linewidth = 1.2, lineend = "square"
+    ) +
+    geom_segment(
+      data = map_range,
+      aes(x = x, y = y, xend = xend, yend = yend),
+      color = "black", linewidth = 0.4, lineend = "square"
+    ) +
+    scale_x_continuous(
+      breaks = seq(-100, -80, by = 10),
+      labels = function(x) paste0(abs(x), "°W"),
+      expand = c(0, 0)
+    ) +
+    scale_y_continuous(
+      breaks = seq(25, 37.5, by = 5),
+      labels = function(x) paste0(x, "°N"),
+      expand = c(0, 0)
+    ) +
+    coord_quickmap(xlim = c(-101.8, -75), ylim = c(24, 39)) +
+    theme_minimal() +
+    theme(
+      panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+      panel.grid = element_blank(),
+      axis.title = element_blank(),
+      axis.text = element_text(size = 9),
+      axis.ticks = element_line(color = "black", linewidth = 0.25),
+      plot.title = element_text(size = 13, hjust = 0.5),
+      legend.position = "bottom",
+      legend.title = element_text(size = 10, vjust = 0.8),
+      legend.text = element_text(size = 9)
+    )
+}
+
+required_zero_map <- required_maps |>
+  filter(threshold == "zero") |>
+  required_map("depth_class") +
+  scale_fill_manual(name = NULL, values = required_colors, drop = FALSE) +
+  guides(fill = guide_legend(nrow = 1)) +
+  labs(title = "Minimum depth to stay above 0 °C")
+required_ctmin_map <- required_maps |>
+  filter(threshold == "ctmin") |>
+  required_map("depth_class") +
+  scale_fill_manual(name = NULL, values = required_colors, drop = FALSE) +
+  guides(fill = guide_legend(nrow = 3)) +
+  labs(title = expression("Minimum depth to stay above " * CT[min]))
+ggarrange(
+  required_zero_map,
+  required_ctmin_map,
+  nrow = 1,
+  align = "h",
+  labels = c("A", "B"),
+  common.legend = TRUE,
+  legend = "bottom"
+)
+```
+
+Within the green anole's range, `{r} round(100 * required_summary$deep[required_summary$presence == 1])`% of cells require more than 4 cm of leaf litter to keep body temperatures above 0 °C, compared with `{r} round(100 * required_summary$deep[required_summary$presence == 0])`% of cells outside the range. Thus, the poleward range edge broadly coincides with the transition from areas where a few centimeters of leaf litter are enough to avoid freezing to areas where deeper litter (or no available microclimate) would be required. In contrast, staying above CT<sub>min</sub> requires deep leaf litter, or is not possible in any of the microclimates we modeled, across most of the range, consistent with green anoles tolerating temperatures below their CT<sub>min</sub> but not freezing.
