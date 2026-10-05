@@ -260,22 +260,22 @@ ggarrange(
 
 ```
 
-Next, we determine the temperature that triggers green anoles to retreat into the leaf litter. We focus on the presence of lizards rather than their abundance to account for the variation in the number of observers between surveys. Because our surveys span fall, winter and spring, canopy temperatures are partly confounded with season, and lizards could respond to seasonal cues such as photoperiod rather than to temperature itself. To disentangle these effects, we model the presence of lizards as a function of both canopy operative temperature and photoperiod. Photoperiod declines from September to the winter solstice and increases again towards April, so surveys with similar photoperiods occurred both in fall and in spring, under a wide range of temperatures. We fit a generalized linear model with the formula:
+Next, we determine the temperature that triggers green anoles to retreat into the leaf litter. We focus on the presence of lizards rather than their abundance to account for the variation in the number of observers between surveys. Because our surveys span fall, winter and spring, canopy temperatures are partly confounded with season, and lizards could respond to seasonal cues such as photoperiod rather than to temperature itself. To disentangle these effects, we model the presence of lizards as a function of canopy operative temperature, photoperiod and their interaction, which allows the effect of temperature to differ between short and long days. Photoperiod declines from September to the winter solstice and increases again towards April, so surveys with similar photoperiods occurred both in fall and in spring, under a wide range of temperatures. We fit a generalized linear model with the formula:
 
 $$
 P_i \sim Bernoulli(p_i)
 $$
 
 $$
-logit(p_i) = \alpha + \beta_T \cdot T_i + \beta_D \cdot (D_i - \bar{D})
+logit(p_i) = \alpha + \beta_T \cdot (T_i - \bar{T}) + \beta_D \cdot (D_i - \bar{D}) + \beta_{T \cdot D} \cdot (T_i - \bar{T}) \cdot (D_i - \bar{D})
 $$
 
-where the observed presence of lizards in survey $i$ ($P_i$) follows a Bernoulli distribution with an observation probability ($p_i$) that depends on the average operative temperature recorded across all canopy OTMs during the survey period, between 1 and 2 hours after sunset ($T_i$), and on photoperiod ($D_i$; hours between sunrise and sunset in Atlanta on the day of the survey, calculated with the `suncalc` package). We center photoperiod on its mean across surveys ($\bar{D}$), so that $\alpha$ and $\beta_T$ describe the effect of temperature at an average photoperiod. We test the contribution of each predictor with likelihood-ratio tests. The results of this model are presented in Table S5 of the manuscript.
+where the observed presence of lizards in survey $i$ ($P_i$) follows a Bernoulli distribution with an observation probability ($p_i$) that depends on the average operative temperature recorded across all canopy OTMs during the survey period, between 1 and 2 hours after sunset ($T_i$), and on photoperiod ($D_i$; hours between sunrise and sunset in Atlanta on the day of the survey, calculated with the `suncalc` package). We center temperature and photoperiod on their means across surveys ($\bar{T}$ and $\bar{D}$), so that $\beta_T$ describes the effect of temperature at an average photoperiod, $\beta_D$ the effect of photoperiod at an average temperature, and $\beta_{T \cdot D}$ how the effect of temperature changes with photoperiod. We test the contribution of each predictor with likelihood-ratio tests (LRT): for the interaction, we compare the full model with a model without the interaction; for temperature and photoperiod, we compare the full model with a model without that predictor and its interaction (i.e., testing whether the predictor has any effect, either on its own or through the interaction). The results of this model are presented in Table S5 of the manuscript.
 
 From the fitted model, we then invert the logit function to obtain the temperature at which the observation probability equals a series of values of interest, at the average photoperiod:
 
 $$
-T = \frac{logit(p) - \alpha}{\beta_T}
+T = \bar{T} + \frac{logit(p) - \alpha}{\beta_T}
 $$
 
 We obtain 95% confidence intervals for these temperatures with the delta method, using the variance-covariance matrix of $\alpha$ and $\beta_T$.
@@ -305,17 +305,37 @@ survey_sum_model <- survey_sum |>
   ) |>
   left_join(survey_photoperiod, by = "date") |>
   mutate(
+    temp_c = mean_temp - mean(mean_temp),
     photoperiod_c = photoperiod - mean(photoperiod)
   )
 mean_photoperiod <- mean(survey_sum_model$photoperiod)
+mean_survey_temp <- mean(survey_sum_model$mean_temp)
 
-# main model: canopy temperature and photoperiod
+# main model: canopy temperature, photoperiod and their interaction
 mod <- glm(
-  presence ~ mean_temp + photoperiod_c,
+  presence ~ temp_c * photoperiod_c,
   data = survey_sum_model,
   family = binomial(link = "logit")
 )
-mod_lrt <- drop1(mod, test = "LRT")
+
+# likelihood-ratio tests: the interaction (1 df), and any effect of
+# temperature or photoperiod, either on its own or through the interaction
+# (2 df)
+lrt_vs <- function(reduced) {
+  a <- anova(
+    glm(reduced, data = survey_sum_model, family = binomial(link = "logit")),
+    mod,
+    test = "LRT"
+  )
+  tibble(lrt = a$Deviance[2], df = a$Df[2], p = a$`Pr(>Chi)`[2])
+}
+mod_lrt <- bind_rows(
+  temp_c = lrt_vs(presence ~ photoperiod_c),
+  photoperiod_c = lrt_vs(presence ~ temp_c),
+  `temp_c:photoperiod_c` = lrt_vs(presence ~ temp_c + photoperiod_c),
+  .id = "term"
+)
+lrt_row <- function(term) mod_lrt[mod_lrt$term == term, ]
 
 # get temperature thresholds (and delta-method 95% CIs) for probabilities at
 # the average photoperiod
@@ -323,7 +343,8 @@ probabilities <- c(0.01, 0.05, 0.1, 0.2, 0.25, 0.5)
 mod_vcov <- vcov(mod)[1:2, 1:2]
 thresholds <- tibble(probability = probabilities) |>
   mutate(
-    temperature = (qlogis(probability) - coef(mod)[1]) / coef(mod)[2],
+    temperature = mean_survey_temp +
+      (qlogis(probability) - coef(mod)[1]) / coef(mod)[2],
     se = sqrt(purrr::map_dbl(probability, \(p) {
       grad <- c(-1, -(qlogis(p) - coef(mod)[1]) / coef(mod)[2]) / coef(mod)[2]
       as.numeric(t(grad) %*% mod_vcov %*% grad)
@@ -356,33 +377,41 @@ make_section <- function(df, caption, col_names, align) {
 
 # table parameter estimates
 table_params <- broom::tidy(mod) |>
+  left_join(mod_lrt, by = "term") |>
   mutate(
     parameter = c(
-      "Intercept", "Operative temperature (°C)", "Photoperiod (h, centered)"
+      "Intercept", "Operative temperature (°C, centered)",
+      "Photoperiod (h, centered)", "Temperature &times; Photoperiod"
     ),
-    symbol = c("&alpha;", "&beta;<sub>T</sub>", "&beta;<sub>D</sub>"),
-    lrt = c(NA, mod_lrt$LRT[-1]),
-    lrt_p = c(NA, mod_lrt$`Pr(>Chi)`[-1]),
+    symbol = c(
+      "&alpha;", "&beta;<sub>T</sub>", "&beta;<sub>D</sub>",
+      "&beta;<sub>T&middot;D</sub>"
+    ),
     across(c(estimate, std.error), ~ sprintf("%.3f", .x)),
     statistic = sprintf("%.2f", statistic),
     p.value = format_p(p.value),
-    lrt = ifelse(is.na(lrt), "&ndash;", sprintf("%.2f", lrt)),
-    lrt_p = ifelse(is.na(lrt_p), "&ndash;", format_p(lrt_p))
+    lrt_txt = ifelse(is.na(lrt), "&ndash;", sprintf("%.2f", lrt)),
+    df = ifelse(is.na(df), "&ndash;", as.character(df)),
+    lrt_p = ifelse(is.na(p), "&ndash;", format_p(p))
   ) |>
-  select(parameter, symbol, estimate, std.error, statistic, p.value, lrt, lrt_p) |>
+  select(
+    parameter, symbol, estimate, std.error, statistic, p.value,
+    lrt_txt, df, lrt_p
+  ) |>
   make_section(
     "Parameter estimates",
     c(
       "Parameter", "Symbol", "Estimate", "Std. Error", "z", "p-value",
-      "LRT &chi;<sup>2</sup><sub>1</sub>", "LRT p-value"
+      "LRT &chi;<sup>2</sup>", "LRT df", "LRT p-value"
     ),
-    "llcccccc"
+    "llccccccc"
   )
 
 # table model performance metrics
 table_fit <- tibble(
   item = c(
-    "Surveys", "Mean photoperiod (h)", "Log-likelihood", "AIC",
+    "Surveys", "Mean canopy temperature (°C)", "Mean photoperiod (h)",
+    "Log-likelihood", "AIC",
     "Tjur's R<sup>2</sup>"
   ),
   value = c(
@@ -390,6 +419,7 @@ table_fit <- tibble(
       nrow(survey_sum_model), " (", sum(survey_sum_model$presence),
       " with lizards; ", sum(survey_sum_model$presence == 0), " without)"
     ),
+    sprintf("%.2f", mean_survey_temp),
     sprintf("%.2f", mean_photoperiod),
     sprintf("%.2f", as.numeric(logLik(mod))),
     sprintf("%.1f", AIC(mod)),
@@ -423,7 +453,7 @@ cat(
 )
 ```
 
-Canopy temperature strongly predicted the presence of lizards after accounting for photoperiod ($\beta_T$ = `{r} round(coef(mod)["mean_temp"], 3)`; likelihood-ratio $\chi^2_1$ = `{r} round(mod_lrt["mean_temp", "LRT"], 2)`, p `{r} ifelse(mod_lrt["mean_temp", "Pr(>Chi)"] < 0.0001, "< 0.0001", paste("=", format_p(mod_lrt["mean_temp", "Pr(>Chi)"])))`), whereas photoperiod had no detectable effect ($\beta_D$ = `{r} round(coef(mod)["photoperiod_c"], 3)`; $\chi^2_1$ = `{r} round(mod_lrt["photoperiod_c", "LRT"], 2)`, p = `{r} format_p(mod_lrt["photoperiod_c", "Pr(>Chi)"])`).
+Canopy temperature strongly predicted the presence of lizards after accounting for photoperiod ($\beta_T$ = `{r} round(coef(mod)["temp_c"], 3)`; $\chi^2_{`{r} lrt_row("temp_c")$df`}$ = `{r} round(lrt_row("temp_c")$lrt, 2)`, p `{r} ifelse(lrt_row("temp_c")$p < 0.0001, "< 0.0001", paste("=", format_p(lrt_row("temp_c")$p)))`), whereas photoperiod had no detectable effect ($\beta_D$ = `{r} round(coef(mod)["photoperiod_c"], 3)`; $\chi^2_{`{r} lrt_row("photoperiod_c")$df`}$ = `{r} round(lrt_row("photoperiod_c")$lrt, 2)`, p `{r} ifelse(lrt_row("photoperiod_c")$p < 0.0001, "< 0.0001", paste("=", format_p(lrt_row("photoperiod_c")$p)))`). The effect of temperature did not depend on photoperiod ($\beta_{T \cdot D}$ = `{r} round(coef(mod)["temp_c:photoperiod_c"], 3)`; $\chi^2_{`{r} lrt_row("temp_c:photoperiod_c")$df`}$ = `{r} round(lrt_row("temp_c:photoperiod_c")$lrt, 2)`, p `{r} ifelse(lrt_row("temp_c:photoperiod_c")$p < 0.0001, "< 0.0001", paste("=", format_p(lrt_row("temp_c:photoperiod_c")$p)))`), so lizards responded to temperature in the same way on short and long days (see the figure of predicted observation probabilities at different photoperiods below).
 
 We define the behavioral retreating threshold temperature (T<sub>ret</sub>) as the temperature at which the observation probability falls below 20% at the average photoperiod (`{r} tret_temp` °C; 95% CI: `{r} tret_ci[1]` to `{r} tret_ci[2]` °C). T<sub>ret</sub> is just below the lowest canopy temperature at which we observed at least one lizard (`{r} round(min(survey_sum_model$mean_temp[survey_sum_model$presence == 1], na.rm = TRUE), 2)` °C). Below we plot the predicted observation probability as a function of canopy temperature at the average photoperiod (Fig. 3A in the manuscript), marking T<sub>ret</sub>, CT<sub>min</sub> (lowest population average across the range) and 0 °C. Point shading shows the photoperiod of each survey (darker for shorter days), and the line and shaded area show the model prediction and its 95% confidence interval.
 
@@ -445,7 +475,8 @@ predict_presence <- function(newdata) {
     )
 }
 pred_temp <- predict_presence(
-  tibble(mean_temp = seq(-2, 25, by = 0.1), photoperiod_c = 0)
+  tibble(mean_temp = seq(-2, 25, by = 0.1), photoperiod_c = 0) |>
+    mutate(temp_c = mean_temp - mean_survey_temp)
 )
 pred_photoperiod <- predict_presence(
   tibble(
@@ -454,10 +485,26 @@ pred_photoperiod <- predict_presence(
       max(survey_sum_model$photoperiod_c),
       by = 0.01
     ),
-    mean_temp = mean(survey_sum_model$mean_temp)
+    temp_c = 0
   )
 ) |>
   mutate(photoperiod = photoperiod_c + mean_photoperiod)
+
+# predictions at the shortest, average and longest photoperiods of our surveys
+pred_interaction <- predict_presence(
+  expand_grid(
+    mean_temp = seq(-2, 25, by = 0.1),
+    photoperiod = c(
+      min(survey_sum_model$photoperiod),
+      mean_photoperiod,
+      max(survey_sum_model$photoperiod)
+    )
+  ) |>
+    mutate(
+      temp_c = mean_temp - mean_survey_temp,
+      photoperiod_c = photoperiod - mean_photoperiod
+    )
+)
 
 # shared theme and photoperiod color scale
 retreat_theme <- theme_minimal() +
@@ -564,6 +611,63 @@ photoperiod_plot <- ggplot() +
     y = "Observation Probability"
   )
 photoperiod_plot
+```
+
+Finally, to visualize the interaction between temperature and photoperiod, we plot the predicted observation probability as a function of canopy temperature at the shortest (`{r} sprintf("%.1f", min(survey_sum_model$photoperiod))` h), average (`{r} sprintf("%.1f", mean_photoperiod)` h) and longest (`{r} sprintf("%.1f", max(survey_sum_model$photoperiod))` h) photoperiods of our surveys. Lines show model predictions, the shaded area the 95% confidence interval at the average photoperiod, and points the observed presence or absence of lizards in each survey.
+
+```{r plot-temperature-photoperiod-interaction}
+#| code-summary: "Plot observation probability as a function of canopy temperature at different photoperiods"
+#| fig-align: center
+#| fig-width: 5
+#| fig-height: 5
+#| out.width: 66%
+
+interaction_plot <- pred_interaction |>
+  mutate(
+    photoperiod_label = factor(
+      sprintf("%.1f h", photoperiod),
+      levels = sprintf("%.1f h", sort(unique(photoperiod)))
+    )
+  ) |>
+  ggplot(aes(x = mean_temp)) +
+  # 95% CI only for the average photoperiod, for readability
+  geom_ribbon(
+    data = \(d) filter(d, abs(photoperiod - mean_photoperiod) < 1e-9),
+    aes(ymin = lower, ymax = upper),
+    fill = "gray80", alpha = 0.5
+  ) +
+  geom_line(
+    aes(y = fit, color = photoperiod_label, linetype = photoperiod_label),
+    linewidth = 1
+  ) +
+  geom_point(
+    data = survey_sum_model,
+    aes(x = mean_temp, y = presence),
+    inherit.aes = FALSE,
+    shape = 21, color = "gray40", size = 3, alpha = 0.85,
+    fill = "gray70",
+    position = position_jitter(width = 0, height = 0.02, seed = 1)
+  ) +
+  # shorter photoperiods are darker and longer photoperiods lighter
+  scale_color_manual(
+    name = "Photoperiod",
+    values = c("gray15", "gray45", "gray75")
+  ) +
+  scale_linetype_manual(
+    name = "Photoperiod",
+    values = c("dashed", "solid", "dotted")
+  ) +
+  retreat_theme +
+  theme(
+    legend.position = "inside",
+    legend.position.inside = c(0.98, 0.3),
+    legend.justification = c(1, 0.5)
+  ) +
+  labs(
+    x = "Lizard Body Temperature in Canopy (°C)",
+    y = "Observation Probability"
+  )
+interaction_plot
 ```
 
 ## The leaf litter buffers environmental temperatures
@@ -741,7 +845,7 @@ At an average latitude (`{r} round(mean_lat, 1)`°N), nightly minimum temperatur
 
 ### Summary by location
 
-Below we plot the average (± SD across OTMs) of the nightly minimum temperatures by location and microhabitat, with lines showing the fixed-effect predictions of the latitude &times; microhabitat model (Fig. 3B in the manuscript).
+Below we plot the nightly minimum temperatures by location and microhabitat (Fig. 3B in the manuscript). Points show the average nightly minimum temperature, and bars ± 1 standard deviation of all nightly minimum temperatures recorded by OTMs at each location, which shows how much minimum temperatures vary from night to night in each microhabitat. Lines show the fixed-effect predictions of the latitude &times; microhabitat model.
 
 ```{r plot-leaf-litter-buffering}
 #| code-summary: "Plot minimum temperatures in the canopy and leaf litter across latitudes"
@@ -754,6 +858,19 @@ Below we plot the average (± SD across OTMs) of the nightly minimum temperature
 otm_means <- otms_data_sum |>
   group_by(location, lat, microhabitat, id) |>
   summarise(min_temp = mean(min_temp), .groups = "drop")
+
+# average (+/- 1 SD) of nightly minimum temperatures across all OTMs and
+# nights by location and microhabitat; points of each microhabitat are offset
+# slightly so they do not overlap
+location_ranges <- otms_data_sum |>
+  group_by(location, lat, microhabitat) |>
+  summarise(
+    mean_temp = mean(min_temp),
+    lower = mean_temp - sd(min_temp),
+    upper = mean_temp + sd(min_temp),
+    .groups = "drop"
+  ) |>
+  mutate(lat_plot = lat + ifelse(microhabitat == "branch", -0.18, 0.18))
 
 # fixed-effect predictions of the latitude x microhabitat model
 buffer_pred <- expand_grid(
@@ -772,38 +889,61 @@ buffering_plot <- otm_means |>
     color = "darkblue"
   ) +
   geom_hline(
+    yintercept = ctmin_min,
     linetype = "dashed",
-    aes(yintercept = ctmin_min, color = "CTmin"),
-    show.legend = TRUE
+    color = "steelblue"
   ) +
   geom_hline(
+    yintercept = tret_temp,
     linetype = "dashed",
-    aes(yintercept = tret_temp, color = "Tret"),
-    show.legend = TRUE
+    color = "lightblue"
+  ) +
+  # label the reference lines directly (as in panel A)
+  annotate(
+    "label",
+    x = 25.1, y = c(0, ctmin_min, tret_temp),
+    label = c(
+      expression(bold(0 * degree * C)),
+      expression(bold(CT[min])),
+      expression(bold(T[ret]))
+    ),
+    color = c("darkblue", "steelblue", "lightblue"),
+    fill = "white",
+    linewidth = 0,
+    hjust = 0,
+    vjust = c(0.5, 1.05, -0.05),
+    size = 4.5
   ) +
   geom_line(
     data = buffer_pred,
     aes(color = microhabitat),
     linewidth = 1
   ) +
-  stat_summary(
-    aes(color = microhabitat),
-    position = position_dodge(width = 0.75),
-    fun.data = mean_sdl,
-    fun.args = list(mult = 1),
-    size = 1
+  # means +/- 1 SD, with a white outline to stand out from the lines
+  geom_linerange(
+    data = location_ranges,
+    aes(x = lat_plot, ymin = lower, ymax = upper),
+    inherit.aes = FALSE,
+    color = "white", linewidth = 2
+  ) +
+  geom_linerange(
+    data = location_ranges,
+    aes(x = lat_plot, ymin = lower, ymax = upper, color = microhabitat),
+    inherit.aes = FALSE,
+    linewidth = 0.9
+  ) +
+  geom_point(
+    data = location_ranges,
+    aes(x = lat_plot, y = mean_temp, fill = microhabitat),
+    inherit.aes = FALSE,
+    shape = 21, color = "white", size = 4.2, stroke = 1,
+    show.legend = FALSE
   ) +
   geom_text(
-    data = otm_means |>
-      filter(microhabitat == "leaflitter") |>
+    data = location_ranges |>
       group_by(location) |>
-      summarise(
-        lat = mean(lat),
-        min_temp_mean = mean(min_temp),
-        min_temp_sd = sd(min_temp),
-        .groups = "drop"
-      ),
-    aes(x = lat, y = min_temp_mean + min_temp_sd + 0.5, label = location),
+      summarise(lat = mean(lat), top = max(upper), .groups = "drop"),
+    aes(x = lat, y = top + 0.5, label = location),
     inherit.aes = FALSE,
     vjust = -0.75,
     color = "darkgray",
@@ -812,15 +952,15 @@ buffering_plot <- otm_means |>
   scale_color_manual(
     values = c(
       "branch" = "forestgreen",
-      "leaflitter" = "darkorange",
-      "CTmin" = "steelblue",
-      "Tret" = "skyblue"
+      "leaflitter" = "darkorange"
     ),
     name = "Microhabitat",
-    breaks = c("branch", "leaflitter", "CTmin", "Tret"),
-    labels = c(
-      "Canopy", "Leaf litter", expression(CT[min]), expression(T[ret])
-    )
+    breaks = c("branch", "leaflitter"),
+    labels = c("Canopy", "Leaf litter")
+  ) +
+  scale_fill_manual(
+    values = c("branch" = "forestgreen", "leaflitter" = "darkorange"),
+    guide = "none"
   ) +
   scale_x_continuous(
     breaks = seq(25, 35, by = 2.5),
@@ -838,8 +978,9 @@ buffering_plot <- otm_means |>
     legend.position = "inside",
     legend.position.inside = c(0.98, 0.98),
     legend.justification = c("right", "top"),
-    legend.text = element_text(size = 14),
-    legend.key.spacing.y = unit(0.5, "lines")
+    legend.text = element_text(size = 11),
+    legend.key.spacing.y = unit(0.1, "lines"),
+    plot.margin = margin(t = 5, r = 15, b = 5, l = 5)
   ) +
   labs(
     x = "Latitude (°N)",

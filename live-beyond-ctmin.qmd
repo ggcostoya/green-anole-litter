@@ -43,9 +43,6 @@ We collected the CT<sub>min</sub> data from 7 locations across the range of *A. 
 # read CTmin data
 ctmin_gradient <- readRDS("data/ctmin_gradient.rds")
 
-# read global min temperatures dataset
-global_min_temp <- readRDS("data/global_min_temp.rds")
-
 # define a search box for the bio6 dataset
 search_box <- ext(
   min(ctmin_gradient$lon) - 1, max(ctmin_gradient$lon) + 1,

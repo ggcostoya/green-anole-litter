@@ -264,31 +264,28 @@ window.Quarto = {
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># read CTmin data</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>ctmin_gradient <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"data/ctmin_gradient.rds"</span>)</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># read global min temperatures dataset</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>global_min_temp <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"data/global_min_temp.rds"</span>)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># define a search box for the bio6 dataset</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>search_box <span class="ot">&lt;-</span> <span class="fu">ext</span>(</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">min</span>(ctmin_gradient<span class="sc">$</span>lon) <span class="sc">-</span> <span class="dv">1</span>, <span class="fu">max</span>(ctmin_gradient<span class="sc">$</span>lon) <span class="sc">+</span> <span class="dv">1</span>,</span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">min</span>(ctmin_gradient<span class="sc">$</span>lat) <span class="sc">-</span> <span class="dv">1</span>, <span class="fu">max</span>(ctmin_gradient<span class="sc">$</span>lat) <span class="sc">+</span> <span class="fl">0.5</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># define a search box for the bio6 dataset</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>search_box <span class="ot">&lt;-</span> <span class="fu">ext</span>(</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">min</span>(ctmin_gradient<span class="sc">$</span>lon) <span class="sc">-</span> <span class="dv">1</span>, <span class="fu">max</span>(ctmin_gradient<span class="sc">$</span>lon) <span class="sc">+</span> <span class="dv">1</span>,</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">min</span>(ctmin_gradient<span class="sc">$</span>lat) <span class="sc">-</span> <span class="dv">1</span>, <span class="fu">max</span>(ctmin_gradient<span class="sc">$</span>lat) <span class="sc">+</span> <span class="fl">0.5</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co"># read in BIO6 data</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>bio6 <span class="ot">&lt;-</span> terra<span class="sc">::</span><span class="fu">rast</span>(<span class="st">"raw_data/bio_6.tif"</span>)</span>
 <span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co"># read in BIO6 data</span></span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>bio6 <span class="ot">&lt;-</span> terra<span class="sc">::</span><span class="fu">rast</span>(<span class="st">"raw_data/bio_6.tif"</span>)</span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co"># extract all BIO6 values and coordinates within the search box</span></span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>bio6_data <span class="ot">&lt;-</span> terra<span class="sc">::</span><span class="fu">crop</span>(bio6, search_box)</span>
-<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>bio6_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(bio6_data, <span class="at">xy =</span> <span class="cn">TRUE</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(bio6_df) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"lon"</span>, <span class="st">"lat"</span>, <span class="st">"bio6"</span>)</span>
-<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>bio6_df <span class="ot">&lt;-</span> bio6_df <span class="sc">|&gt;</span></span>
-<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">lat =</span> <span class="fu">round</span>(lat, <span class="dv">1</span>)) <span class="sc">|&gt;</span></span>
-<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(lat) <span class="sc">|&gt;</span></span>
-<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
-<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_bio6 =</span> <span class="fu">mean</span>(bio6, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">max_bio6 =</span> <span class="fu">max</span>(bio6, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">min_bio6 =</span> <span class="fu">min</span>(bio6, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
-<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
-<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co"># extract all BIO6 values and coordinates within the search box</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>bio6_data <span class="ot">&lt;-</span> terra<span class="sc">::</span><span class="fu">crop</span>(bio6, search_box)</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>bio6_df <span class="ot">&lt;-</span> <span class="fu">as.data.frame</span>(bio6_data, <span class="at">xy =</span> <span class="cn">TRUE</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(bio6_df) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"lon"</span>, <span class="st">"lat"</span>, <span class="st">"bio6"</span>)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>bio6_df <span class="ot">&lt;-</span> bio6_df <span class="sc">|&gt;</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">lat =</span> <span class="fu">round</span>(lat, <span class="dv">1</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(lat) <span class="sc">|&gt;</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">mean_bio6 =</span> <span class="fu">mean</span>(bio6, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">max_bio6 =</span> <span class="fu">max</span>(bio6, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">min_bio6 =</span> <span class="fu">min</span>(bio6, <span class="at">na.rm =</span> <span class="cn">TRUE</span>),</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups =</span> <span class="st">"drop"</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <p>Below, we fit a linear mixed model to test whether CT<sub>min</sub> and BIO6 scale with latitude at the same rate. Because CT<sub>min</sub> was measured on several individuals per location, we treat individuals from the same population as not independent observations, and include a random intercept for population that applies only to the CT<sub>min</sub> observations, so that the effect of latitude on CT<sub>min</sub> is evaluated against among-population variation. We also allow the residual variance to differ between BIO6 and CT<sub>min</sub>, as BIO6 values are latitude-band averages while CT<sub>min</sub> values are individual measurements. We combine both types of temperature values into a single dataset and fit the following model:</p>
