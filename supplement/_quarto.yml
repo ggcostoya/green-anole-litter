@@ -1,0 +1,22 @@
+# Supplementary materials for the manuscript. These documents are rendered
+# separately from the website (see render-supplement.sh) and printed to PDF.
+project:
+  type: default
+
+format:
+  html:
+    embed-resources: true
+    toc: false
+    number-sections: false
+    css: si-styles.css
+    fig-dpi: 300
+
+execute:
+  echo: false
+  warning: false
+  message: false
+
+knitr:
+  opts_chunk:
+    dev: png
+    dpi: 300

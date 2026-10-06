@@ -258,7 +258,7 @@ ctmin_pred <- ctmin_pred |>
   )
 
 # plot CTmin and BIO6 data
-ggplot() +
+fig_ctmin_bio6 <- ggplot() +
   geom_hline(yintercept = 0, color = "steelblue4", linetype = 2) +
   geom_jitter(
     data = ctmin_gradient,
@@ -324,6 +324,7 @@ ggplot() +
     x = "Latitude (°N)",
     y = "Temperature (°C)"
   )
+fig_ctmin_bio6
 
 ```
 
@@ -349,7 +350,7 @@ bio6_df_table <- bio6_df |>
   select(site, mean_bio6, min_bio6, max_bio6)
 
 
-ctmin_gradient |>
+table_ctmin_sites <- ctmin_gradient |>
   group_by(site, lat) |>
   summarise(
     mean_ctmin = mean(ctmin, na.rm = TRUE),
@@ -391,6 +392,8 @@ ctmin_gradient |>
     full_width = FALSE,
     position = "center"
   )
+table_ctmin_sites
+
 ```
 
 ## The green anole is an exceptional case of climatic overfilling
@@ -630,7 +633,7 @@ caro_z_scores <- expand_grid(
   )
 
 # tidy up for display as a table
-caro_z_scores |>
+table_z_scores <- caro_z_scores |>
   mutate(z_score = sprintf("%.2f", z_score)) |>
   pivot_wider(names_from = group, values_from = c(z_score, rank)) |>
   mutate(
@@ -661,6 +664,8 @@ caro_z_scores |>
     ),
     escape = FALSE
   )
+table_z_scores
+
 ```
 
 Relative to other *Anolis* and other arboreal lizards, *A. carolinensis* has a much greater proportion and area of its range below CT<sub>min</sub> and below 0 °C (Z-scores between `{r} sprintf("%.2f", min(caro_z_scores$z_score[caro_z_scores$group != "all"]))` and `{r} sprintf("%.2f", max(caro_z_scores$z_score[caro_z_scores$group != "all"]))`), indicating that it is an exceptional case of climatic overfilling among arboreal lizards. Note that *A. carolinensis* is the only *Anolis* species in our dataset whose range extends into areas below 0 °C, so its Z-scores for these metrics relative to *Anolis* simply reflect that it is the only non-zero value in the group. Relative to all lizards, the proportions of the green anole's range below CT<sub>min</sub> and below 0 °C are close to the average (Z = `{r} sprintf("%.2f", caro_z_scores$z_score[caro_z_scores$var == "below_ctmin_prop" & caro_z_scores$group == "all"])` and `{r} sprintf("%.2f", caro_z_scores$z_score[caro_z_scores$var == "below_0_prop" & caro_z_scores$group == "all"])`), while the areas below CT<sub>min</sub> and below 0 °C are about one standard deviation above the average on a log scale (Z = `{r} sprintf("%.2f", caro_z_scores$z_score[caro_z_scores$var == "log_below_ctmin_area" & caro_z_scores$group == "all"])` and `{r} sprintf("%.2f", caro_z_scores$z_score[caro_z_scores$var == "log_below_0_area" & caro_z_scores$group == "all"])`). Thus, the green anole's overfilling resembles that of terrestrial, fossorial or saxicolous species living in colder climates, which can shelter from the cold in underground refuges.
@@ -1153,7 +1158,7 @@ areas_substrate <- substrate_data |>
     labels = scales::label_log()
   )
 
-ggarrange(
+fig_substrate <- ggarrange(
   lat_temps_substrate, proportions_substrate, areas_substrate,
   ncol = 3, nrow = 1,
   widths = c(1.25, 0.5, 0.5),
@@ -1161,6 +1166,8 @@ ggarrange(
   align = "hv",
   font.label = list(size = 15, face = "bold", color = "black")
 )
+fig_substrate
+
 ```
 
 ## Tables
@@ -1227,7 +1234,7 @@ We table the "overfilling" results for every species (Table S3 in the manuscript
 ```{r lizard-climatic-overfilling-table}
 #| code-summary: "Table overfilling results by species"
 
-lizard_climatic_overfilling |>
+table_species <- lizard_climatic_overfilling |>
   mutate(
     genus = gsub(" .*", "", species),
     species = gsub(".* ", "", species)
@@ -1261,8 +1268,10 @@ lizard_climatic_overfilling |>
   kable_styling(
     full_width = FALSE,
     position = "center"
-  ) |>
+  )
+table_species |>
   scroll_box(height = "500px")
+
 ```
 
 :::

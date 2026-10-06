@@ -163,7 +163,7 @@ caro_range <- readRDS("data/caro_range.rds")
 caro_occ_data <- readRDS("data/caro_occ_data.rds")
 
 # plot
-ggplot() +
+fig_range <- ggplot() +
   geom_polygon(
     data = map_data("world"),
     aes(x = long, y = lat, group = group),
@@ -211,6 +211,8 @@ ggplot() +
     plot.margin = margin(r = 10, t = -20, b = -20, l = 10)
   ) +
   guides(color = guide_legend(override.aes = list(size = 3)))
+fig_range
+
 ```
 
 ## Obtaining and processing ecological data
@@ -404,7 +406,7 @@ $$
 Combining $\text{sin}(a)$ and $p_a$ we then compute the path length of solar radiation through the atmosphere as:
 
 $$
-m_a(h) = \frac{p_a}{101.3 \cdot (\frac{1}{a_h})}
+m_a(h) = \frac{p_a}{101.3 \cdot a(h)}
 $$
 
 Finally, hourly direct solar radiation ($R_{solar}$, in $\text{W m}^{-2}$) is modeled by combining $\text{sin}(\alpha)$, $m_a$, the extraterrestrial solar constant ($E_{sc} = 1.36 \text{kW m}^-2$) with the atmospheric transmittance coefficient ($\tau = 0.83$).
@@ -443,7 +445,7 @@ get_solar_rad_profile <- function(lat, elev, doy, solar_noon) {
       outer(solar_noon, hours, function(s, h) cos(0.2618 * (h - s)))
 
   # calculate air mass and solar radiation
-  m_a <- p_a / (101.3 * (1 / sin_alt_ang))
+  m_a <- p_a / (101.3 * sin_alt_ang)
   solar_rad <- spo * atc ^ m_a * sin_alt_ang
   solar_rad[solar_rad < 0] <- 0
   drop(solar_rad * 1000)
@@ -920,7 +922,7 @@ validation_df <- micro_df_loc |>
   left_join(otms_val, by = c("location", "microhabitat"))
 
 # plot validation of microclimate model against operative temperature models
-validation_df |>
+fig_validation <- validation_df |>
   ggplot(
     aes(
       x = mean_min_annual_temp,
@@ -960,6 +962,7 @@ validation_df |>
     legend.justification = c(0, 1),
     legend.key.spacing.y = unit(0.5, "lines")
   )
+fig_validation
 
 ```
 
@@ -999,7 +1002,7 @@ validation_metrics <- validation_err |>
   left_join(validation_site_rmse, by = "microhabitat")
 
 # table validation metrics
-validation_metrics |>
+table_validation <- validation_metrics |>
   mutate(across(c(bias, mae, rmse, rmse_site), ~ round(.x, 2))) |>
   mutate(nrmse = round(nrmse, 1)) |>
   relocate(nrmse, .after = rmse) |>
@@ -1014,4 +1017,6 @@ validation_metrics |>
     full_width = FALSE,
     position = "center"
   )
+table_validation
+
 ```

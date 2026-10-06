@@ -500,10 +500,10 @@ TSS = \frac{TP}{TP + FN} + \frac{TN}{TN + FP} - 1
 <pre><code># A tibble: 4 × 4
   thresh          veg     z   tss
   &lt;fct&gt;         &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
-1 below_zero     0.35 -0.04 0.794
-2 below_ctmin    0.2  -0.03 0.768
-3 below_tret     0.2  -0.03 0.758
-4 rest_of_range  0.2  -0.03 0.742</code></pre>
+1 below_zero     0.35 -0.04 0.812
+2 below_ctmin    0.2  -0.03 0.777
+3 below_tret     0.2  -0.03 0.766
+4 rest_of_range  0.2  -0.03 0.750</code></pre>
 </div>
 <details class="code-fold">
 <summary>Plot mechanistic envelope model results</summary>
@@ -726,7 +726,7 @@ TSS = \frac{TP}{TP + FN} + \frac{TN}{TN + FP} - 1
 <span id="cb9-47"><a href="#cb9-47" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">thresh =</span> <span class="fu">factor</span>(thresh, <span class="at">levels =</span> <span class="fu">names</span>(extent_labels))) <span class="sc">|&gt;</span></span>
 <span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(thresh)</span>
 <span id="cb9-49"><a href="#cb9-49" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-50"><a href="#cb9-50" aria-hidden="true" tabindex="-1"></a>memo_single <span class="sc">|&gt;</span></span>
+<span id="cb9-50"><a href="#cb9-50" aria-hidden="true" tabindex="-1"></a>table_memo_single <span class="ot">&lt;-</span> memo_single <span class="sc">|&gt;</span></span>
 <span id="cb9-51"><a href="#cb9-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
 <span id="cb9-52"><a href="#cb9-52" aria-hidden="true" tabindex="-1"></a>    <span class="at">thresh =</span> extent_labels[<span class="fu">as.character</span>(thresh)],</span>
 <span id="cb9-53"><a href="#cb9-53" aria-hidden="true" tabindex="-1"></a>    <span class="at">forest =</span> <span class="fu">sprintf</span>(<span class="st">"%.3f (&gt; %.0f%%)"</span>, forest_tss, forest_veg <span class="sc">*</span> <span class="dv">100</span>),</span>
@@ -762,7 +762,8 @@ TSS = \frac{TP}{TP + FN} + \frac{TN}{TN + FP} - 1
 <span id="cb9-83"><a href="#cb9-83" aria-hidden="true" tabindex="-1"></a>      <span class="st">"predict all cells to be unsuitable by definition (TSS = 0)."</span></span>
 <span id="cb9-84"><a href="#cb9-84" aria-hidden="true" tabindex="-1"></a>    ),</span>
 <span id="cb9-85"><a href="#cb9-85" aria-hidden="true" tabindex="-1"></a>    <span class="at">general_title =</span> <span class="st">""</span></span>
-<span id="cb9-86"><a href="#cb9-86" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb9-86"><a href="#cb9-86" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb9-87"><a href="#cb9-87" aria-hidden="true" tabindex="-1"></a>table_memo_single</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <table quarto-disable-processing="true" class="table" style="width: auto !important; margin-left: auto; margin-right: auto;border-bottom: 0;">
@@ -786,29 +787,29 @@ TSS = \frac{TP}{TP + FN} + \frac{TN}{TN + FP} - 1
    <td style="text-align:left;"> Canopy T<sub>min</sub> &lt; 0 °C </td>
    <td style="text-align:center;"> 0.445 (&gt; 45%) </td>
    <td style="text-align:center;"> 0.000 </td>
-   <td style="text-align:center;"> 0.644 (3 cm deep in leaf litter) </td>
-   <td style="text-align:center;"> 0.794 (4 cm deep in leaf litter; &gt; 35%) </td>
+   <td style="text-align:center;"> 0.670 (4 cm deep in leaf litter) </td>
+   <td style="text-align:center;"> 0.812 (4 cm deep in leaf litter; &gt; 35%) </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Canopy T<sub>min</sub> &lt; CT<sub>min</sub> </td>
    <td style="text-align:center;"> 0.403 (&gt; 45%) </td>
    <td style="text-align:center;"> 0.463 </td>
-   <td style="text-align:center;"> 0.621 (2 cm deep in leaf litter) </td>
-   <td style="text-align:center;"> 0.768 (3 cm deep in leaf litter; &gt; 20%) </td>
+   <td style="text-align:center;"> 0.634 (2 cm deep in leaf litter) </td>
+   <td style="text-align:center;"> 0.777 (3 cm deep in leaf litter; &gt; 20%) </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Canopy T<sub>min</sub> &lt; T<sub>ret</sub> </td>
    <td style="text-align:center;"> 0.403 (&gt; 45%) </td>
    <td style="text-align:center;"> 0.449 </td>
-   <td style="text-align:center;"> 0.601 (2 cm deep in leaf litter) </td>
-   <td style="text-align:center;"> 0.758 (3 cm deep in leaf litter; &gt; 20%) </td>
+   <td style="text-align:center;"> 0.613 (2 cm deep in leaf litter) </td>
+   <td style="text-align:center;"> 0.766 (3 cm deep in leaf litter; &gt; 20%) </td>
   </tr>
   <tr>
    <td style="text-align:left;"> Entire area </td>
    <td style="text-align:center;"> 0.387 (&gt; 40%) </td>
    <td style="text-align:center;"> 0.446 </td>
-   <td style="text-align:center;"> 0.578 (2 cm deep in leaf litter) </td>
-   <td style="text-align:center;"> 0.742 (3 cm deep in leaf litter; &gt; 20%) </td>
+   <td style="text-align:center;"> 0.591 (2 cm deep in leaf litter) </td>
+   <td style="text-align:center;"> 0.750 (3 cm deep in leaf litter; &gt; 20%) </td>
   </tr>
 </tbody>
 <tfoot><tr><td style="padding: 0; " colspan="100%">
@@ -816,7 +817,7 @@ TSS = \frac{TP}{TP + FN} + \frac{TN}{TN + FP} - 1
 </table>
 </div>
 </div>
-<p>Forest cover alone (TSS = 0.39–0.44) and canopy temperatures alone (TSS = 0.45–0.46 outside of areas below 0 °C) have a limited capacity to predict the green anole’s range. Leaf-litter temperatures alone perform substantially better (TSS = 0.58–0.64, at depths of 2–3 cm), and combining them with forest cover yields the highest predictive capacity (TSS = 0.74–0.79). Thus, both leaf-litter temperatures and forest cover contribute to predicting the green anole’s range, and leaf-litter temperatures outperform canopy temperatures even when forest cover is not considered.</p>
+<p>Forest cover alone (TSS = 0.39–0.44) and canopy temperatures alone (TSS = 0.45–0.46 outside of areas below 0 °C) have a limited capacity to predict the green anole’s range. Leaf-litter temperatures alone perform substantially better (TSS = 0.59–0.67, at depths of 2–4 cm), and combining them with forest cover yields the highest predictive capacity (TSS = 0.75–0.81). Thus, both leaf-litter temperatures and forest cover contribute to predicting the green anole’s range, and leaf-litter temperatures outperform canopy temperatures even when forest cover is not considered.</p>
 </section>
 <section id="minimum-leaf-litter-depth-required-in-each-cell" class="level3">
 <h3 class="anchored" data-anchor-id="minimum-leaf-litter-depth-required-in-each-cell">Minimum leaf-litter depth required in each cell</h3>
@@ -959,7 +960,7 @@ TSS = \frac{TP}{TP + FN} + \frac{TN}{TN + FP} - 1
 </div>
 </div>
 </div>
-<p>Within the green anole’s range, 1% of cells require more than 4 cm of leaf litter to keep body temperatures above 0 °C, compared with 53% of cells outside the range. Thus, the poleward range edge broadly coincides with the transition from areas where a few centimeters of leaf litter are enough to avoid freezing to areas where deeper litter (or no available microclimate) would be required. In contrast, staying above CT<sub>min</sub>, and even more so above T<sub>ret</sub>, requires deep leaf litter, or is not possible in any of the microclimates we modeled, across most of the range, consistent with green anoles tolerating temperatures below their CT<sub>min</sub> but not freezing.</p>
+<p>Within the green anole’s range, 1% of cells require more than 4 cm of leaf litter to keep body temperatures above 0 °C, compared with 55% of cells outside the range. Thus, the poleward range edge broadly coincides with the transition from areas where a few centimeters of leaf litter are enough to avoid freezing to areas where deeper litter (or no available microclimate) would be required. In contrast, staying above CT<sub>min</sub>, and even more so above T<sub>ret</sub>, requires deep leaf litter, or is not possible in any of the microclimates we modeled, across most of the range, consistent with green anoles tolerating temperatures below their CT<sub>min</sub> but not freezing.</p>
 <p>Lastly, we summarise these maps by latitude. For each threshold, we calculate the average minimum leaf-litter depth required across all cells at each latitude (excluding latitudes with 100 cells or fewer). Cells where none of the modeled depths is warm enough require at least 20 cm of leaf litter, so we assign them a depth of 20 cm and the resulting averages are lower bounds of the depth required. The dark gray band at the bottom of the plot marks depths beyond 20 cm; curves approaching it indicate that most cells at that latitude require more than 20 cm of leaf litter. We then compare these averages with the latitude of the green anole’s northern range limit (the northernmost cell where the green anole is present in each 1° longitudinal band). Lines show a running mean of the average depth over ± 0.25° of latitude, and shaded areas a running mean of its standard deviation across cells at each latitude. The orange band marks depths of 3–4 cm. The dashed line shows the average northern range limit and the light gray area its standard deviation across longitudinal bands.</p>
 <div class="cell" data-layout-align="center">
 <details class="code-fold">

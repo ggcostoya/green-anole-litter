@@ -397,7 +397,7 @@ window.Quarto = {
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>caro_occ_data <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"data/caro_occ_data.rds"</span>)</span>
 <span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co"># plot</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>fig_range <span class="ot">&lt;-</span> <span class="fu">ggplot</span>() <span class="sc">+</span></span>
 <span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_polygon</span>(</span>
 <span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">data =</span> <span class="fu">map_data</span>(<span class="st">"world"</span>),</span>
 <span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">x =</span> long, <span class="at">y =</span> lat, <span class="at">group =</span> group),</span>
@@ -444,7 +444,8 @@ window.Quarto = {
 <span id="cb7-50"><a href="#cb7-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid =</span> <span class="fu">element_blank</span>(),</span>
 <span id="cb7-51"><a href="#cb7-51" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.margin =</span> <span class="fu">margin</span>(<span class="at">r =</span> <span class="dv">10</span>, <span class="at">t =</span> <span class="sc">-</span><span class="dv">20</span>, <span class="at">b =</span> <span class="sc">-</span><span class="dv">20</span>, <span class="at">l =</span> <span class="dv">10</span>)</span>
 <span id="cb7-52"><a href="#cb7-52" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb7-53"><a href="#cb7-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">guides</span>(<span class="at">color =</span> <span class="fu">guide_legend</span>(<span class="at">override.aes =</span> <span class="fu">list</span>(<span class="at">size =</span> <span class="dv">3</span>)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb7-53"><a href="#cb7-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">guides</span>(<span class="at">color =</span> <span class="fu">guide_legend</span>(<span class="at">override.aes =</span> <span class="fu">list</span>(<span class="at">size =</span> <span class="dv">3</span>)))</span>
+<span id="cb7-54"><a href="#cb7-54" aria-hidden="true" tabindex="-1"></a>fig_range</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
@@ -634,7 +635,7 @@ p_a = 101.3 \cdot e^{-Elev /8200}
 \]</span></p>
 <p>Combining <span class="math inline">\(\text{sin}(a)\)</span> and <span class="math inline">\(p_a\)</span> we then compute the path length of solar radiation through the atmosphere as:</p>
 <p><span class="math display">\[
-m_a(h) = \frac{p_a}{101.3 \cdot (\frac{1}{a_h})}
+m_a(h) = \frac{p_a}{101.3 \cdot a(h)}
 \]</span></p>
 <p>Finally, hourly direct solar radiation (<span class="math inline">\(R_{solar}\)</span>, in <span class="math inline">\(\text{W m}^{-2}\)</span>) is modeled by combining <span class="math inline">\(\text{sin}(\alpha)\)</span>, <span class="math inline">\(m_a\)</span>, the extraterrestrial solar constant (<span class="math inline">\(E_{sc} = 1.36 \text{kW m}^-2\)</span>) with the atmospheric transmittance coefficient (<span class="math inline">\(\tau = 0.83\)</span>).</p>
 <p><span class="math display">\[
@@ -667,7 +668,7 @@ R_{solar}(h) = E_{sc} \cdot \tau^{m_a(h)} \cdot a(h) \cdot 1000
 <span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>      <span class="fu">outer</span>(solar_noon, hours, <span class="cf">function</span>(s, h) <span class="fu">cos</span>(<span class="fl">0.2618</span> <span class="sc">*</span> (h <span class="sc">-</span> s)))</span>
 <span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>  <span class="co"># calculate air mass and solar radiation</span></span>
-<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>  m_a <span class="ot">&lt;-</span> p_a <span class="sc">/</span> (<span class="fl">101.3</span> <span class="sc">*</span> (<span class="dv">1</span> <span class="sc">/</span> sin_alt_ang))</span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>  m_a <span class="ot">&lt;-</span> p_a <span class="sc">/</span> (<span class="fl">101.3</span> <span class="sc">*</span> sin_alt_ang)</span>
 <span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>  solar_rad <span class="ot">&lt;-</span> spo <span class="sc">*</span> atc <span class="sc">^</span> m_a <span class="sc">*</span> sin_alt_ang</span>
 <span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>  solar_rad[solar_rad <span class="sc">&lt;</span> <span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">0</span></span>
 <span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">drop</span>(solar_rad <span class="sc">*</span> <span class="dv">1000</span>)</span>
@@ -1078,7 +1079,7 @@ T_{sky,K} = \epsilon_{sky}^{0.25} \cdot T_{air,K} \qquad T_{rad,K} = \left(F_{sk
 <span id="cb17-56"><a href="#cb17-56" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(otms_val, <span class="at">by =</span> <span class="fu">c</span>(<span class="st">"location"</span>, <span class="st">"microhabitat"</span>))</span>
 <span id="cb17-57"><a href="#cb17-57" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb17-58"><a href="#cb17-58" aria-hidden="true" tabindex="-1"></a><span class="co"># plot validation of microclimate model against operative temperature models</span></span>
-<span id="cb17-59"><a href="#cb17-59" aria-hidden="true" tabindex="-1"></a>validation_df <span class="sc">|&gt;</span></span>
+<span id="cb17-59"><a href="#cb17-59" aria-hidden="true" tabindex="-1"></a>fig_validation <span class="ot">&lt;-</span> validation_df <span class="sc">|&gt;</span></span>
 <span id="cb17-60"><a href="#cb17-60" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(</span>
 <span id="cb17-61"><a href="#cb17-61" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(</span>
 <span id="cb17-62"><a href="#cb17-62" aria-hidden="true" tabindex="-1"></a>      <span class="at">x =</span> mean_min_annual_temp,</span>
@@ -1117,7 +1118,8 @@ T_{sky,K} = \epsilon_{sky}^{0.25} \cdot T_{air,K} \qquad T_{rad,K} = \left(F_{sk
 <span id="cb17-95"><a href="#cb17-95" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position.inside =</span> <span class="fu">c</span>(<span class="fl">0.02</span>, <span class="fl">0.98</span>),</span>
 <span id="cb17-96"><a href="#cb17-96" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.justification =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1</span>),</span>
 <span id="cb17-97"><a href="#cb17-97" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.key.spacing.y =</span> <span class="fu">unit</span>(<span class="fl">0.5</span>, <span class="st">"lines"</span>)</span>
-<span id="cb17-98"><a href="#cb17-98" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb17-98"><a href="#cb17-98" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb17-99"><a href="#cb17-99" aria-hidden="true" tabindex="-1"></a>fig_validation</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
@@ -1162,7 +1164,7 @@ T_{sky,K} = \epsilon_{sky}^{0.25} \cdot T_{air,K} \qquad T_{rad,K} = \left(F_{sk
 <span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">left_join</span>(validation_site_rmse, <span class="at">by =</span> <span class="st">"microhabitat"</span>)</span>
 <span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a><span class="co"># table validation metrics</span></span>
-<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>validation_metrics <span class="sc">|&gt;</span></span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>table_validation <span class="ot">&lt;-</span> validation_metrics <span class="sc">|&gt;</span></span>
 <span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="fu">across</span>(<span class="fu">c</span>(bias, mae, rmse, rmse_site), <span class="sc">~</span> <span class="fu">round</span>(.x, <span class="dv">2</span>))) <span class="sc">|&gt;</span></span>
 <span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">nrmse =</span> <span class="fu">round</span>(nrmse, <span class="dv">1</span>)) <span class="sc">|&gt;</span></span>
 <span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a>  <span class="fu">relocate</span>(nrmse, <span class="at">.after =</span> rmse) <span class="sc">|&gt;</span></span>
@@ -1176,7 +1178,8 @@ T_{sky,K} = \epsilon_{sky}^{0.25} \cdot T_{air,K} \qquad T_{rad,K} = \left(F_{sk
 <span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable_styling</span>(</span>
 <span id="cb18-44"><a href="#cb18-44" aria-hidden="true" tabindex="-1"></a>    <span class="at">full_width =</span> <span class="cn">FALSE</span>,</span>
 <span id="cb18-45"><a href="#cb18-45" aria-hidden="true" tabindex="-1"></a>    <span class="at">position =</span> <span class="st">"center"</span></span>
-<span id="cb18-46"><a href="#cb18-46" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb18-46"><a href="#cb18-46" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb18-47"><a href="#cb18-47" aria-hidden="true" tabindex="-1"></a>table_validation</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 <div class="cell-output-display">
 <table quarto-disable-processing="true" class="table" style="width: auto !important; margin-left: auto; margin-right: auto;">
@@ -1207,11 +1210,11 @@ T_{sky,K} = \epsilon_{sky}^{0.25} \cdot T_{air,K} \qquad T_{rad,K} = \left(F_{sk
    <td style="text-align:left;"> Leaf Litter </td>
    <td style="text-align:center;"> 5 </td>
    <td style="text-align:center;"> 17 </td>
-   <td style="text-align:center;"> -0.19 </td>
-   <td style="text-align:center;"> 1.56 </td>
-   <td style="text-align:center;"> 1.85 </td>
-   <td style="text-align:center;"> 12.7 </td>
-   <td style="text-align:center;"> 1.34 </td>
+   <td style="text-align:center;"> -0.41 </td>
+   <td style="text-align:center;"> 1.44 </td>
+   <td style="text-align:center;"> 1.76 </td>
+   <td style="text-align:center;"> 12.1 </td>
+   <td style="text-align:center;"> 1.12 </td>
   </tr>
 </tbody>
 </table>

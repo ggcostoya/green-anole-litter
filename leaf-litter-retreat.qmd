@@ -247,7 +247,7 @@ count_plot <- ggplot() +
   ) +
   labs(color = NULL)
 
-ggarrange(
+fig_survey <- ggarrange(
   obs_plot,
   count_plot,
   ncol = 1,
@@ -257,6 +257,7 @@ ggarrange(
   # increase the size of the labels
   font.label = list(size = 16, face = "bold")
 )
+fig_survey
 
 ```
 
@@ -1028,7 +1029,7 @@ location_summary <- otms_data_sum |>
   ) |>
   arrange(location)
 
-location_summary |>
+table_location_summary <- location_summary |>
   select(
     location, lat,
     est_canopy, abs_min_canopy, est_litter, abs_min_litter, buffering
@@ -1047,6 +1048,8 @@ location_summary |>
   add_header_above(
     c(" " = 2, "Minimum operative temperatures" = 5)
   )
+table_location_summary
+
 ```
 
 ## Manuscript Figure

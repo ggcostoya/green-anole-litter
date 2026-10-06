@@ -2,6 +2,10 @@ project:
   title: "green-anole-litter"
   type: website
   output-dir: docs
+  # supplementary appendices are rendered separately (supplement/render-supplement.sh)
+  render:
+    - "*.qmd"
+    - "!supplement/"
 
 website:
   announcement:

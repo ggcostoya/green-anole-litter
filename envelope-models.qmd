@@ -514,7 +514,7 @@ memo_single <- best_forest |>
   mutate(thresh = factor(thresh, levels = names(extent_labels))) |>
   arrange(thresh)
 
-memo_single |>
+table_memo_single <- memo_single |>
   mutate(
     thresh = extent_labels[as.character(thresh)],
     forest = sprintf("%.3f (> %.0f%%)", forest_tss, forest_veg * 100),
@@ -551,6 +551,7 @@ memo_single |>
     ),
     general_title = ""
   )
+table_memo_single
 ```
 
 Forest cover alone (TSS = `{r} paste(sprintf("%.2f", range(memo_single$forest_tss)), collapse = "–")`) and canopy temperatures alone (TSS = `{r} paste(sprintf("%.2f", range(memo_single$canopy_tss[memo_single$thresh != "below_zero"])), collapse = "–")` outside of areas below 0 °C) have a limited capacity to predict the green anole's range. Leaf-litter temperatures alone perform substantially better (TSS = `{r} paste(sprintf("%.2f", range(memo_single$temp_tss)), collapse = "–")`, at depths of `{r} paste(sort(unique(round(-memo_single$temp_z * 100))), collapse = "–")` cm), and combining them with forest cover yields the highest predictive capacity (TSS = `{r} paste(sprintf("%.2f", range(memo_single$full_tss)), collapse = "–")`). Thus, both leaf-litter temperatures and forest cover contribute to predicting the green anole's range, and leaf-litter temperatures outperform canopy temperatures even when forest cover is not considered.

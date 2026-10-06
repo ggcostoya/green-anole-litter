@@ -1,0 +1,122 @@
+/* Print layout of the supplementary materials (US letter, 0.75 in margins) */
+@page {
+  size: letter;
+  margin: 0.75in;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.4;
+  color: black;
+}
+
+main.content,
+#quarto-content,
+.page-columns {
+  max-width: 7in !important;
+}
+
+#title-block-header .title {
+  font-size: 20pt;
+}
+
+h2 {
+  font-size: 14pt;
+  margin-top: 1.4em;
+}
+
+h3 {
+  font-size: 12pt;
+}
+
+/* each supplementary figure or table starts on a new page */
+.si-item {
+  break-before: page;
+}
+
+.si-item img {
+  max-width: 100%;
+  break-inside: avoid;
+}
+
+.si-legend {
+  font-size: 9.5pt;
+  margin-top: 0.6em;
+}
+
+.si-caption {
+  font-size: 10pt;
+  margin-bottom: 0.6em;
+}
+
+/* photo panels of Figure S1 */
+.photo-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 0.8em;
+  break-inside: avoid;
+}
+
+.photo-row img {
+  flex: 1 1 0;
+  min-width: 0;
+  max-height: 1.9in;
+  object-fit: cover;
+}
+
+.photo-credit {
+  font-size: 8.5pt;
+  margin: 0.25em 0 0.6em 0;
+  break-before: avoid;
+}
+
+/* tables */
+table {
+  font-size: 9pt !important;
+}
+
+table caption {
+  caption-side: top;
+  font-weight: bold;
+  color: black;
+  text-align: left;
+}
+
+.table > :not(caption) > * > * {
+  padding: 0.15rem 0.4rem;
+}
+
+/* hide the scroll boxes kableExtra adds for long tables */
+div[style*="overflow-y: scroll"] {
+  height: auto !important;
+  overflow: visible !important;
+  border: none !important;
+}
+
+@media print {
+  a {
+    color: black;
+    text-decoration: none;
+  }
+}
+
+code {
+  color: black !important;
+  background: none !important;
+  font-size: 0.95em;
+}
+
+/* merged SI appendix: each main section starts on a new page, and its first
+   item stays on the same page as the section heading */
+.si-section {
+  break-before: page;
+}
+
+.si-first {
+  break-before: auto;
+}
+
+.si-includes {
+  margin-left: 2em;
+}
