@@ -252,7 +252,7 @@ fig_survey <- ggarrange(
   count_plot,
   ncol = 1,
   nrow = 2,
-  labels = c("A", "B"),
+  labels = c("a", "b"),
   align = "hv",
   # increase the size of the labels
   font.label = list(size = 16, face = "bold")
@@ -1069,7 +1069,7 @@ ggarrange(
   ncol = 2,
   nrow = 1,
   widths = c(1, 1),
-  labels = c("A", "B"),
+  labels = c("a", "b"),
   font.label = list(size = 16, face = "bold")
 )
 

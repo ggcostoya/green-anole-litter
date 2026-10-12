@@ -924,7 +924,7 @@ combined_plot <- ggarrange(
   lat_temps, proportions, areas,
   ncol = 3, nrow = 1,
   widths = c(1.25, 0.5, 0.5),
-  labels = c("A", "B", "C"),
+  labels = c("a", "b", "c"),
   font.label = list(size = 15, face = "bold", color = "black")
 )
 combined_plot
@@ -1162,7 +1162,7 @@ fig_substrate <- ggarrange(
   lat_temps_substrate, proportions_substrate, areas_substrate,
   ncol = 3, nrow = 1,
   widths = c(1.25, 0.5, 0.5),
-  labels = c("A", "B", "C"),
+  labels = c("a", "b", "c"),
   align = "hv",
   font.label = list(size = 15, face = "bold", color = "black")
 )

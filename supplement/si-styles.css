@@ -107,7 +107,7 @@ code {
   font-size: 0.95em;
 }
 
-/* merged SI appendix: each main section starts on a new page, and its first
+/* merged Supplementary Information: each main section starts on a new page, and its first
    item stays on the same page as the section heading */
 .si-section {
   break-before: page;
@@ -119,4 +119,9 @@ code {
 
 .si-includes {
   margin-left: 2em;
+}
+
+/* yellow fill-in notes for the authors */
+.fill-in {
+  background: yellow;
 }

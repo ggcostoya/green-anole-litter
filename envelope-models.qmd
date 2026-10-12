@@ -391,7 +391,7 @@ cowplot::plot_grid(
   align = "v",
   axis = "lr",
   rel_heights = c(map_height, 11.5 - map_height),
-  labels = c("A", "B"),
+  labels = c("a", "b"),
   label_size = 16
 )
 ```
@@ -688,7 +688,7 @@ ggarrange(
   required_tret_map,
   nrow = 1,
   align = "h",
-  labels = c("A", "B", "C"),
+  labels = c("a", "b", "c"),
   common.legend = TRUE,
   legend = "bottom"
 )
@@ -867,8 +867,9 @@ Finally, we combine the plots above into Figure 4 of the manuscript. (A) Areas w
 #| out.width: "100%"
 #| message: false
 
-# Figure 4 is built at its final print size (PNAS two-column width: 17.8 cm /
-# 7 in), so font sizes below are the sizes in print (PNAS minimum: 6 pt)
+# Figure 4 is built at its final print size (17.8 cm / 7 in, within the Nature
+# Ecology & Evolution maximum width of 18 cm), so font sizes below are the
+# sizes in print (journal range: 5-7 pt)
 fig4_width <- 7
 fig4_left_share <- 0.46
 pt <- 1 / ggplot2::.pt # converts points to ggplot2 text size units (mm)
@@ -1118,7 +1119,7 @@ fig4_left <- cowplot::plot_grid(
   align = "v",
   axis = "lr",
   rel_heights = fig4_heights[c("a", "c", "c", "c", "legend")],
-  labels = c("A", "C", "", "", ""),
+  labels = c("a", "c", "", "", ""),
   label_size = 10,
   label_x = 0, label_y = c(1, 1, 1, 1, 1),
   hjust = -0.2
@@ -1133,7 +1134,7 @@ fig4_right <- cowplot::plot_grid(
   align = "v",
   axis = "lr",
   rel_heights = c(fig4_b_height, fig4_total_height - fig4_b_height),
-  labels = c("B", "D"),
+  labels = c("b", "d"),
   label_size = 10,
   label_x = 0,
   hjust = -0.2

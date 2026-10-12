@@ -11,7 +11,7 @@ website:
   announcement:
     dismissable: false
     position: above-navbar
-    content: "A major behavioral innovation enabled the poleward range expansion of a tropical ectotherm beyond its physiological limits"
+    content: "Behavioral innovation enables the poleward range expansion of a tropical ectotherm beyond its physiological limits"
   navbar:
     title: false
     background: "#d8f3dc"
