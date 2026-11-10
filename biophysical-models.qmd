@@ -578,7 +578,7 @@ We parameterized $k$, $\rho$, and $c_p$ using literature values representative o
 
 - $k = 0.05 \text{ W m}^{-1}\text{K}^{-1}$, within the $0.04\text{-}0.06 \text{ W m}^{-1}\text{K}^{-1}$ range reported for dry organic litter layers (Campbell and Norman 1998; Oke 1987).
 
-- $\rho = 150 \text{ kg m}^{-3}$, representing a slightly settled field-layer density within the $60\text{--}180 \text{ kg m}^{-3}$ range measured for surficial $O_i$ litter (Sato et al. 2004; Gaudinski et al. 2000).
+- $\rho = 150 \text{ kg m}^{-3}$, representing a slightly settled field-layer density within the $60\text{--}180 \text{ kg m}^{-3}$ range measured for surficial $O_i$ litter (Gaudinski et al. 2000).
 
 - $c_p = 2500 \text{ J kg}^{-1}\text{K}^{-1}$, the standard value used for the dry solid organic fraction of soils (De Vries 1963; Bonan 2019).
 

@@ -77,7 +77,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-fcfefe5aa994383a93959574d76c3222.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ffab4617c9faea3d3cda282a4ee3b35a.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
 <link href="site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
 <link href="site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
@@ -178,6 +178,13 @@ window.Quarto = {
   <li class="nav-item">
     <a class="nav-link" href="./envelope-models.html"> 
 <span class="menu-text">Predicting Poleward Limits</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/ggcostoya/green-anole-litter"> <i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+<span class="menu-text"></span></a>
   </li>  
 </ul>
           </div> <!-- /navcollapse -->
@@ -998,7 +1005,7 @@ AIC (REML)
 <h2 class="anchored" data-anchor-id="the-green-anole-is-an-exceptional-case-of-climatic-overfilling">The green anole is an exceptional case of climatic overfilling</h2>
 <section id="data-processing" class="level3">
 <h3 class="anchored" data-anchor-id="data-processing">Data processing</h3>
-<p>We compiled a dataset of CT<sub>min</sub> and elevational limits for 180 lizard species, representing 17 families and 46 genera. We obtained CT<sub>min</sub> estimates from the GlobTherm database and complemented them with two datasets focused specifically on <em>Anolis</em> lizards (Bodensteiner et al.&nbsp;2024; Salazar et al.&nbsp;2025). When a species was present in more than one dataset (only <em>A. barbouri</em>), we kept the GlobTherm record. We then obtained elevational range limits, substrate use (arboreal, semi-arboreal or other) and the identifiers linking each species to its range map in the GARD database from SquamBase. The script used to compile this dataset (<code>process-ctmin-lizards-data.R</code>) is stored in the <code>raw_data</code> folder. For <em>A. carolinensis</em>, we set CT<sub>min</sub> to 6.8 °C, the lowest population-average CT<sub>min</sub> we measured (Knoxville, TN).</p>
+<p>We compiled a dataset of CT<sub>min</sub> and elevational limits for 180 lizard species, representing 17 families and 46 genera. We obtained CT<sub>min</sub> estimates from the GlobTherm database and complemented them with two datasets focused specifically on <em>Anolis</em> lizards (Bodensteiner et al.&nbsp;2024; Salazar et al.&nbsp;2025). When a species was present in more than one dataset (only <em>A. barbouri</em>), we kept the GlobTherm record. We then obtained elevational range limits, substrate use (arboreal, semi-arboreal or other) and the identifiers linking each species to its range map in the GARD database from SquamBase. The script used to compile this dataset (<code>process-ctmin-lizards-data.R</code>) is stored in the <code>scripts</code> folder. For <em>A. carolinensis</em>, we set CT<sub>min</sub> to 6.8 °C, the lowest population-average CT<sub>min</sub> we measured (Knoxville, TN).</p>
 <p>Below we present the structure of the resulting dataset, which is stored in the <code>data</code> folder:</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>ctmin_lizards <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"data/ctmin_lizards.rds"</span>)</span>

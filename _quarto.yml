@@ -14,8 +14,6 @@ website:
     content: "Behavioral innovation enables the poleward range expansion of a tropical ectotherm beyond its physiological limits"
   navbar:
     title: false
-    background: "#d8f3dc"
-    foreground: "#1b4332"
     left:
     - text: "Start Here"
       href: index.qmd
@@ -27,12 +25,14 @@ website:
       href: biophysical-models.qmd
     - text: "Predicting Poleward Limits"
       href: envelope-models.qmd
+    right:
+    - icon: github
+      href: https://github.com/ggcostoya/green-anole-litter
+      aria-label: GitHub
 
 format:
   html:
-    theme: 
-      - cosmo
-      - brand
+    theme: cosmo
     css: styles.css
     toc: true
     lightbox: true

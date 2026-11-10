@@ -77,7 +77,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="site_libs/quarto-html/quarto-syntax-highlighting-7f8f88aac4f3542376d5c11b86a4c14d.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-fcfefe5aa994383a93959574d76c3222.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="site_libs/bootstrap/bootstrap-ffab4617c9faea3d3cda282a4ee3b35a.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script src="site_libs/quarto-contrib/glightbox/glightbox.min.js"></script>
 <link href="site_libs/quarto-contrib/glightbox/glightbox.min.css" rel="stylesheet">
 <link href="site_libs/quarto-contrib/glightbox/lightbox.css" rel="stylesheet">
@@ -178,6 +178,13 @@ window.Quarto = {
   <li class="nav-item">
     <a class="nav-link" href="./envelope-models.html"> 
 <span class="menu-text">Predicting Poleward Limits</span></a>
+  </li>  
+</ul>
+            <ul class="navbar-nav navbar-nav-scroll ms-auto">
+  <li class="nav-item compact">
+    <a class="nav-link" href="https://github.com/ggcostoya/green-anole-litter"> <i class="bi bi-github" role="img" aria-label="GitHub">
+</i> 
+<span class="menu-text"></span></a>
   </li>  
 </ul>
           </div> <!-- /navcollapse -->
@@ -771,7 +778,7 @@ T(z,h) = T_{surf}(h) - \left[T_{surf}(h) - T_{air}^{\prime}(h)\right] \cdot \phi
 <p>We parameterized <span class="math inline">\(k\)</span>, <span class="math inline">\(\rho\)</span>, and <span class="math inline">\(c_p\)</span> using literature values representative of dry, loosely-packed organic leaf litter rather than mineral soil, since litter’s high porosity (<span class="math inline">\(\approx\)</span> 80-90%) traps insulating pockets of still air that give it much lower thermal conductivity and bulk density than mineral soil. We set:</p>
 <ul>
 <li><p><span class="math inline">\(k = 0.05 \text{ W m}^{-1}\text{K}^{-1}\)</span>, within the <span class="math inline">\(0.04\text{-}0.06 \text{ W m}^{-1}\text{K}^{-1}\)</span> range reported for dry organic litter layers (Campbell and Norman 1998; Oke 1987).</p></li>
-<li><p><span class="math inline">\(\rho = 150 \text{ kg m}^{-3}\)</span>, representing a slightly settled field-layer density within the <span class="math inline">\(60\text{--}180 \text{ kg m}^{-3}\)</span> range measured for surficial <span class="math inline">\(O_i\)</span> litter (Sato et al.&nbsp;2004; Gaudinski et al.&nbsp;2000).</p></li>
+<li><p><span class="math inline">\(\rho = 150 \text{ kg m}^{-3}\)</span>, representing a slightly settled field-layer density within the <span class="math inline">\(60\text{--}180 \text{ kg m}^{-3}\)</span> range measured for surficial <span class="math inline">\(O_i\)</span> litter (Gaudinski et al.&nbsp;2000).</p></li>
 <li><p><span class="math inline">\(c_p = 2500 \text{ J kg}^{-1}\text{K}^{-1}\)</span>, the standard value used for the dry solid organic fraction of soils (De Vries 1963; Bonan 2019).</p></li>
 </ul>
 <p>Given the angular frequency of the diurnal temperature cycle (<span class="math inline">\(\omega = 2\pi/24 \text{ rad h}^{-1}\)</span>), we then calculated the damping depth (<span class="math inline">\(D\)</span>), i.e.&nbsp;the depth at which the amplitude of the surface temperature wave is reduced by a factor of <span class="math inline">\(e^{-1}\)</span>:</p>

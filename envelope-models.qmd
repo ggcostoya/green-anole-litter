@@ -62,7 +62,7 @@ What limits a species' range at its poleward edge might differ from what limits 
 
 4. **Hard physiological threshold**: only cells where canopy temperatures fall below 0 °C.
 
-Below we classify every cell according to these thresholds and plot them.
+Below we classify every cell according to these thresholds.
 
 ```{r define-thresholds}
 #| code-summary: "Define thresholds for mechanistic envelope models"
@@ -276,16 +276,12 @@ saveRDS(tss_grid, "data/tss_grid.rds")
 
 ```
 
-Lastly, we identify the combination of microclimate and forest cover threshold that maximizes TSS for each spatial extent (Table S8 in the manuscript) and plot the results (see the [manuscript Figure 4](#manuscript-figure-4) section at the end of this vignette for the final version of this figure). Panel A shows the areas below each threshold. Panel B shows the TSS values of every combination of microclimate (y-axis) and forest cover threshold (x-axis) for each spatial extent, with red circles marking the combination that maximizes TSS.
+Lastly, we identify the combination of microclimate and forest cover threshold that maximizes TSS for each spatial extent (Table S9 in the manuscript).
 
 Across all spatial extents, leaf-litter microclimates predict the green anole's range better than the canopy, with depths of 3-4 cm performing best. This effect is strongest in areas where canopy temperatures fall below 0 °C, where the poleward range edge is located: here, canopy microclimates have no predictive capacity (TSS = 0), whereas leaf-litter microclimates yield the highest predictive accuracy of all conditions tested.
 
-```{r plot-memo-results}
-#| code-summary: "Plot mechanistic envelope model results"
-#| fig-align: "center"
-#| fig-height: 11.5
-#| fig-width: 6
-
+```{r memo-results}
+#| code-summary: "Identify the best mechanistic envelope models"
 
 # load TSS grid
 tss_grid <- readRDS("data/tss_grid.rds")
@@ -302,25 +298,128 @@ tss_grid$thresh <- factor(
   tss_grid$thresh,
   levels = c("below_zero", "below_ctmin", "below_tret", "rest_of_range"),
 )
+```
 
-# plot TSS grid
-tss_grid_plot <- tss_grid |>
-  filter(z < 2) |>
-  mutate(tile_height = ifelse(z > 0, 0.2, 0.01)) |>
-  mutate(z_mod = ifelse(z > 0, 0.1, z)) |>
+Figure 4 of the manuscript shows these results. (A) Areas where minimum canopy temperatures fall below each threshold. (B) TSS of every combination of microclimate and forest cover threshold in areas where canopy temperatures fall below T<sub>ret</sub>, CT<sub>min</sub> and 0 °C, with red circles marking the combination that maximizes TSS.
+
+```{r plot-manuscript-figure-4}
+#| code-summary: "Plot manuscript Figure 4"
+#| fig-align: "center"
+#| fig-width: 7
+#| fig-height: 6.1
+#| out.width: "100%"
+#| message: false
+
+# Figures 4 and 5 are built at their final print size (7 in wide), so font
+# sizes below are the sizes in print
+fig_width <- 7
+pt <- 1 / ggplot2::.pt # converts points to ggplot2 text size units (mm)
+fig_text <- theme(
+  axis.title = element_text(size = 8),
+  axis.text = element_text(size = 7),
+  legend.title = element_text(size = 7),
+  legend.text = element_text(size = 7),
+  strip.text = element_text(size = 8),
+  plot.title = element_text(size = 8)
+)
+
+# rescale text and line layers of an existing plot to print size
+fig_rescale_layers <- function(p, text_size = 6.5 * pt, line_scale = 0.6) {
+  p$layers <- lapply(p$layers, \(l) {
+    if (inherits(l$geom, c("GeomText", "GeomLabel"))) {
+      l$aes_params$size <- text_size
+    }
+    if (!is.null(l$aes_params$linewidth)) {
+      l$aes_params$linewidth <- l$aes_params$linewidth * line_scale
+    }
+    l
+  })
+  p
+}
+
+# larger text for Figure 4
+fig4_text <- theme(
+  axis.title = element_text(size = 10),
+  axis.text = element_text(size = 9),
+  legend.title = element_text(size = 9),
+  legend.text = element_text(size = 9),
+  strip.text = element_text(size = 11)
+)
+
+# all maps share the same extent, cropped around the green anole's range; we
+# use coord_cartesian (instead of coord_quickmap) so that maps fill their
+# panels, and set the height of each panel to keep the maps' aspect ratio
+fig_xlim <- c(-100.2, -75.3)
+fig_ylim <- c(24.3, 37.5)
+fig_coord <- coord_cartesian(xlim = fig_xlim, ylim = fig_ylim, expand = FALSE)
+fig_map_aspect <- diff(fig_ylim) /
+  (diff(fig_xlim) * cos(mean(fig_ylim) * pi / 180))
+fig_map_scales <- list(
+  scale_x_continuous(
+    breaks = seq(-95, -80, by = 5),
+    labels = function(x) paste0(abs(x), "°W"),
+    expand = c(0, 0)
+  ),
+  scale_y_continuous(
+    breaks = seq(26, 36, by = 4),
+    labels = function(x) paste0(x, "°N"),
+    expand = c(0, 0)
+  )
+)
+fig_map_theme <- fig_text +
+  theme(
+    axis.title = element_blank(),
+    axis.ticks = element_line(linewidth = 0.25),
+    axis.ticks.length = unit(1.5, "pt"),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.4),
+    plot.title = element_blank(),
+    plot.margin = margin(t = 2, r = 4, b = 2, l = 2)
+  )
+
+# A: areas below each threshold
+fig4_a <- fig_rescale_layers(thresh_plot, line_scale = 0.5) +
+  fig_map_scales +
+  fig_coord +
+  fig_map_theme +
+  fig4_text +
+  theme(
+    axis.title = element_blank(),
+    legend.position.inside = c(0.5, 0.04),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 9),
+    legend.key.size = unit(9, "pt"),
+    legend.key.spacing.x = unit(4, "pt"),
+    plot.margin = margin(t = 12, r = 4, b = 2, l = 2)
+  )
+
+# B: TSS surfaces (Tret on the left, 0 °C on the right; entire range excluded)
+fig4_extents <- c(tret = "below_tret", ctmin = "below_ctmin", zero = "below_zero")
+fig4_b_data <- tss_grid |>
+  filter(thresh %in% fig4_extents, z < 2) |>
+  mutate(
+    thresh = factor(as.character(thresh), levels = fig4_extents),
+    # canopy shown as a thin strip above the leaf litter
+    tile_height = ifelse(z > 0, 0.054, 0.01),
+    z_mod = ifelse(z > 0, 0.035, z)
+  ) |>
   as_tibble() |>
-  arrange(desc(tile_height)) |>
+  arrange(desc(tile_height))
+fig4_b_max <- tss_grid_max |>
+  filter(thresh %in% fig4_extents) |>
+  mutate(thresh = factor(as.character(thresh), levels = fig4_extents))
+fig4_b <- fig4_b_data |>
   ggplot(aes(x = veg, fill = tss)) +
   geom_tile(aes(y = z_mod, height = tile_height)) +
   geom_point(
     aes(y = z),
-    data = tss_grid_max,
-    color = "red",
-    size = 3,
-    shape = 1
+    data = fig4_b_max,
+    color = "red", size = 1.8, shape = 1, stroke = 0.6
   ) +
-  geom_hline(
-    yintercept = 0, color = "white", linetype = "solid"
+  geom_hline(yintercept = 0.0065, color = "white", linewidth = 0.8) +
+  annotate(
+    "text",
+    x = 0.02, y = 0.035, label = "Canopy",
+    hjust = 0, color = "white", size = 9 * pt, fontface = "bold"
   ) +
   scale_fill_viridis_b(
     name = "TSS",
@@ -331,70 +430,80 @@ tss_grid_plot <- tss_grid |>
       min(tss_grid$tss, na.rm = TRUE), max(tss_grid$tss, na.rm = TRUE),
       by = 0.05
     ),
-    # only show labels for every other break
     labels = function(x) ifelse(seq_along(x) %% 2 == 1, x, ""),
     guide = guide_colorsteps(
-      barheight = unit(8, "cm"),
-      barwidth = unit(0.5, "cm")
+      barwidth = unit(7, "cm"),
+      barheight = unit(0.25, "cm"),
+      title.vjust = 0.9
     )
   ) +
   scale_x_continuous(
-    breaks = seq(0, 1, by = 0.2),
+    breaks = seq(0, 1, by = 0.25),
+    labels = function(x) paste0(x * 100, "%"),
     expand = c(0, 0)
   ) +
   scale_y_continuous(
     expand = c(0, 0),
-    breaks = c(0.2, 0, -0.05, -0.1, -0.2),
-    labels = c("1.8", "0", "-0.05", "-0.1", "-0.2")
+    breaks = c(0, -0.05, -0.1, -0.2),
+    labels = c("0", "5", "10", "20")
   ) +
   facet_wrap(
     ~thresh,
-    ncol = 2,
-    nrow = 2,
-    axes = "all",
+    nrow = 1,
     labeller = labeller(
       thresh = as_labeller(
         c(
-          below_zero = "bold(atop('< Hard Physiological', 'Threshold (' * 0 * degree * C * ')'))", # nolint
-          below_ctmin = "bold(atop('< Soft Physiological', 'Threshold (' * CT[min] * ')'))", # nolint
-          below_tret = "bold(atop('< Behavior', 'Threshold (' * T[ret] * ')'))", # nolint
-          rest_of_range = "bold(atop('Entire', 'range'))"
+          below_zero = "'Canopy ' * T[min] < 0 * degree * C",
+          below_ctmin = "'Canopy ' * T[min] < CT[min]",
+          below_tret = "'Canopy ' * T[min] < T[ret]"
         ),
         label_parsed
       )
     )
   ) +
   labs(
-    x = "Forest Cover",
-    y = "Distance from surface above or below leaf litter (m)"
+    x = "Forest cover threshold",
+    y = "Depth in leaf litter (cm)"
   ) +
   theme_minimal() +
+  fig4_text +
   theme(
-    legend.position = "right",
-    strip.text = element_text(size = 12),
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+    legend.position = "bottom",
+    legend.margin = margin(t = 0),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.4),
+    panel.grid = element_blank(),
+    panel.spacing.x = unit(20, "pt"),
     axis.ticks = element_line(color = "black", linewidth = 0.25),
-    axis.title = element_text(size = 14, lineheight = 1.25),
-    legend.title = element_text(size = 14, hjust = 0.5, vjust = 1),
-    axis.text.y = element_text(size = 10)
+    strip.text = element_text(size = 11, margin = margin(b = 3, t = 2)),
+    plot.margin = margin(t = 10, r = 10, b = 2, l = 6)
   )
 
-# align the map with the TSS panels: the map spans the width of the two panel
-# columns (~4.4 in), and its height (in inches) keeps the map's aspect ratio
-# (as in coord_quickmap) plus space for the axis labels
-map_aspect <- (37.5 - 24) / ((-75 - -101) * cos(mean(c(24, 37.5)) * pi / 180))
-map_height <- 4.4 * map_aspect + 0.6
-cowplot::plot_grid(
-  thresh_plot + theme(plot.margin = margin(t = 15, r = 5, b = 5, l = 5)),
-  tss_grid_plot,
-  ncol = 1,
-  align = "v",
-  axis = "lr",
-  rel_heights = c(map_height, 11.5 - map_height),
-  labels = c("a", "b"),
-  label_size = 16
+# the map is narrower than the figure so that both panels are similar in height
+# and it is centered above panel B
+fig4_a_width <- 3.7
+fig4_a_height <- (fig4_a_width - 0.4) * fig_map_aspect + 0.4
+fig4_b_height <- 3.6
+fig4_top <- cowplot::plot_grid(
+  NULL, fig4_a, NULL,
+  nrow = 1,
+  rel_widths = c(1.65, fig4_a_width, fig_width - fig4_a_width - 1.65),
+  labels = c("", "a", ""), label_size = 10, label_x = 0, hjust = -0.2
 )
+fig4 <- cowplot::plot_grid(
+  fig4_top, fig4_b,
+  ncol = 1,
+  rel_heights = c(fig4_a_height, fig4_b_height),
+  labels = c("", "b"), label_size = 10, label_x = 0, hjust = -0.2
+)
+fig4_height <- fig4_a_height + fig4_b_height
+ggsave(
+  "images/figure_4.png", fig4,
+  width = fig_width, height = fig4_height, dpi = 700, bg = "white"
+)
+fig4
 ```
+
+Figure 4 is drawn at its final print size (`{r} fig_width` × `{r} round(fig4_height, 1)` in).
 
 ## Contribution of each variable
 
@@ -556,15 +665,12 @@ table_memo_single
 
 Forest cover alone (TSS = `{r} paste(sprintf("%.2f", range(memo_single$forest_tss)), collapse = "–")`) and canopy temperatures alone (TSS = `{r} paste(sprintf("%.2f", range(memo_single$canopy_tss[memo_single$thresh != "below_zero"])), collapse = "–")` outside of areas below 0 °C) have a limited capacity to predict the green anole's range. Leaf-litter temperatures alone perform substantially better (TSS = `{r} paste(sprintf("%.2f", range(memo_single$temp_tss)), collapse = "–")`, at depths of `{r} paste(sort(unique(round(-memo_single$temp_z * 100))), collapse = "–")` cm), and combining them with forest cover yields the highest predictive capacity (TSS = `{r} paste(sprintf("%.2f", range(memo_single$full_tss)), collapse = "–")`). Thus, both leaf-litter temperatures and forest cover contribute to predicting the green anole's range, and leaf-litter temperatures outperform canopy temperatures even when forest cover is not considered.
 
-### Minimum leaf-litter depth required in each cell
+## Minimum leaf-litter depth required in each cell
 
-The envelope models above identify the microclimate and forest cover threshold that best predict the green anole's range across a spatial extent, but an optimal leaf-litter depth or forest cover threshold cannot be defined for a single cell: TSS requires both presences and absences, and, for a single cell where the green anole is present, every microclimate that keeps lizards above 0 °C predicts its presence equally well. What we can calculate for each cell independently, using only its own biophysical model estimates, is the minimum leaf-litter depth at which a green anole's minimum annual body temperature stays above a given threshold. Minimum annual body temperatures never decrease with depth in any cell, so this minimum depth is well defined. Below we map the minimum depth required to stay above 0 °C (A), above CT<sub>min</sub> (B) and above T<sub>ret</sub> (C) in each cell, where "canopy" indicates that body temperatures in the canopy already stay above the threshold (i.e., no leaf litter is needed) and "> 20 cm" that none of the leaf-litter depths we modeled is warm enough. The black line shows the edge of the green anole's range.
+The envelope models above identify the microclimate and forest cover threshold that best predict the green anole's range across a spatial extent, but an optimal leaf-litter depth or forest cover threshold cannot be defined for a single cell: TSS requires both presences and absences, and, for a single cell where the green anole is present, every microclimate that keeps lizards above 0 °C predicts its presence equally well. What we can calculate for each cell independently, using only its own biophysical model estimates, is the minimum leaf-litter depth at which a green anole's minimum annual body temperature stays above a given threshold. Minimum annual body temperatures never decrease with depth in any cell, so this minimum depth is well defined. Below we calculate the minimum depth required to stay above 0 °C, above CT<sub>min</sub> and above T<sub>ret</sub> in each cell. In the maps of Figure 5B at the end of this section, "canopy" indicates that body temperatures in the canopy already stay above the threshold (i.e., no leaf litter is needed) and "> 20 cm" that none of the leaf-litter depths we modeled is warm enough. The black line shows the edge of the green anole's range.
 
 ```{r map-required-depth}
-#| code-summary: "Map the minimum leaf-litter depth required in each cell"
-#| fig-align: "center"
-#| fig-width: 15
-#| fig-height: 5
+#| code-summary: "Calculate the minimum leaf-litter depth required in each cell"
 
 # one row per cell with the presence of the green anole, and the range edge
 # (range_edge() is defined above, when plotting the spatial extents)
@@ -682,28 +788,14 @@ required_tret_map <- required_maps |>
   scale_fill_manual(name = NULL, values = required_colors, drop = FALSE) +
   guides(fill = guide_legend(nrow = 1)) +
   labs(title = expression("Minimum depth to stay above " * T[ret]))
-ggarrange(
-  required_zero_map,
-  required_ctmin_map,
-  required_tret_map,
-  nrow = 1,
-  align = "h",
-  labels = c("a", "b", "c"),
-  common.legend = TRUE,
-  legend = "bottom"
-)
 ```
 
 Within the green anole's range, `{r} round(100 * required_summary$deep[required_summary$presence == 1])`% of cells require more than 4 cm of leaf litter to keep body temperatures above 0 °C, compared with `{r} round(100 * required_summary$deep[required_summary$presence == 0])`% of cells outside the range. Thus, the poleward range edge broadly coincides with the transition from areas where a few centimeters of leaf litter are enough to avoid freezing to areas where deeper litter (or no available microclimate) would be required. In contrast, staying above CT<sub>min</sub>, and even more so above T<sub>ret</sub>, requires deep leaf litter, or is not possible in any of the microclimates we modeled, across most of the range, consistent with green anoles tolerating temperatures below their CT<sub>min</sub> but not freezing.
 
-Lastly, we summarise these maps by latitude. For each threshold, we calculate the average minimum leaf-litter depth required across all cells at each latitude (excluding latitudes with 100 cells or fewer). Cells where none of the modeled depths is warm enough require at least 20 cm of leaf litter, so we assign them a depth of 20 cm and the resulting averages are lower bounds of the depth required. The dark gray band at the bottom of the plot marks depths beyond 20 cm; curves approaching it indicate that most cells at that latitude require more than 20 cm of leaf litter. We then compare these averages with the latitude of the green anole's northern range limit (the northernmost cell where the green anole is present in each 1° longitudinal band). Lines show a running mean of the average depth over ± 0.25° of latitude, and shaded areas a running mean of its standard deviation across cells at each latitude. The orange band marks depths of 3–4 cm. The dashed line shows the average northern range limit and the light gray area its standard deviation across longitudinal bands.
+Lastly, we summarise these maps by latitude. For each threshold, we calculate the average minimum leaf-litter depth required across all cells at each latitude (excluding latitudes with 100 cells or fewer). Cells where none of the modeled depths is warm enough require at least 20 cm of leaf litter, so we assign them a depth of 20 cm and the resulting averages are lower bounds of the depth required. The dark gray band at the bottom of Figure 5A marks depths beyond 20 cm; curves approaching it indicate that most cells at that latitude require more than 20 cm of leaf litter. We then compare these averages with the latitude of the green anole's northern range limit (the northernmost cell where the green anole is present in each 1° longitudinal band). Lines show a running mean of the average depth over ± 0.25° of latitude, and shaded areas a running mean of its standard deviation across cells at each latitude. The orange band marks depths of 3–4 cm. The dashed line shows the average northern range limit and the light gray area its standard deviation across longitudinal bands.
 
 ```{r plot-required-depth-by-latitude}
-#| code-summary: "Plot the average minimum leaf-litter depth required by latitude"
-#| fig-align: "center"
-#| fig-width: 7
-#| fig-height: 5
-#| out.width: "75%"
+#| code-summary: "Calculate the average minimum leaf-litter depth required by latitude"
 
 # northern range limit: northernmost cell where the green anole is present in
 # each 1-degree longitudinal band
@@ -749,7 +841,7 @@ avg_depth_smooth <- avg_depth_by_lat |>
   ) |>
   ungroup()
 
-# colors and labels of each threshold (as in Fig. 4)
+# colors and labels of each threshold (as in Figs. 4 and 5)
 threshold_colors <- c(zero = "darkblue", ctmin = "steelblue", tret = "lightblue")
 threshold_labels <- c(
   zero = expression(0 * degree * C),
@@ -852,153 +944,92 @@ depth_lat_plot <- avg_depth_smooth |>
     x = "Latitude",
     y = "Average minimum depth in leaf litter (cm)"
   )
-depth_lat_plot
 ```
 
-## Manuscript Figure 4
+Finally, Figure 5 of the manuscript shows these results. (A) Average minimum leaf-litter depth at which green anoles can keep body temperatures above each threshold, by latitude. (B) Minimum leaf-litter depth at which green anoles can keep body temperatures above T<sub>ret</sub>, CT<sub>min</sub> and 0 °C in each cell.
 
-Finally, we combine the plots above into Figure 4 of the manuscript. (A) Areas where minimum canopy temperatures fall below each threshold. (B) Average minimum leaf-litter depth at which green anoles can keep body temperatures above each threshold, by latitude. (C) Minimum leaf-litter depth at which green anoles can keep body temperatures above T<sub>ret</sub>, CT<sub>min</sub> and 0 °C in each cell. (D) TSS of every combination of microclimate and forest cover threshold in areas where canopy temperatures fall below T<sub>ret</sub>, CT<sub>min</sub> and 0 °C, with red circles marking the combination that maximizes TSS.
-
-```{r plot-manuscript-figure-4}
-#| code-summary: "Plot manuscript Figure 4"
+```{r plot-manuscript-figure-5}
+#| code-summary: "Plot manuscript Figure 5"
 #| fig-align: "center"
 #| fig-width: 7
-#| fig-height: 8.83
+#| fig-height: 5.05
 #| out.width: "100%"
 #| message: false
 
-# Figure 4 is built at its final print size (17.8 cm / 7 in, within the Nature
-# Ecology & Evolution maximum width of 18 cm), so font sizes below are the
-# sizes in print (journal range: 5-7 pt)
-fig4_width <- 7
-fig4_left_share <- 0.46
-pt <- 1 / ggplot2::.pt # converts points to ggplot2 text size units (mm)
-fig4_text <- theme(
-  axis.title = element_text(size = 8),
-  axis.text = element_text(size = 7),
-  legend.title = element_text(size = 7),
-  legend.text = element_text(size = 7),
-  strip.text = element_text(size = 8),
-  plot.title = element_text(size = 8)
-)
-
-# rescale text and line layers of an existing plot to print size
-fig4_rescale_layers <- function(p, text_size = 6.5 * pt, line_scale = 0.6) {
-  p$layers <- lapply(p$layers, \(l) {
-    if (inherits(l$geom, c("GeomText", "GeomLabel"))) {
-      l$aes_params$size <- text_size
-    }
-    if (!is.null(l$aes_params$linewidth)) {
-      l$aes_params$linewidth <- l$aes_params$linewidth * line_scale
-    }
-    l
-  })
-  p
-}
-
-# thresholds shown in panels C and D, from top to bottom
-fig4_thresholds <- c("tret", "ctmin", "zero")
-fig4_extents <- c(tret = "below_tret", ctmin = "below_ctmin", zero = "below_zero")
-
-# all maps share the same extent, cropped around the green anole's range; we
-# use coord_cartesian (instead of coord_quickmap) so that maps fill the width
-# of the column, and set the height of each row below to keep the maps'
-# aspect ratio
-fig4_xlim <- c(-100.2, -75.3)
-fig4_ylim <- c(24.3, 37.5)
-fig4_coord <- coord_cartesian(xlim = fig4_xlim, ylim = fig4_ylim, expand = FALSE)
-fig4_map_scales <- list(
-  scale_x_continuous(
-    breaks = seq(-95, -80, by = 5),
-    labels = function(x) paste0(abs(x), "°W"),
-    expand = c(0, 0)
-  ),
-  scale_y_continuous(
-    breaks = seq(26, 36, by = 4),
-    labels = function(x) paste0(x, "°N"),
-    expand = c(0, 0)
-  )
-)
-fig4_map_theme <- fig4_text +
-  theme(
-    axis.title = element_blank(),
-    axis.ticks = element_line(linewidth = 0.25),
-    axis.ticks.length = unit(1.5, "pt"),
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.4),
-    plot.title = element_blank(),
-    plot.margin = margin(t = 2, r = 4, b = 2, l = 2)
-  )
-
-# A: areas below each threshold
-fig4_a <- fig4_rescale_layers(thresh_plot, line_scale = 0.5) +
-  fig4_map_scales +
-  fig4_coord +
-  fig4_map_theme +
-  theme(
-    legend.position.inside = c(0.4, 0.04),
-    legend.title = element_blank(),
-    legend.text = element_text(size = 7),
-    legend.key.size = unit(7, "pt"),
-    legend.key.spacing.x = unit(4, "pt"),
-    plot.margin = margin(t = 12, r = 4, b = 2, l = 2)
-  )
-
-# B: average minimum depth by latitude
-fig4_b <- fig4_rescale_layers(depth_lat_plot)
-# move the "Average northern range limit" label lower so it clears the 3-4 cm
-# band at print size
-for (k in seq_along(fig4_b$layers)) {
-  l <- fig4_b$layers[[k]]
+# A: average minimum depth by latitude
+fig5_a <- fig_rescale_layers(depth_lat_plot, text_size = 8 * pt)
+# shorten the "Average northern range limit" label and move it lower so it
+# clears the 3-4 cm band at print size
+for (k in seq_along(fig5_a$layers)) {
+  l <- fig5_a$layers[[k]]
   if (inherits(l$geom, "GeomText") && isTRUE(l$aes_params$angle == 90)) {
-    l$data$y <- 19
-    fig4_b$layers[[k]] <- l
+    l$data$y <- 19.5
+    l$aes_params$label <- "Average northern\nrange limit"
+    l$aes_params$lineheight <- 0.9
+    fig5_a$layers[[k]] <- l
   }
 }
-fig4_b <- fig4_b +
-  fig4_text +
+# the callout has no background, so it does not cut into the gray band, and a
+# shorter text, so it stays to the right of the range limit line
+for (k in seq_along(fig5_a$layers)) {
+  if (inherits(fig5_a$layers[[k]]$geom, "GeomLabel")) {
+    fig5_a$layers[[k]]$aes_params$fill <- NA
+    fig5_a$layers[[k]]$aes_params$label <- "Body temperature\n> 0 °C at\n3–4 cm depth"
+    fig5_a$layers[[k]]$data$y <- -3.1
+  }
+}
+fig5_a <- fig5_a +
   theme(
+    axis.title = element_text(size = 10),
+    axis.text = element_text(size = 9),
+    legend.title = element_text(size = 10),
+    legend.text = element_text(size = 10),
     axis.line = element_line(linewidth = 0.3),
     axis.ticks = element_line(linewidth = 0.3),
-    legend.key.size = unit(8, "pt"),
+    legend.key.size = unit(11, "pt"),
     legend.position.inside = c(0.02, 0.08),
-    plot.margin = margin(t = 12, r = 4, b = 2, l = 6)
+    plot.margin = margin(t = 12, r = 8, b = 2, l = 6)
   ) +
   labs(y = "Average minimum depth\nin leaf litter (cm)") +
   # label the surface as 0 (instead of "Canopy") to save space; the line just
   # below it still separates above- and below-ground values
   scale_y_reverse(
     breaks = seq(0, 20, by = 2),
-    limits = c(max_depth + 1, -3),
+    limits = c(max_depth + 1, -5.2),
     expand = c(0, 0)
   )
 
-# C: minimum depth maps (Tret at the top, 0 °C at the bottom), labeled inside
-# the Gulf of Mexico; only the bottom map shows longitude labels
-fig4_c_labels <- c(
-  tret = "'Body temperature' > T[ret]",
-  ctmin = "'Body temperature' > CT[min]",
-  zero = "'Body temperature' > 0 * degree * C"
+# B: minimum depth maps in one row; only the left map shows latitude labels
+fig5_b_titles <- list(
+  tret = expression("Body temperature > " * T[ret]),
+  ctmin = expression("Body temperature > " * CT[min]),
+  zero = expression("Body temperature > " * 0 * degree * C)
 )
-fig4_c_maps <- list(
+fig5_b_maps <- list(
   tret = required_tret_map,
   ctmin = required_ctmin_map,
   zero = required_zero_map
-)[fig4_thresholds] |>
+) |>
   imap(\(p, th) {
-    fig4_rescale_layers(p, line_scale = 0.5) +
-      annotate(
-        "text",
-        x = -89.5, y = 27, label = fig4_c_labels[[th]], parse = TRUE,
-        size = 9.5 * pt
+    p <- fig_rescale_layers(p, line_scale = 0.4) +
+      fig_map_scales +
+      fig_coord +
+      fig_map_theme +
+      theme(
+        legend.position = "none",
+        plot.title = element_text(size = 8, hjust = 0.5, margin = margin(b = 2)),
+        plot.margin = margin(t = 10, r = 4, b = 2, l = 2)
       ) +
-      fig4_map_scales +
-      fig4_coord +
-      fig4_map_theme +
-      theme(legend.position = "none")
+      labs(title = fig5_b_titles[[th]])
+    if (th != "tret") {
+      p <- p +
+        theme(axis.text.y = element_blank(), axis.ticks.y = element_blank())
+    }
+    p
   })
-fig4_c_legend <- cowplot::get_plot_component(
+fig5_b_legend <- cowplot::get_plot_component(
   required_zero_map +
-    guides(fill = guide_legend(nrow = 2, byrow = TRUE)) +
+    guides(fill = guide_legend(nrow = 1)) +
     theme(
       legend.text = element_text(size = 7),
       legend.key.size = unit(7, "pt"),
@@ -1008,144 +1039,40 @@ fig4_c_legend <- cowplot::get_plot_component(
   return_all = TRUE
 )
 
-# D: TSS surfaces (Tret at the top, 0 °C at the bottom; entire range excluded)
-fig4_d_data <- tss_grid |>
-  filter(thresh %in% fig4_extents, z < 2) |>
-  mutate(
-    thresh = factor(as.character(thresh), levels = fig4_extents),
-    # canopy shown as a thin strip above the leaf litter
-    tile_height = ifelse(z > 0, 0.054, 0.01),
-    z_mod = ifelse(z > 0, 0.035, z)
-  ) |>
-  as_tibble() |>
-  arrange(desc(tile_height))
-fig4_d_max <- tss_grid_max |>
-  filter(thresh %in% fig4_extents) |>
-  mutate(thresh = factor(as.character(thresh), levels = fig4_extents))
-fig4_d <- fig4_d_data |>
-  ggplot(aes(x = veg, fill = tss)) +
-  geom_tile(aes(y = z_mod, height = tile_height)) +
-  geom_point(
-    aes(y = z),
-    data = fig4_d_max,
-    color = "red", size = 1.8, shape = 1, stroke = 0.6
-  ) +
-  geom_hline(yintercept = 0.0065, color = "white", linewidth = 0.8) +
-  annotate(
-    "text",
-    x = 0.02, y = 0.035, label = "Canopy",
-    hjust = 0, color = "white", size = 7 * pt, fontface = "bold"
-  ) +
-  scale_fill_viridis_b(
-    name = "TSS",
-    limits = c(
-      min(tss_grid$tss, na.rm = TRUE), max(tss_grid$tss, na.rm = TRUE)
-    ),
-    breaks = seq(
-      min(tss_grid$tss, na.rm = TRUE), max(tss_grid$tss, na.rm = TRUE),
-      by = 0.05
-    ),
-    labels = function(x) ifelse(seq_along(x) %% 2 == 1, x, ""),
-    guide = guide_colorsteps(
-      barwidth = unit(4.5, "cm"),
-      barheight = unit(0.25, "cm"),
-      title.vjust = 0.9
-    )
-  ) +
-  scale_x_continuous(
-    breaks = seq(0, 1, by = 0.25),
-    labels = function(x) paste0(x * 100, "%"),
-    expand = c(0, 0)
-  ) +
-  scale_y_continuous(
-    expand = c(0, 0),
-    breaks = c(0, -0.05, -0.1, -0.2),
-    labels = c("0", "5", "10", "20")
-  ) +
-  facet_wrap(
-    ~thresh,
-    ncol = 1,
-    axes = "all_y",
-    labeller = labeller(
-      thresh = as_labeller(
-        c(
-          below_zero = "'Canopy ' * T[min] < 0 * degree * C",
-          below_ctmin = "'Canopy ' * T[min] < CT[min]",
-          below_tret = "'Canopy ' * T[min] < T[ret]"
-        ),
-        label_parsed
-      )
-    )
-  ) +
-  labs(
-    x = "Forest cover threshold",
-    y = "Depth in leaf litter (cm)"
-  ) +
-  theme_minimal() +
-  fig4_text +
-  theme(
-    legend.position = "bottom",
-    legend.margin = margin(t = 0),
-    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.4),
-    panel.grid = element_blank(),
-    panel.spacing.y = unit(4, "pt"),
-    axis.ticks = element_line(color = "black", linewidth = 0.25),
-    strip.text = element_text(size = 9.5, margin = margin(b = 2, t = 2)),
-    plot.margin = margin(t = 2, r = 10, b = 2, l = 6)
-  )
-
-# row heights (in inches): map panels are the width of the left column minus
-# the latitude labels, and their height keeps the maps' aspect ratio (as in
-# coord_quickmap)
-fig4_map_aspect <- diff(fig4_ylim) /
-  (diff(fig4_xlim) * cos(mean(fig4_ylim) * pi / 180))
-fig4_map_height <- (fig4_width * fig4_left_share - 0.4) * fig4_map_aspect
-fig4_gap <- 0.12 # vertical space between maps
-fig4_heights <- c(
-  a = fig4_map_height + 0.4, # map + longitude labels + top margin
-  c = fig4_map_height + 0.25 + fig4_gap, # map + longitude labels + gap
-  legend = 0.35
-)
-fig4_c_maps <- map(
-  fig4_c_maps,
-  \(p) p + theme(plot.margin = margin(t = fig4_gap * 72, r = 4, b = 2, l = 2))
-)
-
-# left column: A and the three C maps, with panel edges aligned
-fig4_left <- cowplot::plot_grid(
-  fig4_a, fig4_c_maps[[1]], fig4_c_maps[[2]], fig4_c_maps[[3]],
-  fig4_c_legend,
-  ncol = 1,
-  align = "v",
-  axis = "lr",
-  rel_heights = fig4_heights[c("a", "c", "c", "c", "legend")],
-  labels = c("a", "c", "", "", ""),
-  label_size = 10,
-  label_x = 0, label_y = c(1, 1, 1, 1, 1),
-  hjust = -0.2
-)
-fig4_total_height <- sum(fig4_heights[c("a", "c", "c", "c", "legend")])
-
-# right column: B taller than panel A, and D aligned with B
-fig4_b_height <- fig4_heights[["a"]] + 0.6
-fig4_right <- cowplot::plot_grid(
-  fig4_b, fig4_d,
-  ncol = 1,
-  align = "v",
-  axis = "lr",
-  rel_heights = c(fig4_b_height, fig4_total_height - fig4_b_height),
-  labels = c("b", "d"),
-  label_size = 10,
-  label_x = 0,
-  hjust = -0.2
-)
-
-fig4 <- cowplot::plot_grid(
-  fig4_left, fig4_right,
+# A on top and the three maps of B below; each map keeps its aspect ratio
+fig5_lat_labels <- 0.4 # width of the latitude labels (in inches)
+fig5_map_width <- (fig_width - fig5_lat_labels) / 3
+fig5_a_height <- 3
+fig5_b_height <- (fig5_map_width - 0.08) * fig_map_aspect + 0.46
+fig5_legend_height <- 0.3
+fig5_b <- cowplot::plot_grid(
+  fig5_b_maps$tret, fig5_b_maps$ctmin, fig5_b_maps$zero,
   nrow = 1,
-  rel_widths = c(fig4_left_share, 1 - fig4_left_share)
+  rel_widths = c(fig5_map_width + fig5_lat_labels, fig5_map_width, fig5_map_width)
 )
-fig4
+# A is narrower than the figure and centered above B
+fig5_a_width <- 4.8
+fig5_a_row <- cowplot::plot_grid(
+  NULL, fig5_a, NULL,
+  nrow = 1,
+  rel_widths = c(
+    (fig_width - fig5_a_width) / 2, fig5_a_width, (fig_width - fig5_a_width) / 2
+  ),
+  labels = c("", "a", ""), label_size = 10, label_x = 0, hjust = -0.2
+)
+fig5 <- cowplot::plot_grid(
+  fig5_a_row, fig5_b, fig5_b_legend,
+  ncol = 1,
+  rel_heights = c(fig5_a_height, fig5_b_height, fig5_legend_height),
+  labels = c("", "b", ""),
+  label_size = 10, label_x = 0, hjust = -0.2
+)
+fig5_height <- fig5_a_height + fig5_b_height + fig5_legend_height
+ggsave(
+  "images/figure_5.png", fig5,
+  width = fig_width, height = fig5_height, dpi = 700, bg = "white"
+)
+fig5
 ```
 
-Figure 4 is drawn at its final print size (`{r} fig4_width` × `{r} round(fig4_total_height, 1)` in).
+Figure 5 is drawn at its final print size (`{r} fig_width` × `{r} round(fig5_height, 1)` in).
