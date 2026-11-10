@@ -1,4 +1,4 @@
-# Behavioral innovation enables the poleward range expansion of a tropical ectotherm beyond its physiological limits
+# Behavioral innovation enables the poleward expansion of a tropical ectotherm beyond its physiological limits
 
 This repository contains the supplementary code and data for our manuscript on how the American green anole (*Anolis carolinensis*) expanded its range from the tropics into temperate North America by retreating into the leaf litter during winter.
 
